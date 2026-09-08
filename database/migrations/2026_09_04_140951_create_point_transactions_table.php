@@ -15,14 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->integer('points');
-            $table->enum('source_type', [
-                'ba_submission',
-                'ba_reviewed',
-                'learning_completion',
-                'post_test_passed',
-                'mission_completed',
-                'admin_adjustment',
-            ]);
+            $table->string('source_type');
             $table->uuid('source_id')->nullable();
             $table->string('description');
             $table->timestamp('created_at')->useCurrent();

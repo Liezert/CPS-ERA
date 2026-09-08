@@ -15,10 +15,10 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('learning_category_id')->constrained('learning_categories')->cascadeOnDelete();
             $table->string('title');
-            $table->enum('type', ['dokumen', 'video', 'presentasi', 'artikel', 'tutorial', 'link', 'file_pendukung']);
+            $table->string('type');
             $table->string('content_url')->nullable();
             $table->text('description')->nullable();
-            $table->enum('status', ['draft', 'published'])->default('published');
+            $table->string('status')->default('published');
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
         });

@@ -23,10 +23,12 @@ class BaIncidentService
         $prefix = "BA-{$year}-";
 
         return DB::transaction(function () use ($year, $prefix): string {
+            $castType = DB::connection()->getDriverName() === 'mysql' ? 'UNSIGNED' : 'INTEGER';
+
             $latestIncident = BaIncident::query()
                 ->where('nomor_ba', 'like', "{$prefix}%")
                 ->lockForUpdate()
-                ->orderByRaw('CAST(SUBSTRING(nomor_ba, 9) AS UNSIGNED) DESC')
+                ->orderByRaw("CAST(SUBSTRING(nomor_ba, 9) AS {$castType}) DESC")
                 ->first();
 
             $sequence = 1;

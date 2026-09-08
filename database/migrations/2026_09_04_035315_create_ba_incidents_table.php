@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('division_id')->constrained('divisions');
             $table->string('file_ba_url');
             $table->string('file_ftk_url');
-            $table->enum('status', ['created', 'reviewed', 'closed'])->default('created');
+            $table->string('status')->default('created');
             $table->foreignId('created_by')->constrained('users');
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();

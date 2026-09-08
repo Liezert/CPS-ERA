@@ -62,7 +62,7 @@ class Quiz extends Model
     {
         return $this->hasOne(QuizAttempt::class)
             ->where('user_id', auth()->id())
-            ->latestOfMany('attempted_at');
+            ->latest('attempted_at');
     }
 
     /**
