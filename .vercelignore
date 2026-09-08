@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+/vendor
+/node_modules
+/storage/*.key
+.git
+.github
+CPS_ERA_PRD.md
+CPS-ERA-Data-Contract.md
+CPS-ERA-Design-System.md
+/scratch/
