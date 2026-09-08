@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    /* Tombol primary - Solid Hijau CPS (#0B7840) */
+    .btn-primary {
+        @apply inline-flex items-center justify-center font-sans font-medium text-sm text-white bg-brand hover:bg-brand-dark active:bg-brand-dark px-4 py-2 border border-transparent rounded-none focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    /* Tombol secondary - Outline netral */
+    .btn-secondary {
+        @apply inline-flex items-center justify-center font-sans font-medium text-sm text-neutral-900 bg-white border border-neutral-200 hover:bg-neutral-50 active:bg-neutral-50 px-4 py-2 rounded-none focus:outline-none focus:ring-2 focus:ring-neutral-900/10 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    /* Status badge - Kotak bersudut tegas, border 1px, tanpa fill */
+    .badge-status {
+        @apply inline-flex items-center px-2 py-0.5 text-xs font-mono font-medium border border-neutral-200 text-neutral-900 bg-transparent rounded-none;
+    }
+
+    .badge-status-brand {
+        @apply inline-flex items-center px-2 py-0.5 text-xs font-mono font-medium border border-brand text-brand-dark bg-transparent rounded-none;
+    }
+
+    /* Metric card - Background netral flat, tanpa border/shadow tebal */
+    .metric-card {
+        @apply bg-white p-5 border border-neutral-200 rounded-none;
+    }
+}

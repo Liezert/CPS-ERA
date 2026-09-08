@@ -1,0 +1,71 @@
+*.log
+.DS_Store
+
+# Environment files — JANGAN PERNAH di-commit
+.env
+.env.*
+!.env.example
+
+# PHP & Composer
+.phpactor.json
+.phpunit.result.cache
+/.phpunit.cache
+/auth.json
+/vendor
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+
+# Node / Frontend
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Storage & Keys
+/public/storage
+/storage/*.key
+/storage/pail
+/storage/logs/
+/storage/app/private/
+/storage/framework/sessions/
+/storage/framework/cache/
+
+# Editor & IDE
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.vscode
+/.zed
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# OS
+desktop.ini
+
+# Homestead / Vagrant
+Homestead.json
+Homestead.yaml
+.vagrant/
+
+# Dokumen internal bisnis — sensitif
+CPS_ERA_PRD.md
+CPS-ERA-Data-Contract.md
+CPS-ERA-Design-System.md
+
+# Scratch / Debug files
+/scratch/
+*.dump
+*.sql
+*.bak
+
+# AI / Agent configs internal
+/.agents/mcp_config.json
+CLAUDE.md
+AGENTS.md
