@@ -10,6 +10,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification as FilamentNotification;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -28,10 +29,9 @@ class AchievementsTable
                     ->label('Deskripsi')
                     ->limit(60)
                     ->wrap(),
-                TextColumn::make('icon')
+                IconColumn::make('icon')
                     ->label('Icon')
-                    ->badge()
-                    ->color('gray'),
+                    ->icon(fn (?string $state): ?string => $state),
                 TextColumn::make('users_count')
                     ->label('Jumlah Penerima')
                     ->counts('users')
@@ -46,11 +46,12 @@ class AchievementsTable
             ])
             ->recordActions([
                 Action::make('unlockForUser')
-                    ->label('Unlock untuk User')
+                    ->label('Berikan ke User')
+                    ->tooltip('Berikan badge ini secara manual kepada karyawan')
                     ->icon('heroicon-o-gift')
                     ->color('success')
-                    ->modalHeading(fn (Achievement $record): string => "Unlock Badge '{$record->name}' untuk User")
-                    ->modalDescription('Pilih user yang akan diberikan badge pencapaian ini. User akan otomatis menerima notifikasi achievement baru.')
+                    ->modalHeading(fn (Achievement $record): string => "Berikan Badge '{$record->name}' ke User")
+                    ->modalDescription('Pilih user yang akan diberikan badge pencapaian ini secara manual. User akan otomatis menerima notifikasi achievement baru.')
                     ->schema([
                         Select::make('user_id')
                             ->label('Pilih Karyawan / User')
@@ -83,7 +84,7 @@ class AchievementsTable
                         ]);
 
                         FilamentNotification::make()
-                            ->title("Achievement '{$record->name}' berhasil dibuka untuk user!")
+                            ->title("Badge '{$record->name}' berhasil diberikan ke user!")
                             ->success()
                             ->send();
                     }),

@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\LearningMaterial;
 use App\Models\PointTransaction;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizOption;
 use App\Models\QuizQuestion;
 use App\Models\User;
+use App\Services\KpiContributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +57,7 @@ class QuizController extends Controller
                 'id' => $question->id,
                 'question_text' => $question->question_text,
                 'order_index' => $question->order_index,
+                'allow_multiple_answers' => (bool) $question->allow_multiple_answers,
                 'options' => $question->options->map(function (QuizOption $option) {
                     return [
                         'id' => $option->id,
@@ -110,10 +113,10 @@ class QuizController extends Controller
             $rawAnswers = $request->input('answers');
             if (is_array($rawAnswers)) {
                 foreach ($rawAnswers as $key => $val) {
-                    if (is_array($val) && isset($val['question_id'], $val['selected_option_id'])) {
-                        $userAnswers[$val['question_id']] = (string) $val['selected_option_id'];
+                    if (is_array($val) && isset($val['question_id'])) {
+                        $userAnswers[$val['question_id']] = $val['selected_option_ids'] ?? ($val['selected_option_id'] ?? []);
                     } elseif (is_string($key)) {
-                        $userAnswers[$key] = (string) $val;
+                        $userAnswers[$key] = $val;
                     }
                 }
             }
@@ -124,21 +127,36 @@ class QuizController extends Controller
         $correctCount = 0;
 
         foreach ($quiz->questions as $question) {
-            $selectedOptionId = $userAnswers[$question->id] ?? null;
-            if ($selectedOptionId) {
-                $chosenOption = $question->options->firstWhere('id', $selectedOptionId);
-                if ($chosenOption && $chosenOption->is_correct) {
+            $userAnswer = $userAnswers[$question->id] ?? null;
+
+            if ($question->allow_multiple_answers) {
+                $selectedIds = is_array($userAnswer) ? $userAnswer : ($userAnswer ? [$userAnswer] : []);
+                $selectedIds = array_map('strval', $selectedIds);
+                sort($selectedIds);
+
+                $correctIds = $question->options->where('is_correct', true)->pluck('id')->map(fn ($id) => (string) $id)->all();
+                sort($correctIds);
+
+                if (! empty($correctIds) && array_values($selectedIds) === array_values($correctIds)) {
                     $correctCount++;
+                }
+            } else {
+                $selectedOptionId = is_array($userAnswer) ? ($userAnswer[0] ?? null) : $userAnswer;
+                if ($selectedOptionId) {
+                    $chosenOption = $question->options->firstWhere('id', $selectedOptionId);
+                    if ($chosenOption && $chosenOption->is_correct) {
+                        $correctCount++;
+                    }
                 }
             }
         }
 
         $score = $totalQuestions > 0 ? (int) round(($correctCount / $totalQuestions) * 100) : 0;
-        // Passed jika skor >= 70 (atau semua benar untuk kuis 1 pertanyaan)
-        $passed = $totalQuestions > 0 && ($score >= 70 || $correctCount === $totalQuestions);
-        $pointsEarned = $passed ? (int) $quiz->points_reward : 0;
+        $isPostTest = $quiz->type === 'post_test';
+        $passed = $isPostTest ? ($score === 100) : ($totalQuestions > 0 && ($score >= 70 || $correctCount === $totalQuestions));
+        $pointsEarned = (! $isPostTest && $passed) ? (int) $quiz->points_reward : 0;
 
-        $attempt = DB::transaction(function () use ($quiz, $user, $score, $passed, $pointsEarned) {
+        $attempt = DB::transaction(function () use ($quiz, $user, $score, $passed, $pointsEarned, $isPostTest) {
             $attempt = QuizAttempt::create([
                 'quiz_id' => $quiz->id,
                 'user_id' => $user->id,
@@ -148,18 +166,25 @@ class QuizController extends Controller
                 'attempted_at' => now(),
             ]);
 
-            // Jika lulus dan ada poin, catat transaksi poin
-            if ($passed && $pointsEarned > 0) {
-                $sourceType = $quiz->type === 'post_test' ? 'post_test_passed' : 'mission_completed';
-
+            // Jika misi game dan lulus, catat transaksi poin XP
+            if (! $isPostTest && $passed && $pointsEarned > 0) {
                 PointTransaction::create([
                     'user_id' => $user->id,
+                    'ledger_type' => PointTransaction::LEDGER_XP,
                     'points' => $pointsEarned,
-                    'source_type' => $sourceType,
+                    'source_type' => 'mission_completed',
                     'source_id' => $quiz->id,
                     'description' => "Menyelesaikan quiz/misi: {$quiz->title}",
                     'created_at' => now(),
                 ]);
+            }
+
+            // Jika post-test lulus 100%, picu KPI Contribution
+            if ($isPostTest && $passed && $quiz->related_type === 'learning_material' && $quiz->related_id) {
+                $material = LearningMaterial::find($quiz->related_id);
+                if ($material) {
+                    app(KpiContributionService::class)->recordMaterialCompletion($user, $material, $score, $attempt);
+                }
             }
 
             return $attempt;
@@ -175,7 +200,8 @@ class QuizController extends Controller
                 'score' => $score,
                 'passed' => $passed,
                 'points_earned' => $pointsEarned,
-                'total_points' => (int) $user->fresh()->total_points,
+                'xp' => (int) $user->fresh()->xp,
+                'total_points' => (int) $user->fresh()->xp,
             ],
         ]);
     }

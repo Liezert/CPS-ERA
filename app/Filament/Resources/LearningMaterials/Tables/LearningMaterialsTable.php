@@ -41,17 +41,29 @@ class LearningMaterialsTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'published' => 'success',
+                        'candidate' => 'info',
                         'draft' => 'warning',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'candidate' => 'Candidate (dari BA)',
+                        default => ucfirst($state),
+                    }),
+                TextColumn::make('xp_reward')
+                    ->label('XP Reward')
+                    ->numeric()
+                    ->badge()
+                    ->color('primary')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('creator.name')
                     ->label('Dibuat Oleh')
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Waktu Dibuat')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('learning_category_id')
@@ -71,8 +83,9 @@ class LearningMaterialsTable
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        'draft' => 'Draft',
+                        'candidate' => 'Candidate (dari BA)',
                         'published' => 'Published',
+                        'draft' => 'Draft',
                     ]),
             ])
             ->recordActions([

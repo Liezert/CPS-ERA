@@ -56,14 +56,14 @@ class StageFiveDashboardTest extends TestCase
         $response->assertSee('AD'); // Inisial dari Ahmad Dahlan
         $response->assertSee('bg-brand-tint', false);
 
-        // Chip level (brand-tint) & TODO PRD §5.3
+        // Chip level (brand-tint)
         $response->assertSee('Level 2');
-        $response->assertSee('TODO: Menunggu keputusan PRD §5.3 (Poin 1: Formula skala level)', false);
+        $response->assertDontSee('PRD §5.3');
 
-        // Tombol aksi utama "Buat BA Baru" tanpa panah
-        $response->assertSee('Buat BA Baru');
-        $this->assertStringNotContainsString('Buat BA Baru &rarr;', $response->getContent());
-        $this->assertStringNotContainsString('Buat BA Baru →', $response->getContent());
+        // Tombol aksi utama "Buat Laporan CAPA" tanpa panah
+        $response->assertSee('Buat Laporan CAPA');
+        $this->assertStringNotContainsString('Buat Laporan CAPA &rarr;', $response->getContent());
+        $this->assertStringNotContainsString('Buat Laporan CAPA →', $response->getContent());
     }
 
     /**
@@ -83,6 +83,7 @@ class StageFiveDashboardTest extends TestCase
             'user_id' => $user->id,
             'points' => 150,
             'source_type' => 'ba_submission',
+            'ledger_type' => 'xp',
             'description' => 'Poin pelaporan BA Mesin A',
         ]);
 
@@ -91,6 +92,7 @@ class StageFiveDashboardTest extends TestCase
             'user_id' => $user->id,
             'points' => 50,
             'source_type' => 'learning_completion',
+            'ledger_type' => 'xp',
             'description' => 'Menyelesaikan modul SOP Keselamatan',
         ]);
 
@@ -98,12 +100,12 @@ class StageFiveDashboardTest extends TestCase
         $response->assertStatus(200);
 
         // Total harus 200 (150 + 50) dari ledger
-        $response->assertSee('200 Pts');
-        $response->assertSee('Agregasi ledger point_transactions');
+        $response->assertSee('200');
+        $response->assertSee('XP & Level');
     }
 
     /**
-     * DoD #2: Grid metric card memuat Learning Progress %, KPI Contribution % (dengan TODO), dan progress bar level.
+     * DoD #2: Grid metric card memuat Learning Progress %, KPI Contribution, dan progress bar level.
      */
     public function test_dashboard_metric_cards_and_progress_bars(): void
     {
@@ -139,16 +141,13 @@ class StageFiveDashboardTest extends TestCase
         $response->assertSee('Learning Progress');
         $response->assertSee('80%');
 
-        // 2. KPI Contribution card (TODO PRD §5.3)
+        // 2. KPI Contribution card
         $response->assertSee('KPI Contribution');
-        $response->assertSee('--');
-        $response->assertSee('[Menunggu PRD §5.3]');
-        $response->assertSee('TODO: Menunggu keputusan PRD §5.3 (Poin 2: Formula persentase KPI Contribution)', false);
+        $response->assertSee('materi');
 
-        // 3. Target Level Berikutnya & progress bar hijau
-        $response->assertSee('Target Level Berikutnya');
-        $response->assertSee('Level 3');
-        $response->assertSee('bg-brand h-2 rounded-full', false);
+        // 3. Level & progress bar hijau
+        $response->assertSee('Level 2');
+        $response->assertSee('bg-brand h-1.5 rounded-full', false);
     }
 
     /**
@@ -209,7 +208,7 @@ class StageFiveDashboardTest extends TestCase
 
         // Header list dua kolom
         $response->assertSee('Knowledge Repository Terbaru');
-        $response->assertSee('BA &amp; Lesson Learned Terbaru', false);
+        $response->assertSee('Laporan CAPA Terbaru', false);
 
         // Hairline divider tipis (divide-y divide-neutral-200) bukan card individual
         $response->assertSee('divide-y divide-neutral-200', false);

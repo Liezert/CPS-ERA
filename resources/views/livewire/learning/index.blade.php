@@ -2,18 +2,18 @@
     {{-- =========================================================================
          1. HEADER HALAMAN & KONTROL ADMIN KATEGORI (Design System §2 & §5)
          ========================================================================= --}}
-    <div class="bg-white border border-neutral-200 rounded-md p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="bg-neutral-50/70 border border-neutral-200 rounded-md p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-3">
                 <h1 class="font-sans font-semibold text-xl text-neutral-900 leading-tight">
                     Learning
                 </h1>
                 {{-- Counter Badge Total Materi (font-mono netral) --}}
-                <span class="inline-flex items-center px-2 py-0.5 border border-neutral-200 rounded-badge font-mono text-xs text-neutral-600 bg-neutral-50">
+                <span class="inline-flex items-center px-2 py-0.5 border border-neutral-200 rounded-badge font-mono text-xs text-neutral-700 bg-white font-medium">
                     {{ $materials->total() }} Materi
                 </span>
             </div>
-            <p class="font-sans text-xs text-neutral-500 mt-1">
+            <p class="font-sans text-xs text-neutral-600 mt-1">
                 Modul peningkatan kompetensi, standardisasi operasional, dan materi evaluasi berkelanjutan PT CPS.
             </p>
         </div>
@@ -21,19 +21,19 @@
         {{-- Toolbar Kanan: Metrik Belajar & Aksi Admin --}}
         <div class="flex items-center gap-3 shrink-0 flex-wrap">
             {{-- Metrik Ringkas Pengguna --}}
-            <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-badge text-xs font-sans text-neutral-600">
-                <span class="font-medium">Selesai:</span>
-                <span class="font-mono font-semibold text-brand">{{ $totalCompletedCount }}</span>
+            <div class="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 bg-white border border-neutral-200 rounded-md text-xs font-sans text-neutral-600 shadow-xs">
+                <span class="font-medium text-neutral-600">Selesai:</span>
+                <span class="font-mono font-bold text-sm text-brand">{{ $totalCompletedCount }}</span>
                 <span class="text-neutral-300">&vert;</span>
-                <span class="font-medium">Sedang Berjalan:</span>
-                <span class="font-mono font-semibold text-neutral-800">{{ $totalInProgressCount }}</span>
+                <span class="font-medium text-neutral-600">Sedang Berjalan:</span>
+                <span class="font-mono font-bold text-sm text-neutral-900">{{ $totalInProgressCount }}</span>
             </div>
 
             {{-- Tombol Kelola Kategori (Hanya untuk Admin & Quality - DoD #3) --}}
             @if(auth()->user()?->hasAnyRole(['admin', 'quality']))
                 <button type="button"
                         wire:click="openCategoryModal"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 hover:border-brand hover:text-brand text-neutral-700 rounded-badge text-xs font-sans font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-brand">
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 hover:border-brand hover:text-brand text-neutral-700 rounded-md text-xs font-sans font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-brand">
                     <x-layout.nav-icon name="folder-cog" class="w-4 h-4" />
                     <span>+ Kategori Baru</span>
                 </button>
@@ -43,14 +43,14 @@
             <div class="inline-flex items-center border border-neutral-200 rounded-badge p-0.5 bg-neutral-50">
                 <button type="button"
                         wire:click="$set('viewMode', 'grid')"
-                        class="p-1.5 rounded-[2px] transition-colors {{ $viewMode === 'grid' ? 'bg-white shadow-none text-neutral-900 font-medium' : 'text-neutral-400 hover:text-neutral-700' }}"
+                        class="p-1.5 rounded-[2px] transition-colors {{ $viewMode === 'grid' ? 'bg-white shadow-none text-neutral-900 font-medium' : 'text-neutral-500 hover:text-neutral-800' }}"
                         title="Tampilan Grid"
                         aria-label="Tampilan Grid">
                     <x-layout.nav-icon name="grid" class="w-4 h-4" />
                 </button>
                 <button type="button"
                         wire:click="$set('viewMode', 'list')"
-                        class="p-1.5 rounded-[2px] transition-colors {{ $viewMode === 'list' ? 'bg-white shadow-none text-neutral-900 font-medium' : 'text-neutral-400 hover:text-neutral-700' }}"
+                        class="p-1.5 rounded-[2px] transition-colors {{ $viewMode === 'list' ? 'bg-white shadow-none text-neutral-900 font-medium' : 'text-neutral-500 hover:text-neutral-800' }}"
                         title="Tampilan List"
                         aria-label="Tampilan List">
                     <x-layout.nav-icon name="list" class="w-4 h-4" />
@@ -77,7 +77,7 @@
     {{-- =========================================================================
          2. PENCARIAN REAKTIF & FILTER KATEGORI (ADMIN-MANAGED) & 7 JENIS MATERI
          ========================================================================= --}}
-    <div class="bg-white border border-neutral-200 rounded-md p-4 space-y-3">
+    <div class="bg-neutral-50/50 border border-neutral-200 rounded-md p-4 space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
             {{-- Kolom Search Input: Reaktif tanpa reload via wire:model.live.debounce.300ms --}}
             <div class="md:col-span-4 relative">
@@ -87,7 +87,7 @@
                 <input type="text"
                        wire:model.live.debounce.300ms="search"
                        placeholder="Cari judul materi, SOP, topik pembelajaran..."
-                       class="w-full pl-9 pr-8 py-2 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors" />
+                       class="w-full pl-9 pr-8 py-2 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors" />
 
                 @if(!empty($search))
                     <button type="button"
@@ -102,7 +102,7 @@
             {{-- Kolom Filter Kategori Materi (Admin-Managed - DoD #3) --}}
             <div class="md:col-span-3">
                 <select wire:model.live="selectedCategoryId"
-                        class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
+                        class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
                         aria-label="Filter berdasarkan kategori">
                     <option value="">Semua Kategori ({{ $categories->count() }})</option>
                     @foreach($categories as $cat)
@@ -114,7 +114,7 @@
             {{-- Kolom Filter 7 Jenis Materi (Dokumen, Video, Presentasi, Artikel, Tutorial, Link, File Pendukung) --}}
             <div class="md:col-span-3">
                 <select wire:model.live="selectedType"
-                        class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
+                        class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
                         aria-label="Filter berdasarkan tipe materi">
                     <option value="">Semua Jenis Materi (7 Jenis)</option>
                     @foreach($types as $key => $label)
@@ -126,7 +126,7 @@
             {{-- Kolom Filter Status Pembelajaran Pengguna --}}
             <div class="md:col-span-2">
                 <select wire:model.live="selectedProgressFilter"
-                        class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
+                        class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
                         aria-label="Filter status pembelajaran">
                     <option value="all">Semua Status</option>
                     <option value="not_started">Belum Dimulai</option>
@@ -241,23 +241,23 @@
                             {{-- Header Kartu: Kategori Badge + Ikon Outline Jenis Materi + Badge Post-Test --}}
                             <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-neutral-100">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    {{-- Kategori Materi --}}
+                                    {{-- Kategori Materi (Standar Regulasi / Kurikulum) --}}
                                     @if($material->category)
-                                        <span class="truncate px-1.5 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-[11px]" title="{{ $material->category->name }}">
+                                        <span class="truncate px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[11px] font-medium" title="{{ $material->category->name }}">
                                             {{ $material->category->name }}
                                         </span>
                                     @endif
 
                                     {{-- 7 Jenis Materi: Ikon Outline Netral + Teks Netral (Design System §5) --}}
-                                    <div class="inline-flex items-center gap-1 text-neutral-500 text-[11px] font-sans shrink-0">
+                                    <div class="inline-flex items-center gap-1.5 text-neutral-600 text-[11px] font-sans shrink-0 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-badge">
                                         <x-layout.nav-icon :name="$material->type" class="w-3.5 h-3.5 text-neutral-500" />
-                                        <span class="capitalize">{{ $types[$material->type] ?? ucfirst($material->type) }}</span>
+                                        <span class="capitalize font-medium">{{ $types[$material->type] ?? ucfirst($material->type) }}</span>
                                     </div>
                                 </div>
 
-                                {{-- Indikator Post-Test Tersedia --}}
+                                {{-- Indikator Post-Test Tersedia (Interactive Assessment) --}}
                                 @if($hasPostTest)
-                                    <span class="px-1.5 py-0.5 border border-neutral-200 rounded-badge text-[10px] font-sans text-neutral-600 bg-white shrink-0" title="Materi memiliki Post-Test">
+                                    <span class="px-2 py-0.5 border border-brand/30 rounded-badge text-[10px] font-sans font-medium text-brand-dark bg-brand-tint shrink-0" title="Materi memiliki Post-Test">
                                         Post-Test
                                     </span>
                                 @endif
@@ -270,7 +270,7 @@
                                         {{ $material->title }}
                                     </h2>
                                 </a>
-                                <p class="font-sans text-xs text-neutral-500 line-clamp-2 mt-1.5 leading-relaxed">
+                                <p class="font-sans text-xs text-neutral-600 line-clamp-2 mt-1.5 leading-relaxed">
                                     {{ $material->description ?: 'Tidak ada deskripsi pengantar untuk materi ini.' }}
                                 </p>
                             </div>
@@ -309,7 +309,6 @@
                                 <a href="{{ route('learning.show', $material->id) }}"
                                    class="inline-flex items-center gap-1 text-xs font-sans font-medium text-brand hover:text-brand-dark transition-colors">
                                     <span>Pelajari</span>
-                                    <span>&rarr;</span>
                                 </a>
                             </div>
                         </div>
@@ -347,24 +346,24 @@
                                     </a>
 
                                     @if($material->category)
-                                        <span class="px-1.5 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-[10px]">
+                                        <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[10px] font-medium">
                                             {{ $material->category->name }}
                                         </span>
                                     @endif
 
-                                    <span class="font-sans text-[10px] text-neutral-400 capitalize">
+                                    <span class="font-sans text-[10px] text-neutral-600 bg-neutral-50 border border-neutral-200 px-1.5 py-0.5 rounded-badge capitalize">
                                         {{ $types[$material->type] ?? ucfirst($material->type) }}
                                     </span>
 
                                     @if($hasPostTest)
-                                        <span class="px-1.5 py-0.5 border border-neutral-200 rounded-badge text-[10px] font-sans text-neutral-500 bg-white">
+                                        <span class="px-2 py-0.5 border border-brand/30 rounded-badge text-[10px] font-sans font-medium text-brand-dark bg-brand-tint">
                                             Post-Test
                                         </span>
                                     @endif
                                 </div>
 
                                 @if(!empty($material->description))
-                                    <p class="font-sans text-xs text-neutral-500 line-clamp-1 mt-0.5">
+                                    <p class="font-sans text-xs text-neutral-600 line-clamp-1 mt-0.5">
                                         {{ $material->description }}
                                     </p>
                                 @endif
@@ -395,8 +394,8 @@
                             </div>
 
                             <a href="{{ route('learning.show', $material->id) }}"
-                               class="px-3 py-1.5 border border-neutral-200 rounded-badge text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 hover:text-brand transition-colors shrink-0">
-                                Pelajari &rarr;
+                               class="px-3 py-1.5 border border-neutral-200 rounded-md text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 hover:text-brand transition-colors shrink-0">
+                                Pelajari
                             </a>
                         </div>
                     </div>
@@ -443,14 +442,14 @@
 
                     <form wire:submit="saveCategory" class="mt-4 space-y-4">
                         <div>
-                            <label for="newCategoryName" class="block text-xs font-sans font-medium text-neutral-700 uppercase tracking-normal mb-1.5">
+                            <label for="newCategoryName" class="block text-xs font-sans font-medium text-neutral-700 mb-1.5">
                                 Nama Kategori Materi <span class="text-neutral-400">*</span>
                             </label>
                             <input type="text"
                                    id="newCategoryName"
                                    wire:model="newCategoryName"
                                    placeholder="Contoh: Standar Operasional & K3, Otomasi Mesin..."
-                                   class="w-full px-3 py-2 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors" />
+                                   class="w-full px-3 py-2 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors" />
                             @error('newCategoryName')
                                 <span class="text-[11px] font-sans text-neutral-600 font-medium mt-1 block">{{ $message }}</span>
                             @enderror
@@ -462,12 +461,12 @@
                         <div class="pt-3 border-t border-neutral-100 flex items-center justify-end gap-2">
                             <button type="button"
                                     wire:click="closeCategoryModal"
-                                    class="px-3 py-1.5 border border-neutral-200 rounded-badge text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 transition-colors">
+                                    class="px-3 py-1.5 border border-neutral-200 rounded-md text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 transition-colors">
                                 Batal
                             </button>
                             <button type="submit"
                                     wire:loading.attr="disabled"
-                                    class="px-4 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50">
+                                    class="px-4 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-sans font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50">
                                 <span wire:loading.remove wire:target="saveCategory">Simpan Kategori</span>
                                 <span wire:loading wire:target="saveCategory">Menyimpan...</span>
                             </button>

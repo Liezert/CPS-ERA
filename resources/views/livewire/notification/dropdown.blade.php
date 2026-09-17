@@ -25,7 +25,7 @@
          x-transition:leave="transition ease-in duration-100 transform"
          x-transition:leave-start="opacity-100 scale-100"
          x-transition:leave-end="opacity-0 scale-95"
-         class="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-neutral-200 rounded-lg shadow-md z-50 overflow-hidden">
+         class="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-neutral-200 rounded-lg shadow-sm z-50 overflow-hidden">
         
         {{-- Header Notifikasi --}}
         <div class="px-4 py-3 border-b border-neutral-200 bg-neutral-50/70 flex items-center justify-between">
@@ -89,7 +89,7 @@
                         <p class="font-sans text-[11px] text-neutral-600 mt-0.5 line-clamp-2 leading-relaxed">
                             {{ $item->message }}
                         </p>
-                        <span class="font-mono text-[10px] text-neutral-400 mt-1 block">
+                        <span class="font-mono text-[10px] text-neutral-500 font-medium mt-1 block">
                             {{ $item->created_at->diffForHumans() }}
                         </span>
                     </div>
@@ -100,7 +100,7 @@
                         @include('components.layout.nav-icon', ['name' => 'bell', 'class' => 'w-5 h-5'])
                     </div>
                     <p class="font-sans text-xs font-medium text-neutral-700">Tidak ada notifikasi</p>
-                    <p class="font-sans text-[11px] text-neutral-400 mt-0.5">Semua pembaruan aktivitas pabrik akan muncul di sini.</p>
+                    <p class="font-sans text-[11px] text-neutral-500 mt-0.5">Semua pembaruan aktivitas pabrik akan muncul di sini.</p>
                 </div>
             @endforelse
         </div>

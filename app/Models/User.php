@@ -24,6 +24,7 @@ use Spatie\Permission\Traits\HasRoles;
     'division_id',
     'jabatan',
     'avatar_url',
+    'xp',
     'total_points',
     'level',
 ])]
@@ -97,6 +98,34 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Get the yearly KPI progress records for the user.
+     *
+     * @return HasMany<UserKpiYearly, $this>
+     */
+    public function kpiYearlies(): HasMany
+    {
+        return $this->hasMany(UserKpiYearly::class);
+    }
+
+    /**
+     * Dapatkan atau buat record KPI tahunan (lazy initialization).
+     */
+    public function getKpiYearly(?int $year = null): UserKpiYearly
+    {
+        $year = $year ?? (int) now()->year;
+
+        return $this->kpiYearlies()->firstOrCreate(
+            ['period_year' => $year],
+            [
+                'materials_completed_count' => 0,
+                'poin_cps_era_earned' => 0,
+                'poin_from_ba' => 0,
+                'poin_from_materi' => 0,
+            ]
+        );
+    }
+
+    /**
      * Get the quiz attempts by the user.
      *
      * @return HasMany<QuizAttempt, $this>
@@ -139,6 +168,26 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Get the videos created by the user.
+     *
+     * @return HasMany<Video, $this>
+     */
+    public function createdVideos(): HasMany
+    {
+        return $this->hasMany(Video::class, 'created_by');
+    }
+
+    /**
+     * Get the video view records of the user.
+     *
+     * @return HasMany<UserVideoView, $this>
+     */
+    public function videoViews(): HasMany
+    {
+        return $this->hasMany(UserVideoView::class);
+    }
+
+    /**
      * Determine if the user can access the given panel.
      * Hanya role admin, supervisor, dan quality yang diizinkan mengakses panel Filament.
      */
@@ -157,8 +206,40 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'total_points' => 'integer',
+            'xp' => 'integer',
             'level' => 'integer',
         ];
+    }
+
+    /**
+     * Dapatkan inisial nama 2 karakter untuk avatar default.
+     */
+    public function getInitialsAttribute(): string
+    {
+        if (empty($this->name)) {
+            return 'CP';
+        }
+
+        $parts = explode(' ', trim($this->name));
+        $first = substr($parts[0], 0, 1);
+        $second = isset($parts[1]) ? substr($parts[1], 0, 1) : '';
+
+        return strtoupper($first.$second);
+    }
+
+    /**
+     * Backward-compatibility accessor untuk total_points -> xp.
+     */
+    public function getTotalPointsAttribute(): int
+    {
+        return (int) ($this->attributes['xp'] ?? 0);
+    }
+
+    /**
+     * Backward-compatibility mutator untuk total_points -> xp.
+     */
+    public function setTotalPointsAttribute(mixed $value): void
+    {
+        $this->attributes['xp'] = (int) $value;
     }
 }

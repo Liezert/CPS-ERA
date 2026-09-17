@@ -57,9 +57,9 @@
                         </span>
                     </div>
                     <div class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                        <span class="text-xs text-gray-500 dark:text-gray-400 block">Total Poin</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 block">Total XP</span>
                         <span class="font-semibold text-gray-800 dark:text-gray-200 text-base">
-                            {{ $user->total_points ?? 0 }} Poin
+                            {{ $user->xp ?? 0 }} XP
                         </span>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
                             </div>
                         </div>
                         <a href="{{ url('/admin') }}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-md shadow-sm transition">
-                            Buka /admin &rarr;
+                            Buka /admin
                         </a>
                     </div>
                 @else

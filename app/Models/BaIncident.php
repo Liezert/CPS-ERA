@@ -18,8 +18,30 @@ use Spatie\MediaLibrary\InteractsWithMedia;
     'title',
     'description',
     'division_id',
-    'file_ba_url',
-    'file_ftk_url',
+    'tanggal_pengisian',
+    'sumber_ketidaksesuaian',
+    'sumber_ketidaksesuaian_lainnya',
+    'tanggal_masalah',
+    'lokasi',
+    'deskripsi_masalah',
+    'why_1',
+    'why_2',
+    'why_3',
+    'why_4',
+    'why_5',
+    'kesimpulan_akar_masalah',
+    'koreksi_deskripsi',
+    'koreksi_pic',
+    'koreksi_waktu',
+    'korektif_deskripsi',
+    'korektif_pic',
+    'korektif_waktu',
+    'is_potensi_risiko',
+    'is_potensi_peluang',
+    'status_verifikasi',
+    'bukti_objektif',
+    'alasan_tidak_efektif',
+    'catatan_penolakan',
     'status',
     'created_by',
     'reviewed_by',
@@ -32,7 +54,18 @@ class BaIncident extends Model implements HasMedia
     use HasFactory, HasUuids, InteractsWithMedia;
 
     /**
-     * Register media collections for separate BA and FTK files.
+     * Sumber ketidaksesuaian constants sesuai FR/QC/22
+     */
+    public const SUMBER_OPTIONS = [
+        'keluhan_pelanggan' => 'Keluhan Pelanggan',
+        'audit' => 'Audit',
+        'laporan_ketidaksesuaian' => 'Laporan Ketidaksesuaian',
+        'pencapaian_sasaran_program' => 'Pencapaian Sasaran Program',
+        'lain_lain' => 'Lain-lain',
+    ];
+
+    /**
+     * Register media collections.
      */
     public function registerMediaCollections(): void
     {
@@ -71,6 +104,26 @@ class BaIncident extends Model implements HasMedia
     }
 
     /**
+     * Get the video contribution linked to this BA.
+     *
+     * @return HasOne<Video, $this>
+     */
+    public function video(): HasOne
+    {
+        return $this->hasOne(Video::class, 'ba_incident_id');
+    }
+
+    /**
+     * Get all videos linked to this BA.
+     *
+     * @return HasMany<Video, $this>
+     */
+    public function videos(): HasMany
+    {
+        return $this->hasMany(Video::class, 'ba_incident_id');
+    }
+
+    /**
      * Get all activity logs for the incident.
      *
      * @return HasMany<BaActivityLog, $this>
@@ -91,27 +144,57 @@ class BaIncident extends Model implements HasMedia
     }
 
     /**
-     * Determine if the incident is in 'created' status.
+     * Status helper methods.
+     */
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    public function isSubmitted(): bool
+    {
+        return $this->status === 'submitted';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
+
+    /**
+     * Backward-compatibility status checks.
      */
     public function isCreated(): bool
     {
-        return $this->status === 'created';
+        return in_array($this->status, ['draft', 'created', 'submitted'], true);
     }
 
-    /**
-     * Determine if the incident is in 'reviewed' status.
-     */
     public function isReviewed(): bool
     {
-        return $this->status === 'reviewed';
+        return in_array($this->status, ['reviewed', 'approved'], true);
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, ['closed', 'approved'], true);
     }
 
     /**
-     * Determine if the incident is in 'closed' status.
+     * Backward-compatibility accessors for dropped file columns.
      */
-    public function isClosed(): bool
+    public function getFileBaUrlAttribute(): ?string
     {
-        return $this->status === 'closed';
+        return $this->attributes['file_ba_url'] ?? $this->getFirstMediaUrl('ba_file') ?: null;
+    }
+
+    public function getFileFtkUrlAttribute(): ?string
+    {
+        return $this->attributes['file_ftk_url'] ?? $this->getFirstMediaUrl('ftk_file') ?: null;
     }
 
     /**
@@ -122,6 +205,10 @@ class BaIncident extends Model implements HasMedia
     protected function casts(): array
     {
         return [
+            'tanggal_pengisian' => 'date',
+            'tanggal_masalah' => 'date',
+            'is_potensi_risiko' => 'boolean',
+            'is_potensi_peluang' => 'boolean',
             'reviewed_at' => 'datetime',
             'closed_at' => 'datetime',
         ];

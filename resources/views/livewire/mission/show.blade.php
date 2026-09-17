@@ -1,29 +1,29 @@
 <div class="max-w-4xl mx-auto space-y-6">
     {{-- Breadcrumb Navigasi --}}
-    <div class="flex items-center gap-2 text-xs text-neutral-500">
+    <div class="flex items-center gap-2 text-xs text-neutral-600 font-medium">
         <a href="{{ route('missions.index') }}" class="hover:text-brand transition">Mission & Game</a>
         <span>/</span>
-        <span class="text-neutral-900 font-medium truncate">{{ $quiz->title }}</span>
+        <span class="text-neutral-900 font-semibold truncate">{{ $quiz->title }}</span>
     </div>
 
     {{-- Header Kartu Misi --}}
-    <div class="bg-white border border-neutral-200 rounded-lg p-5 sm:p-6 space-y-3">
+    <div class="bg-neutral-50/70 border border-neutral-200 rounded-lg p-5 sm:p-6 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
                 {{-- Badge Tipe (Stempel 2px) --}}
-                <span class="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-neutral-600 border border-neutral-200 px-2 py-0.5 rounded-[2px] font-sans">
+                <span class="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider text-neutral-700 bg-white border border-neutral-200 px-2 py-0.5 rounded-[2px] font-sans">
                     @if ($quiz->isCaseStudy())
-                        @include('components.layout.nav-icon', ['name' => 'book', 'class' => 'w-3.5 h-3.5 text-neutral-500'])
+                        @include('components.layout.nav-icon', ['name' => 'book', 'class' => 'w-3.5 h-3.5 text-neutral-600'])
                         Studi Kasus
                     @else
-                        @include('components.layout.nav-icon', ['name' => 'puzzle', 'class' => 'w-3.5 h-3.5 text-neutral-500'])
+                        @include('components.layout.nav-icon', ['name' => 'puzzle', 'class' => 'w-3.5 h-3.5 text-neutral-600'])
                         Quiz Cepat
                     @endif
                 </span>
 
                 {{-- Status Hasil Percobaan Sebelumnya --}}
                 @if ($latestAttempt)
-                    <span class="inline-flex items-center gap-1 text-xs border {{ $latestAttempt->passed ? 'border-brand text-brand-dark bg-brand-tint' : 'border-neutral-200 text-neutral-600' }} px-2 py-0.5 rounded-[2px]">
+                    <span class="inline-flex items-center gap-1 text-xs border {{ $latestAttempt->passed ? 'border-brand text-brand-dark bg-brand-tint' : 'border-neutral-200 text-neutral-700 bg-white' }} px-2 py-0.5 rounded-[2px]">
                         @if ($latestAttempt->passed)
                             <svg class="w-3 h-3 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -46,30 +46,35 @@
             {{ $quiz->title }}
         </h1>
 
-        <div class="flex flex-wrap items-center gap-3 text-xs text-neutral-500 pt-1">
+        <div class="flex flex-wrap items-center gap-3 text-xs text-neutral-600 font-medium pt-1">
             <span>{{ $totalQuestions }} Pertanyaan Evaluasi</span>
             <span>•</span>
-            <span>Standar Kelulusan: <strong class="text-neutral-700 font-medium">70%</strong></span>
+            <span>Standar Kelulusan: <strong class="text-neutral-800 font-semibold">70%</strong></span>
             <span>•</span>
-            <span class="text-brand font-medium">{{ $answeredCount }}/{{ $totalQuestions }} Terjawab</span>
+            <span class="text-brand font-semibold">{{ $answeredCount }}/{{ $totalQuestions }} Terjawab</span>
         </div>
 
         {{-- Kebijakan Retry PRD §5.3 --}}
         <!-- TODO: Menunggu keputusan PRD §5.3 (Poin 4: Kebijakan retry kuis) -->
-        <div class="pt-2 border-t border-neutral-100 flex flex-wrap items-center justify-between text-[11px] text-neutral-500">
+        <div class="pt-2 border-t border-neutral-200/80 flex flex-wrap items-center justify-between text-[11px] text-neutral-600">
             <span>Aturan Pengerjaan: Pilihan ganda dengan feedback evaluasi setelah selesai.</span>
-            <span class="text-neutral-400 italic">[Menunggu Keputusan PRD §5.3: Kebijakan Retry Kuis]</span>
+            <span class="font-mono text-[10px] text-neutral-600 bg-white px-2 py-0.5 border border-neutral-200 rounded-badge">[Menunggu Keputusan PRD §5.3: Kebijakan Retry Kuis]</span>
         </div>
     </div>
 
     {{-- Skenario Kasus Manufaktur (Khusus Tipe Case Study) --}}
     @if ($quiz->isCaseStudy() && $quiz->description)
-        <div class="bg-neutral-50 border border-neutral-200 rounded-lg p-5 space-y-2">
-            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-700">
-                @include('components.layout.nav-icon', ['name' => 'document-text', 'class' => 'w-4 h-4 text-neutral-500'])
-                Latar Belakang & Skenario Lapangan
+        <div class="bg-white border border-neutral-200 rounded-md p-5 space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-neutral-100 flex-wrap gap-2">
+                <div class="flex items-center gap-2 text-xs font-semibold text-neutral-900 font-sans">
+                    @include('components.layout.nav-icon', ['name' => 'document-text', 'class' => 'w-4 h-4 text-brand'])
+                    <span>Skenario Studi Kasus Lapangan</span>
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 border border-neutral-200 rounded-badge text-[10px] font-mono text-neutral-600 bg-neutral-50">
+                    Analisis Pemecahan Masalah
+                </span>
             </div>
-            <div class="text-sm text-neutral-700 leading-relaxed whitespace-pre-line font-sans pt-1">
+            <div class="bg-neutral-50/70 border border-neutral-200 rounded-md p-4 text-xs sm:text-sm text-neutral-800 leading-relaxed whitespace-pre-line font-sans">
                 {{ $quiz->description }}
             </div>
         </div>

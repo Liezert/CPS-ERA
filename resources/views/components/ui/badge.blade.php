@@ -10,10 +10,10 @@
     // Kotak bersudut tegas, border 1px neutral-200 (atau brand kalau status "aktif/disetujui"),
     // TANPA fill solid, radius 2px (rounded-badge). Font IBM Plex Mono (font-mono).
     $styleClasses = match ($key) {
-        'closed', 'unlocked', 'published', 'brand', 'active' => 'border-brand text-brand-dark',
-        'reviewed', 'neutral' => 'border-neutral-500 text-neutral-900',
+        'approved', 'closed', 'unlocked', 'published', 'brand', 'active' => 'border-brand text-brand-dark',
+        'submitted', 'reviewed', 'neutral' => 'border-neutral-500 text-neutral-900',
         'created', 'locked', 'draft', 'muted' => 'border-neutral-200 text-neutral-500',
-        'danger' => 'border-red-500 text-red-700',
+        'rejected', 'danger' => 'border-red-500 text-red-700',
         default => 'border-neutral-200 text-neutral-900',
     };
 @endphp

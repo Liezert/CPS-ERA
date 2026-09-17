@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Quizzes\Tables;
 
+use App\Enums\QuizRelatedType;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -49,12 +50,14 @@ class QuizzesTable
                 TextColumn::make('related_type')
                     ->label('Kaitan')
                     ->badge()
-                    ->color('gray')
+                    ->formatStateUsing(fn (?string $state): ?string => QuizRelatedType::tryFrom($state ?? '')?->getLabel() ?? $state)
+                    ->color(fn (?string $state): string|array|null => QuizRelatedType::tryFrom($state ?? '')?->getColor() ?? 'gray')
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Waktu Dibuat')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('type')
@@ -66,11 +69,7 @@ class QuizzesTable
                     ]),
                 SelectFilter::make('related_type')
                     ->label('Terkait')
-                    ->options([
-                        'none' => 'None',
-                        'learning_material' => 'Learning Material',
-                        'ba_incident' => 'BA Incident',
-                    ]),
+                    ->options(QuizRelatedType::class),
             ])
             ->recordActions([
                 EditAction::make(),

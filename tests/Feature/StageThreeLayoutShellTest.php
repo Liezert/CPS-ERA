@@ -66,7 +66,7 @@ class StageThreeLayoutShellTest extends TestCase
         // Menu standar harus terlihat
         $response->assertSee('Dashboard');
         $response->assertSee('Knowledge Repository');
-        $response->assertSee('BA &amp; Lesson Learned', false);
+        $response->assertSee('Laporan CAPA', false);
         $response->assertSee('Learning');
         $response->assertSee('Mission &amp; Game', false);
         $response->assertSee('Leaderboard');
@@ -96,7 +96,7 @@ class StageThreeLayoutShellTest extends TestCase
 
         // Menu standar
         $response->assertSee('Dashboard');
-        $response->assertSee('BA &amp; Lesson Learned', false);
+        $response->assertSee('Laporan CAPA', false);
         $response->assertSee('Divisi'); // Badge khusus supervisor
 
         // Tidak boleh melihat menu khusus Quality / Admin
@@ -190,10 +190,10 @@ class StageThreeLayoutShellTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
         $response->assertStatus(200);
 
-        // 5 item cepat: Beranda, Knowledge, BA Insiden, Learning, Menu
+        // 5 item cepat: Beranda, Knowledge, Laporan CAPA, Learning, Menu
         $response->assertSee('Beranda');
         $response->assertSee('Knowledge');
-        $response->assertSee('BA Insiden');
+        $response->assertSee('Laporan CAPA');
         $response->assertSee('Learning');
         $response->assertSee('Menu');
     }

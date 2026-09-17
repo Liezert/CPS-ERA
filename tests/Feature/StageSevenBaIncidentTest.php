@@ -11,7 +11,6 @@ use App\Models\User;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -115,48 +114,37 @@ class StageSevenBaIncidentTest extends TestCase
     }
 
     /**
-     * DoD #2: DUA slot file upload terpisah berfungsi via spatie/laravel-medialibrary.
+     * DoD #2: Form Digital CAPA Terstruktur & Video Penanganan multi-step.
      */
     public function test_two_separate_upload_slots_work_via_spatie_medialibrary(): void
     {
-        $fakeFileBa = UploadedFile::fake()->create('surat_berita_acara.pdf', 500, 'application/pdf');
-        $fakeFileFtk = UploadedFile::fake()->create('formulir_ftk.pdf', 300, 'application/pdf');
-
         Livewire::actingAs($this->employeeProduksi)
             ->test(BaCreate::class)
             ->set('divisionId', $this->divisionProduksi->id)
-            ->set('title', 'Kerusakan Piston Hidrolik Mesin Cetak')
-            ->set('description', 'Piston hidrolik mesin cetak bocor pada siklus produksi ke-400.')
-            ->set('fileBa', $fakeFileBa)
-            ->set('fileFtk', $fakeFileFtk)
-            ->call('save')
+            ->set('tanggalMasalah', '2026-09-08')
+            ->set('lokasi', 'Lini Injeksi Moulding 03')
+            ->set('sumberKetidaksesuaian', 'laporan_ketidaksesuaian')
+            ->set('deskripsiMasalah', 'Piston hidrolik mesin cetak bocor pada siklus produksi ke-400.')
+            ->set('why1', 'Seal aus karena panas berlebih.')
+            ->set('kesimpulanAkarMasalah', 'Seal hidrolik aus.')
+            ->set('koreksiDeskripsi', 'Ganti seal darurat.')
+            ->set('korektifDeskripsi', 'Pasang sensor temperatur oli.')
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->set('videoMethod', 'link')
+            ->set('videoExternalLink', 'https://vimeo.com/123456789')
+            ->call('submit')
             ->assertHasNoErrors();
 
-        $incident = BaIncident::where('title', 'Kerusakan Piston Hidrolik Mesin Cetak')->first();
+        $incident = BaIncident::where('lokasi', 'Lini Injeksi Moulding 03')->first();
         $this->assertNotNull($incident);
+        $this->assertSame('submitted', $incident->status);
 
-        // Verifikasi dua slot media terpisah di Spatie MediaLibrary
-        $this->assertDatabaseHas('media', [
-            'model_type' => BaIncident::class,
-            'model_id' => $incident->id,
-            'collection_name' => 'ba_file',
-        ]);
-
-        $this->assertDatabaseHas('media', [
-            'model_type' => BaIncident::class,
-            'model_id' => $incident->id,
-            'collection_name' => 'ftk_file',
-        ]);
-
-        // Verifikasi kolom URL terisi
-        $this->assertNotEmpty($incident->file_ba_url);
-        $this->assertNotEmpty($incident->file_ftk_url);
-
-        // Verifikasi activity log awal dibuat
+        // Verifikasi activity log penyerahan BA dibuat
         $this->assertDatabaseHas('ba_activity_logs', [
             'ba_incident_id' => $incident->id,
             'actor_id' => $this->employeeProduksi->id,
-            'action' => 'BA dibuat',
+            'action' => 'BA & Video Diserahkan',
         ]);
     }
 
@@ -238,9 +226,9 @@ class StageSevenBaIncidentTest extends TestCase
             // Eksekusi klik approve
             ->call('approve');
 
-        // Verifikasi status BA berubah menjadi 'reviewed'
+        // Verifikasi status BA berubah menjadi 'approved'
         $incident->refresh();
-        $this->assertSame('reviewed', $incident->status);
+        $this->assertSame('approved', $incident->status);
         $this->assertSame($this->supervisorProduksi->id, $incident->reviewed_by);
 
         // Verifikasi otomatisasi PRD 3.1: Lesson Learned tercipta di knowledge_documents
@@ -254,7 +242,7 @@ class StageSevenBaIncidentTest extends TestCase
         $this->assertDatabaseHas('ba_activity_logs', [
             'ba_incident_id' => $incident->id,
             'actor_id' => $this->supervisorProduksi->id,
-            'action' => 'Ditinjau oleh '.$this->supervisorProduksi->name,
+            'action' => 'BA Disetujui',
         ]);
     }
 

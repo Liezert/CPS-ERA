@@ -13,10 +13,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'quiz_id',
     'question_text',
     'order_index',
+    'allow_multiple_answers',
 ])]
 class QuizQuestion extends Model
 {
     use HasFactory, HasUuids;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'allow_multiple_answers' => 'boolean',
+            'order_index' => 'integer',
+        ];
+    }
 
     /**
      * Get the quiz that owns this question.

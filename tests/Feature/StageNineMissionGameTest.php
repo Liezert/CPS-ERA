@@ -206,6 +206,7 @@ class StageNineMissionGameTest extends TestCase
         PointTransaction::create([
             'id' => (string) Str::uuid(),
             'user_id' => $this->employee->id,
+            'ledger_type' => 'xp',
             'points' => 20,
             'source_type' => 'mission_completed',
             'source_id' => $this->quickQuiz->id,

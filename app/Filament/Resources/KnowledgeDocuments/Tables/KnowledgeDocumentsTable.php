@@ -24,10 +24,17 @@ class KnowledgeDocumentsTable
                     ->sortable()
                     ->wrap()
                     ->weight('bold'),
-                TextColumn::make('division.name')
-                    ->label('Kategori / Divisi')
+                TextColumn::make('topic.name')
+                    ->label('Topik')
+                    ->placeholder('Belum Dikategorikan')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('division.name')
+                    ->label('Divisi')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('type')
                     ->label('Jenis Materi')
                     ->badge()
@@ -60,11 +67,15 @@ class KnowledgeDocumentsTable
                 TextColumn::make('created_at')
                     ->label('Waktu Dibuat')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('topic_id')
+                    ->label('Topik')
+                    ->relationship('topic', 'name'),
                 SelectFilter::make('division_id')
-                    ->label('Kategori / Divisi')
+                    ->label('Divisi')
                     ->relationship('division', 'name'),
                 SelectFilter::make('type')
                     ->label('Jenis Materi')

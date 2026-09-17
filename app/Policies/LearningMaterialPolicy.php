@@ -37,8 +37,13 @@ class LearningMaterialPolicy
      */
     public function update(User $user, LearningMaterial $learningMaterial): bool
     {
-        if ($user->hasAnyRole(['admin', 'quality'])) {
+        if ($user->can('manage-learning-materials')) {
             return true;
+        }
+
+        // Materi kandidat dari video BA disetujui HANYA boleh dikelola & dipublikasikan oleh Quality/HRGA dan Admin (PRD v2.0 §2.2)
+        if ($learningMaterial->source_ba_id !== null || $learningMaterial->status === 'candidate') {
+            return false;
         }
 
         if ($user->hasRole('supervisor')) {

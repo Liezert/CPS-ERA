@@ -17,12 +17,26 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'type',
     'content_url',
     'description',
+    'xp_reward',
+    'source_ba_id',
     'status',
     'created_by',
 ])]
 class LearningMaterial extends Model
 {
     use HasFactory, HasUuids;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'xp_reward' => 'integer',
+        ];
+    }
 
     /**
      * Get the category that the learning material belongs to.
@@ -32,6 +46,16 @@ class LearningMaterial extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(LearningCategory::class, 'learning_category_id');
+    }
+
+    /**
+     * Get the BA incident source for this material (if candidate from BA).
+     *
+     * @return BelongsTo<BaIncident, $this>
+     */
+    public function sourceBa(): BelongsTo
+    {
+        return $this->belongsTo(BaIncident::class, 'source_ba_id');
     }
 
     /**

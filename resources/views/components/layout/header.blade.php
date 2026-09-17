@@ -41,7 +41,7 @@
                         CPS ERA
                     </span>
                     <span class="hidden sm:inline-block text-neutral-300">/</span>
-                    <span class="hidden sm:inline-block text-xs font-sans text-neutral-500">
+                    <span class="hidden sm:inline-block text-xs font-sans text-neutral-600 font-medium">
                         {{ $user?->division ? $user->division->name : 'Corporate Knowledge Hub' }}
                     </span>
                 </div>
@@ -54,8 +54,8 @@
         {{-- Divisi Tag (Desktop only) --}}
         @if ($user?->division)
             <div class="hidden desktop:flex items-center gap-1.5 px-2.5 py-1 border border-neutral-200 rounded-badge bg-neutral-50 text-neutral-700 text-xs font-sans">
-                <span class="text-neutral-500">Divisi:</span>
-                <span class="font-medium text-neutral-900">{{ $user->division->name }}</span>
+                <span class="text-neutral-600 font-medium">Divisi:</span>
+                <span class="font-semibold text-neutral-900">{{ $user->division->name }}</span>
             </div>
         @endif
 
@@ -71,17 +71,23 @@
                     aria-label="Menu pengguna"
                     :aria-expanded="profileDropdownOpen.toString()">
                 
-                {{-- Avatar User (Initials) --}}
-                <div class="w-8 h-8 rounded-md bg-brand-tint border border-brand/20 text-brand-dark font-sans font-semibold text-xs flex items-center justify-center shrink-0">
-                    {{ $initials }}
-                </div>
+                {{-- Avatar User (Foto Profil atau Initials) --}}
+                @if ($user && $user->avatar_url)
+                    <img src="{{ asset($user->avatar_url) }}"
+                         alt="{{ $user->name }}"
+                         class="w-8 h-8 rounded-md object-cover border border-neutral-200 shrink-0">
+                @else
+                    <div class="w-8 h-8 rounded-md bg-brand-tint border border-brand/20 text-brand-dark font-sans font-semibold text-xs flex items-center justify-center shrink-0">
+                        {{ $initials }}
+                    </div>
+                @endif
 
                 {{-- User Info (Desktop only) --}}
                 <div class="hidden desktop:block text-left">
                     <div class="font-sans font-medium text-xs text-neutral-900 leading-tight max-w-[120px] truncate">
                         {{ $user?->name ?? 'User CPS' }}
                     </div>
-                    <div class="font-mono text-[11px] text-neutral-500 leading-tight mt-0.5">
+                    <div class="font-mono text-[11px] text-neutral-600 font-medium leading-tight mt-0.5">
                         {{ $user?->employee_id ?? 'CPS-00124' }}
                     </div>
                 </div>
@@ -108,7 +114,7 @@
                     <p class="font-sans font-medium text-sm text-neutral-900 truncate">
                         {{ $user?->name ?? 'Operator CPS' }}
                     </p>
-                    <p class="font-sans text-xs text-neutral-500 truncate mt-0.5">
+                    <p class="font-sans text-xs text-neutral-600 font-medium truncate mt-0.5">
                         {{ $user?->email ?? 'operator@caturpilar.com' }}
                     </p>
                     

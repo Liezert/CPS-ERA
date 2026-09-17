@@ -24,7 +24,7 @@ class KnowledgeDocumentController extends Controller
         $user = $request->user();
 
         $query = KnowledgeDocument::query()
-            ->with(['division', 'creator:id,name,employee_id', 'sourceBa:id,nomor_ba'])
+            ->with(['topic:id,name,description', 'division', 'creator:id,name,employee_id', 'sourceBa:id,nomor_ba'])
             ->withExists(['bookmarks as is_bookmarked' => function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             }]);
@@ -36,7 +36,7 @@ class KnowledgeDocumentController extends Controller
             $query->where('status', $request->query('status'));
         }
 
-        $query->filter($request->only(['q', 'category_id', 'division_id', 'type']));
+        $query->filter($request->only(['q', 'category_id', 'division_id', 'topic_id', 'type']));
 
         $perPage = (int) $request->query('per_page', 15);
         $documents = $query->latest()->paginate($perPage);
@@ -52,7 +52,7 @@ class KnowledgeDocumentController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        $document = KnowledgeDocument::with(['division', 'creator:id,name,employee_id', 'sourceBa:id,nomor_ba,status'])
+        $document = KnowledgeDocument::with(['topic:id,name,description', 'division', 'creator:id,name,employee_id', 'sourceBa:id,nomor_ba,status'])
             ->findOrFail($id);
 
         Gate::authorize('view', $document);
@@ -83,6 +83,7 @@ class KnowledgeDocumentController extends Controller
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
+            'topic_id' => ['nullable', 'exists:knowledge_topics,id'],
             'division_id' => ['required_without:category_id', 'nullable', 'exists:divisions,id'],
             'category_id' => ['required_without:division_id', 'nullable', 'exists:divisions,id'],
             'type' => [
@@ -97,7 +98,7 @@ class KnowledgeDocumentController extends Controller
             'status' => ['nullable', 'string', Rule::in(['draft', 'published'])],
         ]);
 
-        $divisionId = $validated['division_id'] ?? $validated['category_id'];
+        $divisionId = $validated['division_id'] ?? $validated['category_id'] ?? null;
         $fileUrl = $validated['file_url'] ?? null;
 
         if ($request->hasFile('file')) {
@@ -107,6 +108,7 @@ class KnowledgeDocumentController extends Controller
 
         $document = KnowledgeDocument::create([
             'title' => $validated['title'],
+            'topic_id' => $validated['topic_id'] ?? null,
             'division_id' => $divisionId,
             'type' => $validated['type'],
             'description' => $validated['description'] ?? null,
@@ -116,7 +118,7 @@ class KnowledgeDocumentController extends Controller
             'status' => $validated['status'] ?? 'published',
         ]);
 
-        $document->load(['division', 'creator:id,name,employee_id']);
+        $document->load(['topic', 'division', 'creator:id,name,employee_id']);
 
         return response()->json([
             'success' => true,
@@ -143,6 +145,7 @@ class KnowledgeDocumentController extends Controller
 
         $validated = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'topic_id' => ['sometimes', 'nullable', 'exists:knowledge_topics,id'],
             'division_id' => ['sometimes', 'nullable', 'exists:divisions,id'],
             'category_id' => ['sometimes', 'nullable', 'exists:divisions,id'],
             'type' => [
@@ -169,7 +172,7 @@ class KnowledgeDocumentController extends Controller
         }
 
         $document->update($validated);
-        $document->load(['division', 'creator:id,name,employee_id', 'sourceBa:id,nomor_ba']);
+        $document->load(['topic', 'division', 'creator:id,name,employee_id', 'sourceBa:id,nomor_ba']);
 
         return response()->json([
             'success' => true,

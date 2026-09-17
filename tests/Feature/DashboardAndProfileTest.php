@@ -177,15 +177,15 @@ class DashboardAndProfileTest extends TestCase
     }
 
     /**
-     * Checklist 2: Field KPI Contribution % eksplisit null dan berstatus not_implemented (PRD 5.3 poin 2).
+     * Checklist 2: Field KPI Contribution % sekarang terisi nilai nyata dan berstatus active (Video Contribution Tahap Lanjutan).
      */
-    public function test_kpi_contribution_percent_is_explicitly_null_and_marked_not_implemented(): void
+    public function test_kpi_contribution_percent_is_active_and_computed(): void
     {
         $response = $this->actingAs($this->user)->getJson('/api/dashboard/summary');
 
         $response->assertOk();
-        $this->assertNull($response->json('data.kpi_contribution_percent'));
-        $this->assertSame('not_implemented', $response->json('data.kpi_contribution_status'));
+        $this->assertIsInt($response->json('data.kpi_contribution_percent'));
+        $this->assertSame('active', $response->json('data.kpi_contribution_status'));
     }
 
     /**
@@ -255,6 +255,7 @@ class DashboardAndProfileTest extends TestCase
             'user_id' => $this->user->id,
             'points' => 300,
             'source_type' => 'mission_completed',
+            'ledger_type' => 'xp',
             'description' => 'Bulan ini',
             'created_at' => now(),
         ]);
@@ -263,6 +264,7 @@ class DashboardAndProfileTest extends TestCase
             'user_id' => $this->user->id,
             'points' => 500,
             'source_type' => 'post_test_passed',
+            'ledger_type' => 'xp',
             'description' => 'Bulan lalu',
             'created_at' => now()->subMonth(),
         ]);
@@ -271,6 +273,7 @@ class DashboardAndProfileTest extends TestCase
             'user_id' => $this->user->id,
             'points' => 700,
             'source_type' => 'ba_submission',
+            'ledger_type' => 'xp',
             'description' => 'Dua bulan lalu',
             'created_at' => now()->subMonths(2),
         ]);

@@ -1,7 +1,7 @@
 @props(['messages'])
 
 @if ($messages)
-    <ul {{ $attributes->merge(['class' => 'text-xs font-mono text-rust space-y-1']) }}>
+    <ul {{ $attributes->merge(['class' => 'text-xs font-sans text-red-600 space-y-1 mt-1']) }}>
         @foreach ((array) $messages as $message)
             <li class="flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

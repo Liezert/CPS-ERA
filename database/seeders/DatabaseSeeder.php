@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             AchievementSeeder::class,
             LearningSeeder::class,
+            KnowledgeTopicSeeder::class,
             MissionSeeder::class,
             LeaderboardSeeder::class,
             NotificationSeeder::class,

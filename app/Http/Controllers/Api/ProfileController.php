@@ -21,15 +21,16 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = $request->user()->load(['division', 'roles']);
 
-        $totalPoints = (int) $user->total_points;
+        $totalPoints = (int) ($user->xp ?? 0);
         $level = (int) $user->level;
         $pointsToNextLevel = $levelCalculator->pointsToNextLevel($totalPoints);
         $nextLevelThreshold = $levelCalculator->nextLevelThreshold($totalPoints);
         $levelProgressPercent = $levelCalculator->levelProgressPercent($totalPoints);
 
-        // Agregasi performa 6 bulan terakhir dari point_transactions
+        // Agregasi performa XP 6 bulan terakhir dari point_transactions
         $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
         $transactions = PointTransaction::where('user_id', $user->id)
+            ->where('ledger_type', 'xp')
             ->where('created_at', '>=', $sixMonthsAgo)
             ->get();
 
@@ -72,6 +73,7 @@ class ProfileController extends Controller
                 'roles' => $user->getRoleNames(),
 
                 'level' => $level,
+                'xp' => $totalPoints,
                 'total_points' => $totalPoints,
                 'points_to_next_level' => $pointsToNextLevel,
                 'next_level_threshold' => $nextLevelThreshold,

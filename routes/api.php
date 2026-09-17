@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\BaIncidentController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\KnowledgeDocumentController;
+use App\Http\Controllers\Api\KnowledgeTopicController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\LearningCategoryController;
 use App\Http\Controllers\Api\LearningMaterialController;
@@ -10,6 +11,8 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\UserBookmarkController;
+use App\Http\Controllers\Api\UserXpAdjustmentController;
+use App\Http\Controllers\Api\VideoController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -84,7 +87,22 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/ba-incidents/{id}/close', [BaIncidentController::class, 'close'])->name('api.ba-incidents.close');
     Route::get('/ba-incidents/{id}/activity-log', [BaIncidentController::class, 'activityLog'])->name('api.ba-incidents.activity-log');
 
-    // Knowledge Repository endpoints
+    // Video Contribution endpoints (Double Verification & Post-Test Gate)
+    Route::get('/videos', [VideoController::class, 'index'])->name('api.videos.index');
+    Route::post('/videos', [VideoController::class, 'store'])->name('api.videos.store');
+    Route::get('/videos/{id}', [VideoController::class, 'show'])->name('api.videos.show');
+    Route::patch('/videos/{id}/approve-supervisor', [VideoController::class, 'approveSupervisor'])->name('api.videos.approve-supervisor');
+    Route::patch('/videos/{id}/approve-hr', [VideoController::class, 'approveHr'])->name('api.videos.approve-hr');
+    Route::patch('/videos/{id}/reject', [VideoController::class, 'reject'])->name('api.videos.reject');
+    Route::post('/videos/{id}/view', [VideoController::class, 'recordView'])->name('api.videos.view');
+
+    // Knowledge Repository endpoints (PRD v2.0 §3.2)
+    Route::get('/knowledge-topics', [KnowledgeTopicController::class, 'index'])->name('api.knowledge-topics.index');
+    Route::post('/knowledge-topics', [KnowledgeTopicController::class, 'store'])->name('api.knowledge-topics.store');
+    Route::get('/knowledge-topics/{id}', [KnowledgeTopicController::class, 'show'])->name('api.knowledge-topics.show');
+    Route::patch('/knowledge-topics/{id}', [KnowledgeTopicController::class, 'update'])->name('api.knowledge-topics.update');
+    Route::delete('/knowledge-topics/{id}', [KnowledgeTopicController::class, 'destroy'])->name('api.knowledge-topics.destroy');
+
     Route::get('/knowledge-documents', [KnowledgeDocumentController::class, 'index'])->name('api.knowledge-documents.index');
     Route::post('/knowledge-documents', [KnowledgeDocumentController::class, 'store'])->name('api.knowledge-documents.store');
     Route::get('/knowledge-documents/{id}', [KnowledgeDocumentController::class, 'show'])->name('api.knowledge-documents.show');
@@ -122,4 +140,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->name('api.dashboard.summary');
     Route::get('/me/profile', [ProfileController::class, 'show'])->name('api.me.profile.show');
     Route::patch('/me/profile', [ProfileController::class, 'update'])->name('api.me.profile.update');
+
+    // Admin XP Adjustment endpoint (PRD v2.0 §2.2)
+    Route::post('/admin/users/{id}/adjust-xp', [UserXpAdjustmentController::class, 'adjustXp'])->name('api.admin.users.adjust-xp');
 });

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\BaIncident;
 use App\Models\KnowledgeDocument;
+use App\Models\KnowledgeTopic;
 use App\Models\LearningCategory;
 use App\Models\LearningMaterial;
 use App\Models\PointTransaction;
@@ -17,6 +18,7 @@ use App\Observers\QuizObserver;
 use App\Observers\UserAchievementObserver;
 use App\Policies\BaIncidentPolicy;
 use App\Policies\KnowledgeDocumentPolicy;
+use App\Policies\KnowledgeTopicPolicy;
 use App\Policies\LearningCategoryPolicy;
 use App\Policies\LearningMaterialPolicy;
 use App\Policies\QuizPolicy;
@@ -46,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(BaIncident::class, BaIncidentPolicy::class);
         Gate::policy(KnowledgeDocument::class, KnowledgeDocumentPolicy::class);
+        Gate::policy(KnowledgeTopic::class, KnowledgeTopicPolicy::class);
         Gate::policy(LearningCategory::class, LearningCategoryPolicy::class);
         Gate::policy(LearningMaterial::class, LearningMaterialPolicy::class);
         Gate::policy(Quiz::class, QuizPolicy::class);
@@ -63,5 +66,17 @@ class AppServiceProvider extends ServiceProvider
 
         // Admin panel access gate
         Gate::define('access-admin-panel', fn (User $user): bool => $user->hasAnyRole(['admin', 'supervisor', 'quality']));
+
+        // Gates PRD v2.0 §2.2 (Access Matrix)
+        $isQualityOrHrga = function (User $user): bool {
+            return $user->hasAnyRole(['admin', 'quality', 'hrga'])
+                || ($user->relationLoaded('division') ? $user->division?->name === 'HRGA' : $user->division()->where('name', 'HRGA')->exists());
+        };
+
+        Gate::define('manage-knowledge-topics', fn (User $user): bool => $isQualityOrHrga($user));
+        Gate::define('manage-knowledge-documents', fn (User $user): bool => $isQualityOrHrga($user));
+        Gate::define('manage-learning-materials', fn (User $user): bool => $isQualityOrHrga($user));
+        Gate::define('view-kpi-summary', fn (User $user): bool => $isQualityOrHrga($user));
+        Gate::define('adjust-xp-manual', fn (User $user): bool => $user->hasRole('admin'));
     }
 }

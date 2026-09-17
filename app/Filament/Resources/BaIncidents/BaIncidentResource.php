@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 class BaIncidentResource extends Resource
 {
@@ -23,11 +24,15 @@ class BaIncidentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static ?string $navigationLabel = 'Berita Acara (BA)';
+    protected static UnitEnum|string|null $navigationGroup = 'Continuous Improvement';
 
-    protected static ?string $modelLabel = 'Berita Acara';
+    protected static ?int $navigationSort = 1;
 
-    protected static ?string $pluralModelLabel = 'Berita Acara';
+    protected static ?string $navigationLabel = 'Laporan CAPA';
+
+    protected static ?string $modelLabel = 'Laporan CAPA';
+
+    protected static ?string $pluralModelLabel = 'Laporan CAPA';
 
     /**
      * Scope query by role: Admin & Quality see all divisions; Supervisor sees own division.

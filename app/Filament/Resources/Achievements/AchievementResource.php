@@ -21,9 +21,11 @@ class AchievementResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Learning & Game';
+    protected static UnitEnum|string|null $navigationGroup = 'Gamifikasi';
 
-    protected static ?string $navigationLabel = 'Achievements';
+    protected static ?int $navigationSort = 1;
+
+    protected static ?string $navigationLabel = 'Badge & Achievement';
 
     protected static ?string $modelLabel = 'Achievement';
 

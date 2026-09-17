@@ -150,6 +150,7 @@ class Show extends Component
             PointTransaction::create([
                 'id' => (string) Str::uuid(),
                 'user_id' => $userId,
+                'ledger_type' => PointTransaction::LEDGER_XP,
                 'points' => $this->pointsEarned,
                 'source_type' => 'mission_completed',
                 'source_id' => $this->quiz->id,

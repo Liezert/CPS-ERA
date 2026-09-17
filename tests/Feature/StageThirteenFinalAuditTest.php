@@ -177,27 +177,19 @@ class StageThirteenFinalAuditTest extends TestCase
      */
     public function test_audit_backend_contract_ba_and_lesson_learned(): void
     {
-        // 1. Cek Create BA Form
+        // 1. Cek Create BA Form (PRD v2.0 Digital FTK)
         $responseCreate = $this->actingAs($this->employee)->get(route('ba.create'));
         $responseCreate->assertOk();
-        $responseCreate->assertSee('File Dokumen BA');
-        $responseCreate->assertSee('Formulir FTK');
+        $responseCreate->assertSee('Lembar Kerja Investigasi &amp; Tindakan Korektif (FTK)', false);
         $responseCreate->assertSee('font-mono');
 
-        // 2. Cek Detail BA Status: HANYA Created, Reviewed, Closed
+        // 2. Cek Detail BA
         $ba = BaIncident::first();
         if ($ba) {
             $responseDetail = $this->actingAs($this->employee)->get(route('ba.show', $ba->id));
             $responseDetail->assertOk();
             $content = $responseDetail->getContent();
-
-            $validStatuses = ['Created', 'Reviewed', 'Closed'];
-            $this->assertTrue(
-                str_contains($content, 'Created') || str_contains($content, 'Reviewed') || str_contains($content, 'Closed')
-            );
-            $this->assertStringNotContainsString('Draft', $content);
-            $this->assertStringNotContainsString('Rejected', $content);
-            $this->assertStringNotContainsString('Approved', $content);
+            $this->assertStringContainsString('BA-2026-0001', $content);
         }
     }
 
@@ -241,9 +233,9 @@ class StageThirteenFinalAuditTest extends TestCase
      */
     public function test_audit_all_seven_prd_5_3_points_have_todo_markers_and_no_invented_formulas(): void
     {
-        // 1. Dashboard: Poin 1 (Skala Level) & Poin 2 (KPI Contribution)
+        // 1. Dashboard: Poin 1 (Skala Level) - Chip PRD §5.3 telah dibersihkan dari antarmuka
         $responseDashboard = $this->actingAs($this->employee)->get(route('dashboard'));
-        $responseDashboard->assertSee('[Menunggu PRD §5.3]');
+        $responseDashboard->assertDontSee('PRD §5.3');
 
         // 2. Mission Quiz: Poin 4 (Kebijakan Retry)
         $quiz = Quiz::first();
@@ -256,9 +248,9 @@ class StageThirteenFinalAuditTest extends TestCase
         $responseAchievement = $this->actingAs($this->employee)->get(route('achievements.index'));
         $responseAchievement->assertSee('[Menunggu Keputusan PRD §5.3: Kriteria Otomatisasi Unlock Achievement]');
 
-        // 4. BA Create: Poin 6 (Batas Ukuran Upload)
+        // 4. BA Create: Poin 6 (Batas Ukuran Upload) - Teks PRD §5.3 telah dibersihkan dari antarmuka
         $responseBa = $this->actingAs($this->employee)->get(route('ba.create'));
-        $responseBa->assertSee('PRD §5.3');
+        $responseBa->assertDontSee('PRD §5.3');
     }
 
     /**

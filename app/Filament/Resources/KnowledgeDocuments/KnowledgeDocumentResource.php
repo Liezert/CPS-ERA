@@ -7,6 +7,7 @@ use App\Filament\Resources\KnowledgeDocuments\Pages\EditKnowledgeDocument;
 use App\Filament\Resources\KnowledgeDocuments\Pages\ListKnowledgeDocuments;
 use App\Filament\Resources\KnowledgeDocuments\Pages\ViewKnowledgeDocument;
 use App\Filament\Resources\KnowledgeDocuments\Schemas\KnowledgeDocumentForm;
+use App\Filament\Resources\KnowledgeDocuments\Schemas\KnowledgeDocumentInfolist;
 use App\Filament\Resources\KnowledgeDocuments\Tables\KnowledgeDocumentsTable;
 use App\Models\KnowledgeDocument;
 use BackedEnum;
@@ -15,12 +16,17 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use UnitEnum;
 
 class KnowledgeDocumentResource extends Resource
 {
     protected static ?string $model = KnowledgeDocument::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
+
+    protected static UnitEnum|string|null $navigationGroup = 'Repository & Pembelajaran';
+
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Knowledge Repository';
 
@@ -30,24 +36,37 @@ class KnowledgeDocumentResource extends Resource
 
     /**
      * Scope query by role:
-     * - Admin & Quality: Mengakses semua dokumen dari seluruh divisi.
-     * - Supervisor: Mengakses dokumen di divisinya sendiri.
+     * - Admin, Quality, dan HRGA: Mengakses semua dokumen dari seluruh divisi.
+     * - Supervisor divisi lain: Mengakses dokumen di divisinya sendiri dan dokumen umum perusahaan (null division).
      */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if ($user && ! $user->hasAnyRole(['admin', 'quality'])) {
-            $query->where('division_id', $user->division_id);
+        if ($user && ! $user->hasAnyRole(['admin', 'quality']) && $user->division?->name !== 'HRGA') {
+            $query->where(function (Builder $q) use ($user) {
+                $q->where('division_id', $user->division_id)
+                    ->orWhereNull('division_id');
+            });
         }
 
         return $query;
     }
 
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->can('manage-knowledge-documents') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return KnowledgeDocumentForm::configure($schema);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return KnowledgeDocumentInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

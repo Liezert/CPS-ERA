@@ -2,15 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\Knowledge\Index as KnowledgeIndex;
+use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\KnowledgeDocument;
+use App\Models\KnowledgeTopic;
+use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserBookmark;
+use App\Models\UserKpiYearly;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class KnowledgeDocumentTest extends TestCase
@@ -119,10 +125,22 @@ class KnowledgeDocumentTest extends TestCase
         $this->assertSame($doc1->id, $filterTypeRes->json('data.data.0.id'));
     }
 
+    public function test_manual_creation_forbidden_for_employee(): void
+    {
+        $response = $this->actingAs($this->employeeProduksi)->postJson('/api/knowledge-documents', [
+            'title' => 'Unauthorized Document Attempt',
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'sop',
+            'description' => 'Employee should be blocked by manage-knowledge-documents gate.',
+        ]);
+
+        $response->assertForbidden();
+    }
+
     public function test_manual_creation_rejects_lesson_learned(): void
     {
         // Attempting to manually create with type=lesson_learned must fail with 422
-        $response = $this->actingAs($this->employeeProduksi)->postJson('/api/knowledge-documents', [
+        $response = $this->actingAs($this->quality)->postJson('/api/knowledge-documents', [
             'title' => 'Manual Lesson Learned Percobaan',
             'division_id' => $this->divisionProduksi->id,
             'type' => 'lesson_learned',
@@ -143,7 +161,7 @@ class KnowledgeDocumentTest extends TestCase
 
     public function test_manual_creation_succeeds_with_valid_type(): void
     {
-        $response = $this->actingAs($this->employeeProduksi)->postJson('/api/knowledge-documents', [
+        $response = $this->actingAs($this->quality)->postJson('/api/knowledge-documents', [
             'title' => 'Panduan Standar 5S di Area Produksi',
             'division_id' => $this->divisionProduksi->id,
             'type' => 'sop',
@@ -164,7 +182,7 @@ class KnowledgeDocumentTest extends TestCase
         $this->assertDatabaseHas('knowledge_documents', [
             'title' => 'Panduan Standar 5S di Area Produksi',
             'type' => 'sop',
-            'created_by' => $this->employeeProduksi->id,
+            'created_by' => $this->quality->id,
         ]);
     }
 
@@ -279,5 +297,291 @@ class KnowledgeDocumentTest extends TestCase
         $qualityRes = $this->actingAs($this->quality)->deleteJson("/api/knowledge-documents/{$docEngineering->id}");
         $qualityRes->assertOk();
         $this->assertDatabaseMissing('knowledge_documents', ['id' => $docEngineering->id]);
+    }
+
+    /**
+     * PRD v2.0 §3.2: Filter dan taksonomi berdasarkan Topik Pengetahuan.
+     */
+    public function test_knowledge_documents_can_be_filtered_by_topic_id(): void
+    {
+        $topicA = KnowledgeTopic::create([
+            'name' => 'SOP Operasional Pabrik',
+            'description' => 'Kumpulan SOP baku fasilitas produksi',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $topicB = KnowledgeTopic::create([
+            'name' => 'Kebijakan HR & Peraturan Perusahaan',
+            'description' => 'Tata tertib dan kebijakan SDM',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $docA = KnowledgeDocument::create([
+            'title' => 'SOP Kalibrasi Sensor Mesin',
+            'topic_id' => $topicA->id,
+            'division_id' => $this->divisionEngineering->id,
+            'type' => 'sop',
+            'created_by' => $this->supervisorEngineering->id,
+            'status' => 'published',
+        ]);
+
+        $docB = KnowledgeDocument::create([
+            'title' => 'Buku Panduan Karyawan 2026',
+            'topic_id' => $topicB->id,
+            'division_id' => null,
+            'type' => 'dokumen',
+            'created_by' => $this->admin->id,
+            'status' => 'published',
+        ]);
+
+        // Filter by topic A
+        $resTopicA = $this->actingAs($this->employeeProduksi)->getJson("/api/knowledge-documents?topic_id={$topicA->id}");
+        $resTopicA->assertOk();
+        $this->assertCount(1, $resTopicA->json('data.data'));
+        $this->assertSame($docA->id, $resTopicA->json('data.data.0.id'));
+        $this->assertSame('SOP Operasional Pabrik', $resTopicA->json('data.data.0.topic.name'));
+
+        // Filter by topic B
+        $resTopicB = $this->actingAs($this->employeeProduksi)->getJson("/api/knowledge-documents?topic_id={$topicB->id}");
+        $resTopicB->assertOk();
+        $this->assertCount(1, $resTopicB->json('data.data'));
+        $this->assertSame($docB->id, $resTopicB->json('data.data.0.id'));
+        $this->assertSame('Kebijakan HR & Peraturan Perusahaan', $resTopicB->json('data.data.0.topic.name'));
+    }
+
+    /**
+     * PRD v2.0 §3.2: Pencarian mencakup pencarian nama topik.
+     */
+    public function test_search_matches_topic_name(): void
+    {
+        $topic = KnowledgeTopic::create([
+            'name' => 'Standar Mutu ISO 9001',
+            'description' => 'Manajemen jaminan kualitas produk',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $doc = KnowledgeDocument::create([
+            'title' => 'Instruksi Pengujian Kekuatan Tarik',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'dokumen',
+            'description' => 'Metode uji mekanik sampel logam',
+            'created_by' => $this->quality->id,
+            'status' => 'published',
+        ]);
+
+        // Cari dengan keyword nama topik "ISO 9001"
+        $res = $this->actingAs($this->employeeProduksi)->getJson('/api/knowledge-documents?q=ISO+9001');
+        $res->assertOk();
+        $this->assertCount(1, $res->json('data.data'));
+        $this->assertSame($doc->id, $res->json('data.data.0.id'));
+    }
+
+    /**
+     * PRD v2.0 §3.2: Knowledge Repository TIDAK memberi poin KPI apapun (baik XP maupun Poin CPS ERA) — murni referensi pasif.
+     */
+    public function test_passive_reference_rule_awards_zero_points_and_zero_xp(): void
+    {
+        $topic = KnowledgeTopic::create([
+            'name' => 'K3 & Tanggap Darurat',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $doc = KnowledgeDocument::create([
+            'title' => 'Prosedur Evakuasi Kebakaran Pabrik',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'sop',
+            'file_url' => 'knowledge-documents/files/evakuasi.pdf',
+            'created_by' => $this->supervisorProduksi->id,
+            'status' => 'published',
+        ]);
+
+        $initialXp = $this->employeeProduksi->fresh()->xp;
+        $initialTransactionsCount = PointTransaction::where('user_id', $this->employeeProduksi->id)->count();
+        $initialKpiCount = UserKpiYearly::where('user_id', $this->employeeProduksi->id)->count();
+
+        // 1. Employee mengakses listing dokumen
+        $this->actingAs($this->employeeProduksi)->getJson('/api/knowledge-documents')->assertOk();
+
+        // 2. Employee membuka detail dokumen
+        $showRes = $this->actingAs($this->employeeProduksi)->getJson("/api/knowledge-documents/{$doc->id}");
+        $showRes->assertOk();
+        $this->assertNotNull($showRes->json('data.download_url'));
+
+        // 3. Employee melakukan bookmark dokumen
+        $this->actingAs($this->employeeProduksi)->postJson("/api/knowledge-documents/{$doc->id}/bookmark")->assertCreated();
+
+        // 4. Verifikasi saldo XP, PointTransaction, dan KPI TETAP NOL / TIDAK BERTAMBAH
+        $this->assertSame($initialXp, $this->employeeProduksi->fresh()->xp);
+        $this->assertSame($initialTransactionsCount, PointTransaction::where('user_id', $this->employeeProduksi->id)->count());
+        $this->assertSame($initialKpiCount, UserKpiYearly::where('user_id', $this->employeeProduksi->id)->count());
+    }
+
+    /**
+     * PRD v2.0 §3.2: Dua sumber berjalan paralel: Kurasi manual (topic_id) vs Lesson Learned otomatis BA (source_ba_id).
+     */
+    public function test_dual_content_source_manual_curation_and_automated_ba_lesson_learned(): void
+    {
+        $topic = KnowledgeTopic::create([
+            'name' => 'Instruksi Kerja Pemeliharaan',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Sumber 1: Kurasi manual oleh Admin/Supervisor dengan topic_id
+        $manualDoc = KnowledgeDocument::create([
+            'title' => 'Instruksi Kerja Pelumasan Roda Gigi',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'sop',
+            'created_by' => $this->admin->id,
+            'status' => 'published',
+        ]);
+
+        // Sumber 2: Lesson learned otomatis hasil BA approved
+        $incident = BaIncident::create([
+            'nomor_ba' => 'BA-202609-999',
+            'judul' => 'Insiden Overheat Bearing Pompa',
+            'kronologi' => 'Bearing pompa hidrolik mengalami overheat akibat kurang pelumasan berkala.',
+            'penyebab' => 'Jadwal greasing terlambat 2 minggu.',
+            'kategori' => 'kerusakan_mesin',
+            'tingkat_keparahan' => 'sedang',
+            'division_id' => $this->divisionProduksi->id,
+            'pelapor_id' => $this->employeeProduksi->id,
+            'created_by' => $this->employeeProduksi->id,
+            'status' => 'approved',
+        ]);
+
+        $lessonDoc = KnowledgeDocument::create([
+            'title' => 'Lesson Learned: Insiden Overheat Bearing Pompa',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'lesson_learned',
+            'source_ba_id' => $incident->id,
+            'description' => 'Pelajaran dari insiden: pastikan jadwal greasing harian tercatat di checklist digital.',
+            'created_by' => $this->quality->id,
+            'status' => 'published',
+        ]);
+
+        // Keduanya tampil di repository
+        $res = $this->actingAs($this->employeeProduksi)->getJson("/api/knowledge-documents?topic_id={$topic->id}");
+        $res->assertOk();
+        $this->assertCount(2, $res->json('data.data'));
+
+        // Cek bahwa sumber BA memiliki data source_ba terhubung
+        $items = collect($res->json('data.data'));
+        $manualItem = $items->firstWhere('id', $manualDoc->id);
+        $lessonItem = $items->firstWhere('id', $lessonDoc->id);
+
+        $this->assertNull($manualItem['source_ba']);
+        $this->assertSame('BA-202609-999', $lessonItem['source_ba']['nomor_ba']);
+    }
+
+    /**
+     * PRD v2.0 §3.2: Format konten PDF dan Microsoft Office (.docx, .xlsx).
+     */
+    public function test_manual_creation_supports_pdf_and_office_file_formats(): void
+    {
+        $topic = KnowledgeTopic::create([
+            'name' => 'Formulir & Template Mutu',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // 1. Upload file Word (.docx)
+        $docWordRes = $this->actingAs($this->quality)->postJson('/api/knowledge-documents', [
+            'title' => 'Template Lembar Periksa Harian QC',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'dokumen',
+            'description' => 'Template berkas Microsoft Word untuk checklist inspeksi shift.',
+            'file' => UploadedFile::fake()->create('template-qc.docx', 150, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+        ]);
+
+        $docWordRes->assertCreated();
+        $this->assertNotNull($docWordRes->json('data.file_url'));
+
+        // 2. Upload file Excel (.xlsx)
+        $docExcelRes = $this->actingAs($this->quality)->postJson('/api/knowledge-documents', [
+            'title' => 'Kalkulator Toleransi Dimensi Mesin Bubut',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'dokumen',
+            'description' => 'Lembar kerja Microsoft Excel untuk verifikasi deviasi toleransi.',
+            'file' => UploadedFile::fake()->create('kalkulator-toleransi.xlsx', 180, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+        ]);
+
+        $docExcelRes->assertCreated();
+        $this->assertNotNull($docExcelRes->json('data.file_url'));
+    }
+
+    /**
+     * PRD v2.0 §3.2: API Knowledge Topics CRUD & Authorization.
+     */
+    public function test_knowledge_topics_api_crud_and_authorization(): void
+    {
+        // 1. Employee dilarang membuat topik
+        $empCreate = $this->actingAs($this->employeeProduksi)->postJson('/api/knowledge-topics', [
+            'name' => 'Topik Tak Berizin',
+        ]);
+        $empCreate->assertForbidden();
+
+        // 2. Admin dapat membuat topik
+        $adminCreate = $this->actingAs($this->admin)->postJson('/api/knowledge-topics', [
+            'name' => 'Tata Kelola Gudang Raw Material',
+            'description' => 'Standar penyimpanan dan safety stock',
+        ]);
+        $adminCreate->assertCreated();
+        $topicId = $adminCreate->json('data.id');
+
+        // 3. Semua role (termasuk Employee) dapat melihat daftar topik
+        $listRes = $this->actingAs($this->employeeProduksi)->getJson('/api/knowledge-topics');
+        $listRes->assertOk();
+        $this->assertTrue(collect($listRes->json('data'))->contains('name', 'Tata Kelola Gudang Raw Material'));
+
+        // 4. Admin dapat mengupdate topik
+        $updateRes = $this->actingAs($this->admin)->patchJson("/api/knowledge-topics/{$topicId}", [
+            'name' => 'Tata Kelola Gudang RM & Komponen',
+        ]);
+        $updateRes->assertOk();
+        $this->assertSame('Tata Kelola Gudang RM & Komponen', $updateRes->json('data.name'));
+
+        // 5. Admin dapat menghapus topik
+        $deleteRes = $this->actingAs($this->admin)->deleteJson("/api/knowledge-topics/{$topicId}");
+        $deleteRes->assertOk();
+        $this->assertDatabaseMissing('knowledge_topics', ['id' => $topicId]);
+    }
+
+    /**
+     * PRD v2.0 §3.2: Interaksi Livewire: buka modal detail dokumen dan akses berkas.
+     */
+    public function test_livewire_can_open_document_detail_modal_and_access_download_url(): void
+    {
+        $topic = KnowledgeTopic::create([
+            'name' => 'SOP Keamanan Fasilitas',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $doc = KnowledgeDocument::create([
+            'title' => 'SOP Pengawasan Pos Keamanan 24 Jam',
+            'topic_id' => $topic->id,
+            'division_id' => $this->divisionProduksi->id,
+            'type' => 'sop',
+            'description' => 'Instruksi kerja patroli malam dan kontrol gerbang masuk barang.',
+            'file_url' => 'knowledge-documents/files/sop-patroli.pdf',
+            'created_by' => $this->admin->id,
+            'status' => 'published',
+        ]);
+
+        Livewire::actingAs($this->employeeProduksi)
+            ->test(KnowledgeIndex::class)
+            ->assertSee('SOP Pengawasan Pos Keamanan 24 Jam')
+            ->assertSee('SOP Keamanan Fasilitas')
+            ->assertSet('viewingDocument', null)
+            ->call('showDocument', $doc->id)
+            ->assertSet('viewingDocument.id', $doc->id)
+            ->assertSee('Referensi Resmi Pengetahuan:')
+            ->assertSee('tidak memberikan penambahan poin KPI atau XP')
+            ->call('closeDocument')
+            ->assertSet('viewingDocument', null);
     }
 }

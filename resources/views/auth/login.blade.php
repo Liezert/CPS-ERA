@@ -29,19 +29,19 @@
             <form method="POST" action="{{ route('login') }}" class="space-y-4">
                 @csrf
 
-                {{-- Email atau NIK Pegawai --}}
+                {{-- Email Pegawai --}}
                 <div>
                     <label for="email" class="block font-sans text-xs font-medium text-neutral-700 mb-1">
-                        Email Pegawai atau NIK
+                        Email Pegawai
                     </label>
                     <input id="email" 
-                           type="text" 
+                           type="email" 
                            name="email" 
                            value="{{ old('email') }}" 
                            required 
                            autofocus 
                            autocomplete="username"
-                           placeholder="nama@caturpilar.com atau CPS-00124"
+                           placeholder="nama@caturpilar.com"
                            class="block w-full px-3 py-2 text-sm font-sans text-neutral-900 bg-white border border-neutral-200 rounded-md placeholder:text-neutral-400 focus:outline-none focus:border-brand-dark focus:ring-2 focus:ring-brand-dark/20 transition-colors" />
                     @error('email')
                         <p class="mt-1 text-xs text-red-600 font-sans">{{ $message }}</p>

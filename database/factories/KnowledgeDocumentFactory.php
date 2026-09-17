@@ -21,6 +21,7 @@ class KnowledgeDocumentFactory extends Factory
     {
         return [
             'title' => fake()->sentence(4),
+            'topic_id' => null,
             'division_id' => Division::inRandomOrder()->first()?->id ?? Division::firstOrCreate(['name' => 'General'])->id,
             'type' => fake()->randomElement(['dokumen', 'video', 'presentasi', 'lesson_learned', 'sop', 'link']),
             'file_url' => null,

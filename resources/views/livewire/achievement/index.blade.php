@@ -1,8 +1,8 @@
 <div class="space-y-6">
     {{-- Breadcrumb & Header Halaman --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-200 pb-5">
+    <div class="bg-neutral-50/70 border border-neutral-200 rounded-lg p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <nav class="flex items-center gap-2 font-mono text-xs text-neutral-500 mb-1.5" aria-label="Breadcrumb">
+            <nav class="flex items-center gap-2 font-mono text-xs text-neutral-600 mb-1.5" aria-label="Breadcrumb">
                 <a href="{{ route('dashboard') }}" class="hover:text-brand transition-colors">Dashboard</a>
                 <span>/</span>
                 <span class="text-neutral-900 font-medium">Achievement</span>
@@ -17,46 +17,64 @@
 
         {{-- Ringkasan Metrik Sederhana (Sharp, Minimalist) --}}
         <div class="flex items-center gap-3">
-            <div class="px-3.5 py-2 bg-white border border-neutral-200 rounded-lg text-center min-w-[90px]">
-                <div class="font-mono text-xs text-neutral-500 uppercase tracking-wider">Total</div>
-                <div class="font-mono font-bold text-lg text-neutral-900">{{ $totalCount }}</div>
+            <div class="px-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-center min-w-[96px] shadow-xs">
+                <div class="font-mono text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">Total</div>
+                <div class="font-mono font-extrabold text-2xl text-neutral-900 tabular-nums leading-tight mt-0.5">{{ $totalCount }}</div>
             </div>
-            <div class="px-3.5 py-2 bg-white border border-neutral-200 rounded-lg text-center min-w-[90px]">
-                <div class="font-mono text-xs text-brand uppercase tracking-wider">Unlocked</div>
-                <div class="font-mono font-bold text-lg text-brand">{{ $unlockedCount }}</div>
+            <div class="px-4 py-2.5 bg-brand-tint/30 border border-brand/30 rounded-lg text-center min-w-[96px] shadow-xs">
+                <div class="font-mono text-[10px] font-semibold text-brand-dark uppercase tracking-wider">Unlocked</div>
+                <div class="font-mono font-extrabold text-2xl text-brand tabular-nums leading-tight mt-0.5">{{ $unlockedCount }}</div>
             </div>
-            <div class="px-3.5 py-2 bg-white border border-neutral-200 rounded-lg text-center min-w-[90px]">
-                <div class="font-mono text-xs text-neutral-400 uppercase tracking-wider">Locked</div>
-                <div class="font-mono font-bold text-lg text-neutral-500">{{ $lockedCount }}</div>
+            <div class="px-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-center min-w-[96px] shadow-xs">
+                <div class="font-mono text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">Locked</div>
+                <div class="font-mono font-extrabold text-2xl text-neutral-700 tabular-nums leading-tight mt-0.5">{{ $lockedCount }}</div>
             </div>
         </div>
     </div>
 
     {{-- DoD #3: Kriteria unlock ditandai TODO sesuai PRD §5.3 (Poin 5) --}}
     {{-- TODO: Menunggu keputusan PRD §5.3 (Poin 5: Kriteria unlock achievement) --}}
-    <div class="p-3.5 bg-neutral-50 border border-neutral-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-sans text-neutral-600">
-        <div class="flex items-center gap-2">
-            <div class="w-2 h-2 rounded-full bg-neutral-400 shrink-0"></div>
-            <span>
-                <strong>Catatan Kriteria:</strong> [Menunggu Keputusan PRD §5.3: Kriteria Otomatisasi Unlock Achievement]
-            </span>
+    <div class="bg-neutral-50 border border-neutral-200 rounded-lg p-4 transition-colors">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-200/80">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-badge font-mono text-[11px] font-semibold bg-neutral-100 text-neutral-700 border border-neutral-300">
+                    <span class="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-pulse"></span>
+                    <span>Spesifikasi Otomatisasi: Interim / Pending</span>
+                </span>
+                <span class="font-sans text-xs text-neutral-500">
+                    Katalog Pencapaian Pegawai
+                </span>
+            </div>
+            <div class="flex items-center gap-1.5 font-mono text-[11px] text-neutral-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand"></span>
+                <!-- TODO: Menunggu keputusan PRD §5.3 (Poin 5: Kriteria unlock achievement) -->
+                <span>Interim: Status diverifikasi langsung dari basis data user_achievements</span>
+            </div>
         </div>
-        <span class="font-mono text-[11px] text-neutral-400">
-            <!-- TODO: Menunggu keputusan PRD §5.3 (Poin 5: Kriteria unlock achievement) -->
-            Interim: Status diverifikasi langsung dari basis data user_achievements
-        </span>
+        <div class="pt-3 flex items-start gap-2.5 text-xs font-sans text-neutral-600">
+            <svg class="w-4 h-4 text-neutral-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+            </svg>
+            <p class="leading-relaxed">
+                <strong>Catatan Kriteria:</strong> <span class="font-mono text-[11px] text-neutral-700 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">[Menunggu Keputusan PRD §5.3: Kriteria Otomatisasi Unlock Achievement]</span> &mdash; Ketentuan otomatisasi pemicu (milestone BA, kelulusan kuis, akumulasi skor) dalam penyesuaian regulasi. Seluruh lencana saat ini diverifikasi langsung dari ledger pencapaian pegawai.
+            </p>
+        </div>
     </div>
 
     {{-- Grid Achievement (Design System §4: 3-4 kolom desktop, 2 kolom tablet, 1 kolom mobile) --}}
     {{-- DoD #2: Unlocked/Locked dibedakan LEWAT WARNA IKON SAJA (bukan dekorasi tambahan) --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 desktop:grid-cols-3 gap-5">
-        @foreach ($achievements as $item)
+        @forelse ($achievements as $item)
             <div wire:key="achievement-{{ $item->id }}"
-                 class="bg-white border border-neutral-200 rounded-lg p-5 flex flex-col items-center text-center">
+                 class="rounded-lg p-5 flex flex-col items-center text-center transition-all duration-200 group relative overflow-hidden {{ $item->is_unlocked ? 'bg-white border border-brand/30 hover:border-brand hover:shadow-xs' : 'bg-neutral-50/70 border border-dashed border-neutral-300/90 hover:border-neutral-400' }}">
                 
-                {{-- Lingkaran Wadah Ikon (Styling identik: bg-neutral-50 border border-neutral-200) --}}
-                {{-- PEMBEDA SATU-SATUNYA: Unlocked = text-brand, Locked = text-neutral-400 opacity-40 --}}
-                <div class="w-16 h-16 rounded-full bg-neutral-50 border border-neutral-200 flex items-center justify-center {{ $item->is_unlocked ? 'text-brand' : 'text-neutral-400 opacity-40' }}">
+                @if ($item->is_unlocked)
+                    {{-- Aksen Garis Atas Kartu Terbuka (Clean Top Indicator) --}}
+                    <div class="absolute top-0 inset-x-0 h-1 bg-brand"></div>
+                @endif
+
+                {{-- Lingkaran Wadah Ikon Berbobot Insignia Kaizen --}}
+                <div class="w-16 h-16 rounded-full flex items-center justify-center transition-transform duration-200 group-hover:scale-105 {{ $item->is_unlocked ? 'bg-brand-tint border-2 border-brand/40 text-brand shadow-xs' : 'bg-neutral-100 border border-dashed border-neutral-300 text-neutral-400 opacity-40 group-hover:opacity-60' }}">
                     @switch($item->icon)
                         @case('heroicon-o-book-open')
                         @case('book')
@@ -102,28 +120,60 @@
                     @endswitch
                 </div>
 
+                {{-- Status Pill Badge Langsung di Bawah Ikon --}}
+                @if ($item->is_unlocked)
+                    <span class="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-brand-dark bg-brand-tint border border-brand/40 px-2.5 py-0.5 rounded-badge shadow-2xs">
+                        <x-layout.nav-icon name="check" class="w-3.5 h-3.5 text-brand" />
+                        <span>Terbuka</span>
+                    </span>
+                @else
+                    <span class="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 rounded-badge">
+                        <x-layout.nav-icon name="lock" class="w-3.5 h-3.5 text-neutral-500" />
+                        <span>Terkunci</span>
+                    </span>
+                @endif
+
                 {{-- Konten Nama & Deskripsi --}}
-                <h3 class="font-sans font-semibold text-sm text-neutral-900 mt-3.5">
+                <h3 class="font-sans font-bold text-sm {{ $item->is_unlocked ? 'text-neutral-900 group-hover:text-brand transition-colors' : 'text-neutral-700' }} mt-2.5">
                     {{ $item->name }}
                 </h3>
-                <p class="font-sans text-xs text-neutral-600 mt-1.5 leading-relaxed line-clamp-3">
+                <p class="font-sans text-xs {{ $item->is_unlocked ? 'text-neutral-600' : 'text-neutral-500' }} mt-1 leading-relaxed line-clamp-3">
                     {{ $item->description }}
                 </p>
 
                 {{-- Status Footnote (Clean, Non-decorative) --}}
-                <div class="mt-4 pt-3 border-t border-neutral-100 w-full flex items-center justify-between text-[11px] font-mono">
-                    <span class="text-neutral-400">Status:</span>
+                <div class="mt-4 pt-3 border-t {{ $item->is_unlocked ? 'border-neutral-100' : 'border-neutral-200/60' }} w-full flex items-center justify-between text-[11px] font-mono">
+                    <span class="text-neutral-500 font-medium">Verifikasi:</span>
                     @if ($item->is_unlocked)
-                        <span class="text-brand font-medium">
-                            Unlocked ({{ $item->unlocked_at ? $item->unlocked_at->format('d M Y') : 'Aktif' }})
+                        <span class="text-brand font-bold bg-brand-tint/40 px-2 py-0.5 rounded-badge border border-brand/20">
+                            {{ $item->unlocked_at ? $item->unlocked_at->format('d M Y') : 'Aktif' }}
                         </span>
                     @else
-                        <span class="text-neutral-400">
-                            Locked
+                        <span class="text-neutral-500 font-sans italic text-[11px]">
+                            Syarat belum tercapai
                         </span>
                     @endif
                 </div>
             </div>
-        @endforeach
+        @empty
+            <div class="col-span-full bg-white border border-neutral-200 rounded-lg p-12 text-center flex flex-col items-center justify-center">
+                <div class="w-12 h-12 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-400 mb-3">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.004-6.75V6.75a2.25 2.25 0 00-2.25-2.25H9.75a2.25 2.25 0 00-2.25 2.25v2.25m6.75 0h.75a2.25 2.25 0 012.25 2.25v.75a4.5 4.5 0 01-4.5 4.5h-.75m-6.75-7.5H6.75a2.25 2.25 0 00-2.25 2.25v.75a4.5 4.5 0 004.5 4.5h.75" />
+                    </svg>
+                </div>
+                <h3 class="font-sans font-semibold text-sm text-neutral-900">
+                    Belum Ada Lencana Tersedia
+                </h3>
+                <p class="font-sans text-xs text-neutral-500 mt-1 max-w-sm leading-relaxed">
+                    Katalog lencana dan kriteria pencapaian profesional saat ini sedang dalam persiapan administrasi sistem.
+                </p>
+                <div class="mt-4">
+                    <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium text-neutral-700 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-md transition-colors">
+                        Kembali ke Dashboard
+                    </a>
+                </div>
+            </div>
+        @endforelse
     </div>
 </div>

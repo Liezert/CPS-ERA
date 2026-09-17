@@ -39,14 +39,14 @@ class StageZeroDefinitionOfDoneTest extends TestCase
         $expectedSchema = [
             'users' => [
                 'id', 'employee_id', 'name', 'email', 'division_id',
-                'jabatan', 'avatar_url', 'total_points', 'level',
+                'jabatan', 'avatar_url', 'xp', 'level',
             ],
             'divisions' => [
                 'id', 'name',
             ],
             'ba_incidents' => [
                 'id', 'nomor_ba', 'title', 'description', 'division_id',
-                'file_ba_url', 'file_ftk_url', 'status', 'created_by',
+                'status', 'created_by',
                 'reviewed_by', 'reviewed_at', 'closed_at',
             ],
             'ba_activity_logs' => [

@@ -48,6 +48,7 @@ class StageTwelveProfileTest extends TestCase
         // Tambah transaksi poin bulanan untuk grafik
         PointTransaction::create([
             'user_id' => $this->user->id,
+            'ledger_type' => 'xp',
             'points' => 300,
             'description' => 'Poin Bulan Ini',
             'source_type' => 'mission_completed',
@@ -56,6 +57,7 @@ class StageTwelveProfileTest extends TestCase
 
         PointTransaction::create([
             'user_id' => $this->user->id,
+            'ledger_type' => 'xp',
             'points' => 450,
             'description' => 'Poin Bulan Lalu',
             'source_type' => 'mission_completed',
@@ -86,7 +88,7 @@ class StageTwelveProfileTest extends TestCase
             ->assertSee('Target Level Berikutnya')
             // 2. Memeriksa nilai & status metric
             ->assertSee('80%')
-            ->assertSee('[Menunggu PRD §5.3]')
+            ->assertSee('video')
             ->assertSee('Pts')
             // 3. Memeriksa sub-teks footer metric card konsisten
             ->assertSee('Materi Pelatihan Selesai')

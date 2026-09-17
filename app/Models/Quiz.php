@@ -54,6 +54,16 @@ class Quiz extends Model
     }
 
     /**
+     * Get the related video if applicable.
+     *
+     * @return BelongsTo<Video, $this>
+     */
+    public function relatedVideo(): BelongsTo
+    {
+        return $this->belongsTo(Video::class, 'related_id');
+    }
+
+    /**
      * Get the latest attempt by the currently authenticated user.
      *
      * @return HasOne<QuizAttempt, $this>

@@ -11,15 +11,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'title',
     'division_id',
+    'topic_id',
     'type',
     'file_url',
     'external_link',
     'description',
     'source_ba_id',
+    'source_video_id',
     'created_by',
     'status',
 ])]
@@ -27,6 +30,25 @@ class KnowledgeDocument extends Model
 {
     /** @use HasFactory<KnowledgeDocumentFactory> */
     use HasFactory, HasUuids;
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'download_url',
+    ];
+
+    /**
+     * Get the topic that the document belongs to.
+     *
+     * @return BelongsTo<KnowledgeTopic, $this>
+     */
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(KnowledgeTopic::class, 'topic_id');
+    }
 
     /**
      * Get the division that the document belongs to.
@@ -56,6 +78,16 @@ class KnowledgeDocument extends Model
     public function sourceBa(): BelongsTo
     {
         return $this->belongsTo(BaIncident::class, 'source_ba_id');
+    }
+
+    /**
+     * Get the video that was the source for this document.
+     *
+     * @return BelongsTo<Video, $this>
+     */
+    public function sourceVideo(): BelongsTo
+    {
+        return $this->belongsTo(Video::class, 'source_video_id');
     }
 
     /**
@@ -104,6 +136,26 @@ class KnowledgeDocument extends Model
     }
 
     /**
+     * Get the full downloadable URL for the attached file.
+     */
+    public function getDownloadUrlAttribute(): ?string
+    {
+        if (empty($this->file_url)) {
+            return null;
+        }
+
+        if (str_starts_with($this->file_url, 'http://') || str_starts_with($this->file_url, 'https://')) {
+            return $this->file_url;
+        }
+
+        if (str_starts_with($this->file_url, '/storage/')) {
+            return asset(ltrim($this->file_url, '/'));
+        }
+
+        return Storage::disk('public')->url($this->file_url);
+    }
+
+    /**
      * Scope query to only published documents.
      */
     public function scopePublished(Builder $query): Builder
@@ -112,7 +164,7 @@ class KnowledgeDocument extends Model
     }
 
     /**
-     * Scope query by search keyword in title or description.
+     * Scope query by search keyword in title, description, or topic name.
      */
     public function scopeSearch(Builder $query, ?string $keyword): Builder
     {
@@ -122,12 +174,15 @@ class KnowledgeDocument extends Model
 
         return $query->where(function (Builder $q) use ($keyword) {
             $q->where('title', 'like', "%{$keyword}%")
-                ->orWhere('description', 'like', "%{$keyword}%");
+                ->orWhere('description', 'like', "%{$keyword}%")
+                ->orWhereHas('topic', function (Builder $tq) use ($keyword) {
+                    $tq->where('name', 'like', "%{$keyword}%");
+                });
         });
     }
 
     /**
-     * Scope query by multiple filters (q, category_id/division_id, type, status).
+     * Scope query by multiple filters (q, topic_id, category_id/division_id, type, status).
      *
      * @param  array<string, mixed>  $filters
      */
@@ -135,6 +190,10 @@ class KnowledgeDocument extends Model
     {
         if (! empty($filters['q'])) {
             $query->search($filters['q']);
+        }
+
+        if (! empty($filters['topic_id'])) {
+            $query->where('topic_id', $filters['topic_id']);
         }
 
         $categoryId = $filters['category_id'] ?? $filters['division_id'] ?? null;

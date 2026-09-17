@@ -38,8 +38,8 @@ class StageFourAuthAndRbacRoutingTest extends TestCase
         // Panel putih tunggal border 1px neutral-200
         $response->assertSee('bg-white border border-neutral-200 rounded-lg', false);
 
-        // Input Email / NIK & Password
-        $response->assertSee('Email Pegawai atau NIK');
+        // Input Email & Password
+        $response->assertSee('Email Pegawai');
         $response->assertSee('Password');
 
         // Tombol menggunakan komponen Stage 2 dengan teks "Masuk ke Sistem"

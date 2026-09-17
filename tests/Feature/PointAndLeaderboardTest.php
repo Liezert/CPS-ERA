@@ -62,6 +62,7 @@ class PointAndLeaderboardTest extends TestCase
         // Insert transaksi poin 1
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 150,
             'source_type' => 'mission_completed',
             'description' => 'Menyelesaikan misi modul 1',
@@ -73,6 +74,7 @@ class PointAndLeaderboardTest extends TestCase
         // Insert transaksi poin 2
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 350,
             'source_type' => 'post_test_passed',
             'description' => 'Lulus post test',
@@ -103,6 +105,7 @@ class PointAndLeaderboardTest extends TestCase
         // Tambah 2.500 poin -> harus otomatis Level 2
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 2500,
             'source_type' => 'ba_submission',
             'description' => 'Reward submit BA',
@@ -116,6 +119,7 @@ class PointAndLeaderboardTest extends TestCase
         // Tambah lagi 2.000 poin (total 4.500 poin) -> harus otomatis Level 3
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 2000,
             'source_type' => 'learning_completion',
             'description' => 'Reward complete learning',
@@ -136,6 +140,7 @@ class PointAndLeaderboardTest extends TestCase
         // Transaksi positif beruntun
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 1000,
             'source_type' => 'mission_completed',
             'description' => 'Poin awal',
@@ -144,6 +149,7 @@ class PointAndLeaderboardTest extends TestCase
 
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 2000,
             'source_type' => 'ba_reviewed',
             'description' => 'BA approved',
@@ -155,6 +161,7 @@ class PointAndLeaderboardTest extends TestCase
         // Koreksi negatif oleh admin (admin_adjustment)
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => -500,
             'source_type' => 'admin_adjustment',
             'description' => 'Koreksi kelebihan poin oleh admin',
@@ -175,6 +182,7 @@ class PointAndLeaderboardTest extends TestCase
         // Berikan poin berbeda ke user1 dan user2
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 1000,
             'source_type' => 'mission_completed',
             'description' => 'User1 1000 pts',
@@ -183,6 +191,7 @@ class PointAndLeaderboardTest extends TestCase
 
         PointTransaction::create([
             'user_id' => $this->user2->id,
+            'ledger_type' => 'xp',
             'points' => 3000,
             'source_type' => 'mission_completed',
             'description' => 'User2 3000 pts',
@@ -200,6 +209,7 @@ class PointAndLeaderboardTest extends TestCase
 
         PointTransaction::create([
             'user_id' => $user3->id,
+            'ledger_type' => 'xp',
             'points' => 2000,
             'source_type' => 'mission_completed',
             'description' => 'User3 2000 pts',
@@ -249,6 +259,7 @@ class PointAndLeaderboardTest extends TestCase
     {
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 1000,
             'source_type' => 'mission_completed',
             'description' => 'User1 divA',
@@ -257,6 +268,7 @@ class PointAndLeaderboardTest extends TestCase
 
         PointTransaction::create([
             'user_id' => $this->user2->id,
+            'ledger_type' => 'xp',
             'points' => 3000,
             'source_type' => 'mission_completed',
             'description' => 'User2 divB',
@@ -290,6 +302,7 @@ class PointAndLeaderboardTest extends TestCase
         // Transaksi minggu ini
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 400,
             'source_type' => 'mission_completed',
             'description' => 'Minggu ini',
@@ -299,6 +312,7 @@ class PointAndLeaderboardTest extends TestCase
         // Transaksi bulan lalu (minggu lalu)
         PointTransaction::create([
             'user_id' => $this->user1->id,
+            'ledger_type' => 'xp',
             'points' => 600,
             'source_type' => 'mission_completed',
             'description' => 'Bulan lalu',

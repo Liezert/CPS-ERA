@@ -16,11 +16,9 @@ class CreateBaIncident extends CreateRecord
      */
     protected function handleRecordCreation(array $data): Model
     {
-        return app(BaIncidentService::class)->create(
+        return app(BaIncidentService::class)->saveDraft(
             $data,
-            auth()->user(),
-            $data['file_ba_url'],
-            $data['file_ftk_url']
+            auth()->user()
         );
     }
 }

@@ -122,6 +122,7 @@ class NotificationSeeder extends Seeder
                         'description' => "Poin Aktivitas Bulanan {$monthDate->format('M Y')}",
                     ],
                     [
+                        'ledger_type' => PointTransaction::LEDGER_XP,
                         'points' => $pts,
                         'source_type' => 'mission_completed',
                         'source_id' => null,

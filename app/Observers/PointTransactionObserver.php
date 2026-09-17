@@ -41,16 +41,19 @@ class PointTransactionObserver
     }
 
     /**
-     * Recompute user's total_points from SUM(point_transactions.points)
+     * Recompute user's XP from SUM(point_transactions.points WHERE ledger_type = 'xp')
      * and update user's level via LevelCalculator.
+     * Transaksi bertipe 'poin_cps_era' TIDAK dicampur ke users.xp.
      */
     protected function syncUserPointsAndLevel(string $userId): void
     {
-        $totalPoints = (int) PointTransaction::where('user_id', $userId)->sum('points');
-        $level = $this->levelCalculator->calculate($totalPoints);
+        $xp = (int) PointTransaction::where('user_id', $userId)
+            ->where('ledger_type', PointTransaction::LEDGER_XP)
+            ->sum('points');
+        $level = $this->levelCalculator->calculate($xp);
 
         User::where('id', $userId)->update([
-            'total_points' => $totalPoints,
+            'xp' => $xp,
             'level' => $level,
         ]);
     }

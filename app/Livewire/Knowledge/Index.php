@@ -4,6 +4,7 @@ namespace App\Livewire\Knowledge;
 
 use App\Models\Division;
 use App\Models\KnowledgeDocument;
+use App\Models\KnowledgeTopic;
 use App\Models\UserBookmark;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -23,6 +24,9 @@ class Index extends Component
     public string $search = '';
 
     #[Url(except: null)]
+    public ?int $selectedTopicId = null;
+
+    #[Url(except: null)]
     public ?int $selectedDivisionId = null;
 
     #[Url(except: null)]
@@ -32,6 +36,31 @@ class Index extends Component
     public bool $onlyBookmarks = false;
 
     public string $viewMode = 'grid'; // 'grid' atau 'list'
+
+    public ?KnowledgeDocument $viewingDocument = null;
+
+    /**
+     * Tampilkan detail dokumen/SOP dalam modal (PRD v2.0 §3.2).
+     */
+    public function showDocument(string $id): void
+    {
+        $this->viewingDocument = KnowledgeDocument::with(['division', 'creator', 'topic', 'sourceBa'])
+            ->published()
+            ->find($id);
+    }
+
+    /**
+     * Tutup modal detail dokumen.
+     */
+    public function closeDocument(): void
+    {
+        $this->viewingDocument = null;
+    }
+
+    public function updatingSelectedTopicId(): void
+    {
+        $this->resetPage();
+    }
 
     /**
      * Reset pagination setiap kali filter berubah (search/divisi/tipe/bookmark).
@@ -70,7 +99,7 @@ class Index extends Component
      */
     public function resetFilters(): void
     {
-        $this->reset(['search', 'selectedDivisionId', 'selectedType', 'onlyBookmarks']);
+        $this->reset(['search', 'selectedTopicId', 'selectedDivisionId', 'selectedType', 'onlyBookmarks']);
         $this->resetPage();
     }
 
@@ -107,7 +136,10 @@ class Index extends Component
         // 1. Ambil 13 Divisi Tetap sesuai Design System §8
         $divisions = Division::orderBy('id')->get();
 
-        // 2. Daftar 6 Tipe Materi Resmi
+        // 2. Ambil Topik Knowledge Resmi (PRD v2.0 §3.2)
+        $topics = KnowledgeTopic::orderBy('name')->get();
+
+        // 3. Daftar 6 Tipe Materi Resmi
         $types = [
             'dokumen' => 'Dokumen',
             'video' => 'Video',
@@ -117,17 +149,18 @@ class Index extends Component
             'link' => 'Tautan / Link',
         ];
 
-        // 3. Query Knowledge Documents
-        $query = KnowledgeDocument::with(['division', 'creator'])
+        // 4. Query Knowledge Documents
+        $query = KnowledgeDocument::with(['division', 'creator', 'topic', 'sourceBa'])
             ->published();
 
-        // Filter pencarian reaktif (title atau description)
+        // Filter pencarian reaktif (title, description, atau nama topik)
         if (! empty(trim($this->search))) {
-            $query->where(function ($q) {
-                $term = '%'.trim($this->search).'%';
-                $q->where('title', 'like', $term)
-                    ->orWhere('description', 'like', $term);
-            });
+            $query->search(trim($this->search));
+        }
+
+        // Filter Topik Pengetahuan (PRD v2.0 §3.2)
+        if (! empty($this->selectedTopicId)) {
+            $query->where('topic_id', $this->selectedTopicId);
         }
 
         // Filter Divisi (13 divisi tetap)
@@ -162,6 +195,7 @@ class Index extends Component
         return view('livewire.knowledge.index', [
             'documents' => $documents,
             'divisions' => $divisions,
+            'topics' => $topics,
             'types' => $types,
             'bookmarkedDocIds' => $bookmarkedDocIds,
             'totalBookmarksCount' => $totalBookmarksCount,

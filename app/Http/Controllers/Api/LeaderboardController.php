@@ -42,15 +42,15 @@ class LeaderboardController extends Controller
             $query->where('division_id', $request->query('division_id'));
         }
 
-        // Jika periode mingguan / bulanan, hitung perolehan poin pada periode tersebut
+        // Jika periode mingguan / bulanan, hitung perolehan poin XP pada periode tersebut
         if ($startDate !== null) {
             $query->withSum([
-                'pointTransactions as period_points' => fn ($q) => $q->where('created_at', '>=', $startDate),
+                'pointTransactions as period_points' => fn ($q) => $q->where('ledger_type', 'xp')->where('created_at', '>=', $startDate),
             ], 'points');
         }
 
-        // Urutkan by total_points DESC (dan nama ASC sebagai tie-breaker)
-        $users = $query->orderByDesc('total_points')
+        // Urutkan by xp DESC (dan nama ASC sebagai tie-breaker)
+        $users = $query->orderByDesc('xp')
             ->orderBy('name')
             ->get();
 
@@ -67,8 +67,9 @@ class LeaderboardController extends Controller
                     'id' => $user->division->id,
                     'name' => $user->division->name,
                 ] : null,
-                'total_points' => (int) $user->total_points,
-                'points' => $startDate !== null ? (int) ($user->period_points ?? 0) : (int) $user->total_points,
+                'xp' => (int) $user->xp,
+                'total_points' => (int) $user->xp,
+                'points' => $startDate !== null ? (int) ($user->period_points ?? 0) : (int) $user->xp,
                 'level' => (int) $user->level,
             ];
         });

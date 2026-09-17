@@ -27,11 +27,11 @@ class KnowledgeDocumentPolicy
 
     /**
      * Determine whether the user can create models.
-     * Sesuai PRD 2.2: Semua role boleh menambahkan materi (Dokumen/Video/dll).
+     * Sesuai PRD v2.0 §2.2: HANYA role Quality/HRGA dan Admin yang boleh menambah konten baru.
      */
     public function create(User $user): bool
     {
-        return true;
+        return $user->can('manage-knowledge-documents');
     }
 
     /**

@@ -27,7 +27,7 @@
             'roles' => ['employee', 'supervisor', 'quality', 'admin'],
         ],
         [
-            'title' => 'BA & Lesson Learned',
+            'title' => 'Laporan CAPA',
             'route' => 'ba.index',
             'url' => route('ba.index'),
             'icon' => 'shield-alert',
@@ -219,7 +219,7 @@
          x-transition:leave="transition ease-in-out duration-200 transform"
          x-transition:leave-start="translate-x-0"
          x-transition:leave-end="-translate-x-full"
-         class="relative max-w-xs w-full bg-white h-full flex flex-col z-10 border-r border-neutral-200 shadow-lg">
+         class="relative max-w-xs w-full bg-white h-full flex flex-col z-10 border-r border-neutral-200 shadow-sm">
         
         {{-- Drawer Header --}}
         <div class="h-16 px-5 border-b border-neutral-200 flex items-center justify-between">

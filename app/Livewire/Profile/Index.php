@@ -5,16 +5,22 @@ namespace App\Livewire\Profile;
 use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserLearningProgress;
+use App\Services\KpiContributionCalculator;
 use App\Services\LevelCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Index extends Component
 {
+    use WithFileUploads;
+
     public string $name = '';
 
     public string $email = '';
@@ -29,6 +35,19 @@ class Index extends Component
 
     public ?string $passwordStatusMessage = null;
 
+    /**
+     * Properti Unggah & Rancang Foto Profil
+     */
+    public $photo;
+
+    public string $avatarMode = 'upload'; // 'upload' atau 'generate'
+
+    public string $selectedBgColor = '#0B7840';
+
+    public string $customInitials = '';
+
+    public ?string $photoStatusMessage = null;
+
     public function mount(): void
     {
         /** @var User $user */
@@ -36,6 +55,138 @@ class Index extends Component
         if ($user) {
             $this->name = $user->name ?? '';
             $this->email = $user->email ?? '';
+            $this->customInitials = $user->initials ?? 'CP';
+        }
+    }
+
+    /**
+     * Validasi langsung saat file foto dipilih.
+     */
+    public function updatedPhoto(): void
+    {
+        $this->validate([
+            'photo' => ['nullable', 'image', 'max:2048', 'mimes:jpg,jpeg,png,webp'],
+        ], [
+            'photo.image' => 'File harus berupa gambar.',
+            'photo.max' => 'Ukuran foto maksimal adalah 2MB.',
+            'photo.mimes' => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+        ]);
+    }
+
+    /**
+     * Simpan file foto profil yang diunggah pengguna.
+     */
+    public function saveProfilePhoto(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->validate([
+            'photo' => ['required', 'image', 'max:2048', 'mimes:jpg,jpeg,png,webp'],
+        ], [
+            'photo.required' => 'Pilih file foto terlebih dahulu.',
+            'photo.image' => 'File harus berupa gambar.',
+            'photo.max' => 'Ukuran foto maksimal adalah 2MB.',
+            'photo.mimes' => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+        ]);
+
+        // Hapus file lama jika ada
+        $this->cleanupExistingAvatar($user->avatar_url);
+
+        // Simpan foto baru ke disk public
+        $path = $this->photo->store('avatars', 'public');
+        $user->avatar_url = 'storage/'.$path;
+        $user->save();
+
+        $this->reset('photo');
+        $this->photoStatusMessage = 'Foto profil berhasil diperbarui.';
+        session()->flash('status', 'photo-updated');
+    }
+
+    /**
+     * Rancang dan buat avatar vektor (SVG) kustom berlatar warna pilihan.
+     */
+    public function generateCustomAvatar(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->validate([
+            'selectedBgColor' => ['required', 'string', 'regex:/^#[a-fA-F0-9]{6}$/'],
+            'customInitials' => ['required', 'string', 'min:1', 'max:3'],
+        ], [
+            'selectedBgColor.required' => 'Pilih warna latar belakang avatar.',
+            'customInitials.required' => 'Inisial huruf harus diisi.',
+            'customInitials.max' => 'Inisial maksimal 3 karakter.',
+        ]);
+
+        $initials = strtoupper(trim($this->customInitials));
+        $bgColor = $this->selectedBgColor;
+
+        // Generate SVG berkualitas tajam (200x200)
+        $svgContent = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+    <rect width="200" height="200" rx="24" fill="{$bgColor}" />
+    <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#FFFFFF" font-family="'Inter', system-ui, sans-serif" font-weight="700" font-size="76" letter-spacing="-1">
+        {$initials}
+    </text>
+</svg>
+SVG;
+
+        $fileName = 'avatars/avatar-'.Str::uuid().'.svg';
+        Storage::disk('public')->put($fileName, $svgContent);
+
+        // Hapus foto lama jika ada
+        $this->cleanupExistingAvatar($user->avatar_url);
+
+        $user->avatar_url = 'storage/'.$fileName;
+        $user->save();
+
+        $this->photoStatusMessage = 'Avatar kustom berhasil dibuat dan diterapkan.';
+        session()->flash('status', 'photo-updated');
+    }
+
+    /**
+     * Hapus foto profil dan kembalikan ke avatar inisial standar.
+     */
+    public function deleteProfilePhoto(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->cleanupExistingAvatar($user->avatar_url);
+
+        $user->avatar_url = null;
+        $user->save();
+
+        $this->reset('photo');
+        $this->photoStatusMessage = 'Foto profil berhasil dihapus. Profil kembali menggunakan avatar default.';
+        session()->flash('status', 'photo-deleted');
+    }
+
+    /**
+     * Hapus file avatar lama dari storage public jika tersimpan lokal.
+     */
+    protected function cleanupExistingAvatar(?string $avatarUrl): void
+    {
+        if (! $avatarUrl) {
+            return;
+        }
+
+        if (str_starts_with($avatarUrl, 'storage/avatars/')) {
+            $relativePath = str_replace('storage/', '', $avatarUrl);
+            if (Storage::disk('public')->exists($relativePath)) {
+                Storage::disk('public')->delete($relativePath);
+            }
         }
     }
 
@@ -75,6 +226,23 @@ class Index extends Component
     }
 
     /**
+     * Batalkan pengeditan informasi profil dan kembalikan ke data asli.
+     */
+    public function cancelProfileEdit(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user) {
+            return;
+        }
+
+        $this->name = $user->name;
+        $this->email = $user->email;
+        $this->resetValidation(['name', 'email']);
+        $this->statusMessage = null;
+    }
+
+    /**
      * Perbarui kata sandi akun.
      */
     public function updatePassword(): void
@@ -102,7 +270,7 @@ class Index extends Component
     /**
      * Render halaman Profile dengan identitas, metrik konsisten Dashboard, dan grafik performa 6 bulan.
      */
-    public function render(LevelCalculator $levelCalculator): View
+    public function render(LevelCalculator $levelCalculator, KpiContributionCalculator $kpiCalculator): View
     {
         /** @var User $user */
         $user = Auth::user()->load('division');
@@ -111,11 +279,7 @@ class Index extends Component
         $formattedEmployeeId = $user->employee_id ?? ('CPS-'.str_pad((string) $user->id, 5, '0', STR_PAD_LEFT));
 
         // 2. Inisial nama untuk avatar box
-        $initials = 'CP';
-        if ($user && $user->name) {
-            $parts = explode(' ', trim($user->name));
-            $initials = strtoupper(substr($parts[0], 0, 1).(isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
-        }
+        $initials = $user->initials;
 
         // 3. Akumulasi Poin Ledger point_transactions
         $totalPoints = (int) $user->pointTransactions()->sum('points');
@@ -130,8 +294,9 @@ class Index extends Component
         $nextLevel = $currentLevel + 1;
         $levelProgressPercent = 65; // Menunggu formula XP PRD §5.3
 
-        // 6. KPI Contribution (TODO PRD §5.3 Poin 2)
-        $kpiContribution = null; // Menunggu formula resmi PRD §5.3
+        // 6. KPI Contribution (Client-Approved: Video Post-Test Gate)
+        $kpiData = $kpiCalculator->calculate($user);
+        $kpiContribution = $kpiData['percentage'];
 
         // 7. Grafik Performa Bulanan (6 bulan terakhir)
         $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
@@ -175,10 +340,11 @@ class Index extends Component
             'nextLevel' => $nextLevel,
             'levelProgressPercent' => $levelProgressPercent,
             'kpiContribution' => $kpiContribution,
+            'kpiData' => $kpiData,
             'monthlyPerformance' => $monthlyPerformance,
             'maxMonthlyPoints' => $maxMonthlyPoints,
         ])->layout('layouts.app', [
-            'title' => 'Profil Pengguna — CPS-ERA',
+            'title' => 'Profil Pegawai — CPS-ERA',
         ]);
     }
 }

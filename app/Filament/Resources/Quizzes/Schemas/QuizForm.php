@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Quizzes\Schemas;
 
+use App\Enums\QuizRelatedType;
 use App\Models\LearningMaterial;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -37,12 +38,8 @@ class QuizForm
                     ->required(),
                 Select::make('related_type')
                     ->label('Terkait Dengan')
-                    ->options([
-                        'none' => 'Tidak Terkait (Misi Mandiri)',
-                        'learning_material' => 'Learning Material (Post-Test)',
-                        'ba_incident' => 'BA Incident',
-                    ])
-                    ->default('none')
+                    ->options(QuizRelatedType::class)
+                    ->default(QuizRelatedType::None->value)
                     ->live(),
                 Select::make('related_id')
                     ->label('Materi Pembelajaran Terkait')
@@ -67,6 +64,10 @@ class QuizForm
                             ->numeric()
                             ->default(1)
                             ->required(),
+                        Toggle::make('allow_multiple_answers')
+                            ->label('Bisa Lebih Dari 1 Jawaban Benar (Multi-Select)')
+                            ->helperText('Jika diaktifkan, peserta harus memilih persis semua opsi benar untuk mendapatkan nilai penuh pada soal ini.')
+                            ->default(false),
                         Repeater::make('options')
                             ->label('Pilihan Jawaban')
                             ->relationship('options')

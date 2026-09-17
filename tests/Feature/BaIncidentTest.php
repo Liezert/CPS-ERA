@@ -219,7 +219,7 @@ class BaIncidentTest extends TestCase
                 'note' => 'Approved by supervisor',
             ]);
         $resAllowed->assertOk();
-        $this->assertSame('reviewed', $incidentProduksi->fresh()->status);
+        $this->assertSame('approved', $incidentProduksi->fresh()->status);
     }
 
     public function test_quality_and_admin_can_review_any_division(): void
@@ -272,21 +272,21 @@ class BaIncidentTest extends TestCase
         // 3. GET /api/ba-incidents/{id} (Show)
         $showRes = $this->actingAs($this->employeeProduksi)->getJson("/api/ba-incidents/{$incidentId}");
         $showRes->assertOk();
-        $this->assertSame('created', $showRes->json('data.status'));
+        $this->assertSame('submitted', $showRes->json('data.status'));
 
         // 4. PATCH /api/ba-incidents/{id}/review
         $reviewRes = $this->actingAs($this->supervisorProduksi)->patchJson("/api/ba-incidents/{$incidentId}/review", [
             'note' => 'Validasi FTK beres',
         ]);
         $reviewRes->assertOk();
-        $this->assertSame('reviewed', $reviewRes->json('data.status'));
+        $this->assertSame('approved', $reviewRes->json('data.status'));
 
         // 5. PATCH /api/ba-incidents/{id}/close
         $closeRes = $this->actingAs($this->supervisorProduksi)->patchJson("/api/ba-incidents/{$incidentId}/close", [
             'note' => 'Penanganan selesai',
         ]);
         $closeRes->assertOk();
-        $this->assertSame('closed', $closeRes->json('data.status'));
+        $this->assertSame('approved', $closeRes->json('data.status'));
 
         // 6. GET /api/ba-incidents/{id}/activity-log
         $logRes = $this->actingAs($this->employeeProduksi)->getJson("/api/ba-incidents/{$incidentId}/activity-log");

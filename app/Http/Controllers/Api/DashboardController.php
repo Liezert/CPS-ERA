@@ -8,6 +8,7 @@ use App\Models\LearningMaterial;
 use App\Models\Quiz;
 use App\Models\User;
 use App\Models\UserLearningProgress;
+use App\Services\KpiContributionCalculator;
 use App\Services\LevelCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,10 +21,13 @@ class DashboardController extends Controller
      *
      * GET /api/dashboard/summary
      */
-    public function summary(Request $request, LevelCalculator $levelCalculator): JsonResponse
+    public function summary(Request $request, LevelCalculator $levelCalculator, KpiContributionCalculator $kpiCalculator): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
+
+        // 0. KPI Contribution (Video Post-Test Gate)
+        $kpiData = $kpiCalculator->calculate($user);
 
         // 1. Jumlah knowledge_documents yang dibuat oleh user
         $knowledgeDocumentsCount = KnowledgeDocument::where('created_by', $user->id)->count();
@@ -42,8 +46,8 @@ class DashboardController extends Controller
             1
         );
 
-        // 4. Level & Poin user
-        $totalPoints = (int) $user->total_points;
+        // 4. Level & XP user (Dual-ledger)
+        $totalPoints = (int) ($user->xp ?? 0);
         $level = (int) $user->level;
         $pointsToNextLevel = $levelCalculator->pointsToNextLevel($totalPoints);
         $nextLevelThreshold = $levelCalculator->nextLevelThreshold($totalPoints);
@@ -122,15 +126,18 @@ class DashboardController extends Controller
                 'lesson_learned_count' => $lessonLearnedCount,
                 'average_learning_progress' => $averageLearningProgress,
 
-                // CATATAN PRD 5.3 poin 2: Rumus KPI belum difinalkan, eksplisit null
-                'kpi_contribution_percent' => null,
-                'kpi_contribution_status' => 'not_implemented',
+                // KPI Contribution (Client-Approved: Video Post-Test Passed / Target Video)
+                'kpi_contribution_percent' => $kpiData['percentage'],
+                'kpi_contribution_status' => 'active',
+                'kpi_contribution_data' => $kpiData,
 
                 'level' => $level,
+                'xp' => $totalPoints,
                 'total_points' => $totalPoints,
                 'points_to_next_level' => $pointsToNextLevel,
                 'next_level_threshold' => $nextLevelThreshold,
                 'level_progress_percent' => $levelProgressPercent,
+                'kpi_yearly' => $user->getKpiYearly(),
 
                 'unfinished_learning_materials' => $unfinishedMaterials,
                 'unfinished_missions' => $unfinishedMissions,

@@ -2,45 +2,45 @@
     {{-- =========================================================================
          1. BREADCRUMBS & HEADER MATERI (Design System §2 & §5)
          ========================================================================= --}}
-    <div class="bg-white border border-neutral-200 rounded-md p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="bg-neutral-50/70 border border-neutral-200 rounded-md p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2 text-xs font-sans text-neutral-500 mb-1.5 flex-wrap">
+            <div class="flex items-center gap-2 text-xs font-sans text-neutral-600 font-medium mb-1.5 flex-wrap">
                 <a href="{{ route('learning.index') }}" class="hover:text-brand transition-colors">Learning</a>
                 <span>&rsaquo;</span>
                 @if($material->category)
-                    <span class="text-neutral-700">{{ $material->category->name }}</span>
+                    <span class="text-neutral-800">{{ $material->category->name }}</span>
                     <span>&rsaquo;</span>
                 @endif
-                <span class="text-neutral-900 font-medium truncate max-w-xs">{{ $material->title }}</span>
+                <span class="text-neutral-900 font-semibold truncate max-w-xs">{{ $material->title }}</span>
             </div>
 
             <h1 class="font-sans font-semibold text-xl text-neutral-900 leading-tight">
                 {{ $material->title }}
             </h1>
 
-            <div class="flex items-center gap-3 mt-2 text-xs font-sans text-neutral-500 flex-wrap">
+            <div class="flex items-center gap-3 mt-2 text-xs font-sans text-neutral-600 font-medium flex-wrap">
                 @if($material->category)
-                    <span class="px-2 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-[11px]">
+                    <span class="px-2 py-0.5 border border-neutral-200 rounded-badge text-neutral-800 bg-white font-sans text-[11px] font-semibold">
                         {{ $material->category->name }}
                     </span>
                 @endif
 
-                <div class="inline-flex items-center gap-1.5 text-neutral-600 font-sans text-[11px]">
-                    <x-layout.nav-icon :name="$material->type" class="w-4 h-4 text-neutral-500" />
+                <div class="inline-flex items-center gap-1.5 text-neutral-700 font-sans text-[11px] font-medium">
+                    <x-layout.nav-icon :name="$material->type" class="w-4 h-4 text-neutral-600" />
                     <span class="capitalize">{{ ucfirst($material->type) }}</span>
                 </div>
 
                 <span>&middot;</span>
                 <span>Diterbitkan oleh {{ $material->creator?->name ?? 'Tim Internal' }}</span>
                 <span>&middot;</span>
-                <span class="font-mono text-neutral-400">{{ $material->created_at->format('d M Y') }}</span>
+                <span class="font-mono text-neutral-500">{{ $material->created_at->format('d M Y') }}</span>
             </div>
         </div>
 
         <div class="shrink-0 flex items-center gap-2">
             <a href="{{ route('learning.index') }}"
-               class="inline-flex items-center px-3 py-1.5 border border-neutral-200 rounded-badge text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 transition-colors">
-                &larr; Kembali ke Katalog
+               class="inline-flex items-center px-3 py-1.5 border border-neutral-200 rounded-md text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 transition-colors">
+                Kembali ke Katalog
             </a>
         </div>
     </div>
@@ -96,9 +96,8 @@
                                 <a href="{{ $material->content_url }}"
                                    target="_blank"
                                    rel="noopener noreferrer"
-                                   class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-medium transition-colors">
+                                   class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-sans font-medium transition-colors">
                                     <span>Tonton Video di Tab Baru</span>
-                                    <span>&nearr;</span>
                                 </a>
                             @else
                                 <p class="text-[11px] text-neutral-400 mt-1">Video disematkan secara internal.</p>
@@ -107,7 +106,7 @@
 
                     @elseif($material->type === 'dokumen' || $material->type === 'file_pendukung' || $material->type === 'presentasi')
                         {{-- Dokumen / Presentasi / File Download Box --}}
-                        <div class="border border-neutral-200 rounded-badge p-4 bg-neutral-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div class="flex items-center gap-3 min-w-0">
                                 <div class="w-10 h-10 rounded-[2px] bg-white border border-neutral-200 text-neutral-600 flex items-center justify-center shrink-0">
                                     <x-layout.nav-icon :name="$material->type" class="w-5 h-5" />
@@ -126,9 +125,8 @@
                                 <a href="{{ $material->content_url }}"
                                    target="_blank"
                                    rel="noopener noreferrer"
-                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 hover:border-brand hover:text-brand rounded-badge text-xs font-sans font-medium text-neutral-700 transition-colors shrink-0">
+                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 hover:border-brand hover:text-brand rounded-md text-xs font-sans font-medium text-neutral-700 transition-colors shrink-0">
                                     <span>Unduh / Buka Dokumen</span>
-                                    <span>&nearr;</span>
                                 </a>
                             @else
                                 <span class="text-xs font-sans text-neutral-400 italic shrink-0">
@@ -139,7 +137,7 @@
 
                     @elseif($material->type === 'link')
                         {{-- Tautan Eksternal Box --}}
-                        <div class="border border-neutral-200 rounded-badge p-4 bg-neutral-50/50 flex items-center justify-between gap-3">
+                        <div class="border border-neutral-200 rounded-md p-4 bg-neutral-50/50 flex items-center justify-between gap-3">
                             <div class="flex items-center gap-3 min-w-0">
                                 <div class="w-9 h-9 rounded-[2px] bg-white border border-neutral-200 text-neutral-500 flex items-center justify-center shrink-0">
                                     <x-layout.nav-icon name="link" class="w-4 h-4" />
@@ -154,9 +152,8 @@
                             <a href="{{ $material->content_url ?: '#' }}"
                                target="_blank"
                                rel="noopener noreferrer"
-                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-medium transition-colors shrink-0">
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-sans font-medium transition-colors shrink-0">
                                 <span>Buka Tautan</span>
-                                <span>&nearr;</span>
                             </a>
                         </div>
 
@@ -273,10 +270,9 @@
                             </div>
 
                             {{-- Tombol Lanjut ke Post-Test --}}
-                            <a href="{{ route('components.preview') }}"
-                               class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-brand shadow-none">
+                            <a href="{{ route('learning.post-test', $material) }}"
+                               class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-sans font-semibold transition-colors focus:outline-none focus:ring-1 focus:ring-brand shadow-none">
                                 <span>Lanjut ke Post-Test</span>
-                                <span>&rarr;</span>
                             </a>
                         </div>
                     @else

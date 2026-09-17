@@ -9,6 +9,7 @@ use App\Livewire\Dashboard;
 use App\Livewire\Knowledge\Index as KnowledgeIndex;
 use App\Livewire\Leaderboard\Index as LeaderboardIndex;
 use App\Livewire\Learning\Index as LearningIndex;
+use App\Livewire\Learning\PostTest as LearningPostTest;
 use App\Livewire\Learning\Show as LearningShow;
 use App\Livewire\Mission\Index as MissionIndex;
 use App\Livewire\Mission\Show as MissionShow;
@@ -25,7 +26,7 @@ Route::get('/', function () {
         return redirect()->route('dashboard');
     }
 
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::get('/components-preview', function () {
@@ -43,6 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/ba-incidents/{incident}', BaShow::class)->name('ba.show');
     Route::get('/learning', LearningIndex::class)->name('learning.index');
     Route::get('/learning/{material}', LearningShow::class)->name('learning.show');
+    Route::get('/learning/{material}/post-test', LearningPostTest::class)->name('learning.post-test');
     Route::get('/missions', MissionIndex::class)->name('missions.index');
     Route::get('/missions/{quiz}', MissionShow::class)->name('missions.show');
     Route::get('/leaderboard', LeaderboardIndex::class)->name('leaderboard.index');

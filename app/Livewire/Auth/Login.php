@@ -18,7 +18,7 @@ use Livewire\Component;
 class Login extends Component
 {
     #[Validate('required|string', message: [
-        'required' => 'Email atau NIK Pegawai wajib diisi.',
+        'required' => 'Email Pegawai wajib diisi.',
     ])]
     public string $login = '';
 

@@ -49,9 +49,9 @@ class Index extends Component
         /** @var User|null $currentUser */
         $currentUser = Auth::user();
 
-        // 1. Query Pengguna Terurut Berdasarkan Poin (DoD #1: Sorting berdasarkan Points benar)
+        // 1. Query Pengguna Terurut Berdasarkan XP (DoD #1: Sorting berdasarkan XP benar)
         $query = User::with('division')
-            ->orderBy('total_points', 'desc')
+            ->orderBy('xp', 'desc')
             ->orderBy('name', 'asc')
             ->when($this->search !== '', function ($q) {
                 $term = '%'.$this->search.'%';
@@ -70,9 +70,10 @@ class Index extends Component
         $myRank = null;
         $myPointsToNext = 0;
         if ($currentUser) {
-            $myRank = User::where('total_points', '>', $currentUser->total_points)->count() + 1;
+            $userPoints = (int) ($currentUser->xp ?? 0);
+            $myRank = User::where('xp', '>', $userPoints)->count() + 1;
             $calculator = new LevelCalculator;
-            $myPointsToNext = $calculator->pointsToNextLevel((int) $currentUser->total_points);
+            $myPointsToNext = $calculator->pointsToNextLevel($userPoints);
         }
 
         // 3. Daftar Divisi untuk Opsi Filter
