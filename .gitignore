@@ -27,6 +27,8 @@ yarn-error.log*
 
 # Storage & Keys
 /public/storage
+/storage/app/public/*
+!/storage/app/public/.gitignore
 /storage/*.key
 /storage/pail
 /storage/logs/
@@ -56,17 +58,27 @@ Homestead.yaml
 
 # Dokumen internal bisnis — sensitif
 CPS_ERA_PRD.md
+CPS_ERA_PRD_v2.md
+CPS_ERA_PRD*.md
 CPS-ERA-Data-Contract.md
 CPS-ERA-Design-System.md
 CPS_ERA_BA_Revision_Prompt.md
+CPS_ERA_BA_CAPA_Revision_Prompt.md
+CPS_ERA_Gamification_Knowledge_Revision_Prompt.md
+CPS_ERA_*_Prompt.md
+PRODUCT.md
 
-# Scratch / Debug files
+# Scratch, Database & Debug files
 /scratch/
+*.sqlite
+*.sqlite-journal
 *.dump
 *.sql
 *.bak
 
-# AI / Agent configs internal
+# AI / Agent configs & cache internal
+.impeccable/
+.gemini/
 /.agents/mcp_config.json
 CLAUDE.md
 AGENTS.md
