@@ -7,6 +7,7 @@ use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeTopic;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
 
 class KnowledgeTopicSeeder extends Seeder
 {
@@ -116,7 +117,7 @@ class KnowledgeTopicSeeder extends Seeder
                 'division_id' => $divEngineering?->id,
                 'type' => 'dokumen',
                 'external_link' => null,
-                'file_url' => 'knowledge-documents/files/ik-preventive-maintenance-cnc.docx',
+                'file_url' => 'knowledge-documents/files/ik-preventive-maintenance-cnc.pdf',
                 'description' => 'Instruksi kerja langkah demi langkah untuk operator dan teknisi dalam memeriksa level pelumas spindle, membersihkan chip sisa pemotongan, dan memeriksa kekencangan chuck sebelum operasi shift.',
                 'status' => 'published',
                 'created_by' => $admin->id,
@@ -150,6 +151,63 @@ class KnowledgeTopicSeeder extends Seeder
                 ['title' => $docData['title']],
                 $docData
             );
+
+            $this->ensurePlaceholderFile($docData['file_url'], $docData['title']);
         }
+    }
+
+    /**
+     * Pastikan dokumen kurasi punya berkas fisik di disk `public`.
+     *
+     * Tanpa ini, baris knowledge_documents menunjuk path yang tidak pernah ada
+     * sehingga unduhan di UI selalu gagal. Berkas ditulis hanya bila belum ada,
+     * jadi seeder tetap idempoten dan tidak menimpa dokumen asli yang diunggah.
+     */
+    private function ensurePlaceholderFile(?string $path, string $title): void
+    {
+        if ($path === null || $path === '' || Storage::disk('public')->exists($path)) {
+            return;
+        }
+
+        Storage::disk('public')->put($path, $this->minimalPdf($title));
+    }
+
+    /**
+     * Bangun PDF satu halaman yang valid, dengan tabel xref beroffset akurat.
+     */
+    private function minimalPdf(string $title): string
+    {
+        // Placeholder: sanitasi judul agar aman di dalam literal string PDF.
+        $text = preg_replace('/[^A-Za-z0-9 .,:&_-]/', '', $title);
+        $stream = "BT /F1 12 Tf 57 780 Td ({$text}) Tj 0 -24 Td (Dokumen placeholder - unggah berkas asli untuk menggantikannya.) Tj ET";
+
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] '
+                .'/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+            '<< /Length '.strlen($stream)." >>\nstream\n".$stream."\nendstream",
+        ];
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [];
+
+        foreach ($objects as $i => $body) {
+            $offsets[] = strlen($pdf);
+            $pdf .= ($i + 1)." 0 obj\n".$body."\nendobj\n";
+        }
+
+        $xrefPos = strlen($pdf);
+        $pdf .= 'xref'."\n".'0 '.(count($objects) + 1)."\n".'0000000000 65535 f '."\n";
+
+        foreach ($offsets as $offset) {
+            $pdf .= sprintf("%010d 00000 n \n", $offset);
+        }
+
+        $pdf .= 'trailer'."\n".'<< /Size '.(count($objects) + 1).' /Root 1 0 R >>'."\n"
+            .'startxref'."\n".$xrefPos."\n".'%%EOF'."\n";
+
+        return $pdf;
     }
 }

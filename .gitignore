@@ -82,3 +82,6 @@ PRODUCT.md
 /.agents/mcp_config.json
 CLAUDE.md
 AGENTS.md
+
+# Local database dumps & file archives (never track backups)
+/storage/backups/

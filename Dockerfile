@@ -7,12 +7,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     zip \
     unzip \
-    libpq-dev \
     libzip-dev \
     libpng-dev \
     libicu-dev \
     supervisor \
-    && docker-php-ext-install pdo pdo_pgsql zip gd intl bcmath exif \
+    && docker-php-ext-install pdo pdo_mysql zip gd intl bcmath exif \
     && rm -rf /var/lib/apt/lists/*
 
 # Node.js (untuk compile assets Vite)
