@@ -326,6 +326,41 @@ class Create extends Component
         return view('livewire.ba.create', [
             'divisions' => $divisions,
             'sumberOptions' => BaIncident::SUMBER_OPTIONS,
+            'capa' => $this->capaFormValues(),
         ]);
+    }
+
+    /**
+     * Nilai form untuk komponen bersama components/capa/form/* (mode edit).
+     * Kuncinya sama dengan BaIncident::capaFormValues() yang dipakai mode readonly.
+     *
+     * @return array<string, mixed>
+     */
+    protected function capaFormValues(): array
+    {
+        return [
+            'nomorBaPreview' => $this->nomorBaPreview,
+            'divisionId' => $this->divisionId,
+            'tanggalPengisian' => $this->tanggalPengisian,
+            'sumberKetidaksesuaian' => $this->sumberKetidaksesuaian,
+            'sumberKetidaksesuaianLainnya' => $this->sumberKetidaksesuaianLainnya,
+            'tanggalMasalah' => $this->tanggalMasalah,
+            'lokasi' => $this->lokasi,
+            'deskripsiMasalah' => $this->deskripsiMasalah,
+            'why1' => $this->why1,
+            'why2' => $this->why2,
+            'why3' => $this->why3,
+            'why4' => $this->why4,
+            'why5' => $this->why5,
+            'kesimpulanAkarMasalah' => $this->kesimpulanAkarMasalah,
+            'koreksiDeskripsi' => $this->koreksiDeskripsi,
+            'koreksiPic' => $this->koreksiPic,
+            'koreksiWaktu' => $this->koreksiWaktu,
+            'korektifDeskripsi' => $this->korektifDeskripsi,
+            'korektifPic' => $this->korektifPic,
+            'korektifWaktu' => $this->korektifWaktu,
+            'isPotensiRisiko' => $this->isPotensiRisiko,
+            'isPotensiPeluang' => $this->isPotensiPeluang,
+        ];
     }
 }

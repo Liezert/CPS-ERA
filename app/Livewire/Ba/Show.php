@@ -3,6 +3,7 @@
 namespace App\Livewire\Ba;
 
 use App\Models\BaIncident;
+use App\Models\Division;
 use App\Services\BaIncidentService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -211,6 +212,10 @@ class Show extends Component
 
     public function render()
     {
-        return view('livewire.ba.show');
+        return view('livewire.ba.show', [
+            // Section 1-6 dirender dengan komponen yang sama dengan form employee (mode readonly).
+            'capa' => $this->incident->capaFormValues(),
+            'divisions' => Division::orderBy('id')->get(),
+        ]);
     }
 }

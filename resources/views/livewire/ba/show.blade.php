@@ -136,174 +136,33 @@
     </div>
 
     {{-- =========================================================================
-         2. KONTEN FORMULIR DIGITAL CAPA/FTK
+         2. FORMULIR CAPA/FTK — identik dengan form pengisian employee
+            (komponen bersama components/capa/form/*, mode readonly)
          ========================================================================= --}}
-    <div class="bg-white border border-neutral-200 rounded-md p-6 space-y-6">
-        
-        {{-- Section Header Dokumen --}}
-        <div class="flex items-center justify-between pb-3 border-b border-neutral-200">
-            <div>
-                <h2 class="text-sm font-bold text-neutral-900">
-                    Rincian Formulir Tindakan Koreksi &amp; Korektif (CAPA)
-                </h2>
-            </div>
-            <div class="text-right text-xs text-neutral-600">
-                <span>Tanggal Pengisian: </span>
-                <strong class="font-mono text-neutral-900">{{ $incident->tanggal_pengisian ? $incident->tanggal_pengisian->format('d M Y') : $incident->created_at->format('d M Y') }}</strong>
-            </div>
-        </div>
+    <div x-data="{
+            visibleWhys: 1,
+            copiedBa: false,
+            copyBaNumber() {
+                navigator.clipboard.writeText('{{ $incident->nomor_ba }}');
+                this.copiedBa = true;
+                setTimeout(() => { this.copiedBa = false; }, 2000);
+            }
+        }"
+        class="bg-white border border-neutral-200 rounded-md p-5 sm:p-7 space-y-8 shadow-2xs">
 
-        {{-- Meta Grid: Sumber, Tanggal Masalah, Lokasi --}}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-50/70 border border-neutral-200 rounded-md p-4">
-            <div>
-                <span class="text-[11px] font-medium text-neutral-500 uppercase tracking-wider block mb-1">
-                    Sumber Ketidaksesuaian
-                </span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-badge text-xs font-semibold bg-white border border-neutral-300 text-neutral-900">
-                    {{ \App\Models\BaIncident::SUMBER_OPTIONS[$incident->sumber_ketidaksesuaian] ?? ucfirst(str_replace('_', ' ', (string) $incident->sumber_ketidaksesuaian)) }}
-                </span>
-                @if($incident->sumber_ketidaksesuaian_lainnya)
-                    <p class="text-[11px] text-neutral-600 mt-1 italic">
-                        "{{ $incident->sumber_ketidaksesuaian_lainnya }}"
-                    </p>
-                @endif
-            </div>
+        <x-capa.form.header :values="$capa" :readonly="true" />
 
-            <div>
-                <span class="text-[11px] font-medium text-neutral-500 uppercase tracking-wider block mb-1">
-                    Tanggal Terjadi Masalah
-                </span>
-                <span class="font-mono text-xs font-bold text-neutral-900 block">
-                    {{ $incident->tanggal_masalah ? $incident->tanggal_masalah->format('d M Y') : '-' }}
-                </span>
-            </div>
+        <x-capa.form.dokumen :values="$capa" :divisions="$divisions" :readonly="true" />
 
-            <div>
-                <span class="text-[11px] font-medium text-neutral-500 uppercase tracking-wider block mb-1">
-                    Lokasi / Tempat Kejadian
-                </span>
-                <span class="text-xs font-semibold text-neutral-900 block">
-                    {{ $incident->lokasi ?: '-' }}
-                </span>
-            </div>
-        </div>
+        <x-capa.form.sumber :values="$capa" :readonly="true" />
 
-        {{-- Uraian Masalah --}}
-        <div class="space-y-1.5">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-700 font-sans">
-                Uraian Masalah / Ketidaksesuaian
-            </h3>
-            <div class="p-4 bg-neutral-50 border border-neutral-200 rounded-md text-xs sm:text-sm text-neutral-800 leading-relaxed whitespace-pre-line">
-                {{ $incident->deskripsi_masalah ?: ($incident->description ?: 'Tidak ada deskripsi rinci.') }}
-            </div>
-        </div>
+        <x-capa.form.kejadian :values="$capa" :readonly="true" />
 
-        {{-- Analisis 5 Whys --}}
-        <div class="border border-neutral-200 rounded-md p-4 space-y-3">
-            <div class="flex items-center justify-between pb-2 border-b border-neutral-100">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-900 font-sans">
-                    Analisis Akar Masalah (5 Whys)
-                </h3>
-                <span class="text-[10px] font-mono text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
-                    Investigasi Kausalitas
-                </span>
-            </div>
+        <x-capa.form.akar-masalah :values="$capa" :readonly="true" />
 
-            <div class="space-y-2 text-xs">
-                @if($incident->why_1)
-                    <div class="flex items-start gap-2">
-                        <span class="font-mono font-bold text-neutral-500 shrink-0 w-16">Why 1:</span>
-                        <p class="text-neutral-800 font-medium">{{ $incident->why_1 }}</p>
-                    </div>
-                @endif
-                @if($incident->why_2)
-                    <div class="flex items-start gap-2">
-                        <span class="font-mono font-bold text-neutral-500 shrink-0 w-16">Why 2:</span>
-                        <p class="text-neutral-700">{{ $incident->why_2 }}</p>
-                    </div>
-                @endif
-                @if($incident->why_3)
-                    <div class="flex items-start gap-2">
-                        <span class="font-mono font-bold text-neutral-500 shrink-0 w-16">Why 3:</span>
-                        <p class="text-neutral-700">{{ $incident->why_3 }}</p>
-                    </div>
-                @endif
-                @if($incident->why_4)
-                    <div class="flex items-start gap-2">
-                        <span class="font-mono font-bold text-neutral-500 shrink-0 w-16">Why 4:</span>
-                        <p class="text-neutral-700">{{ $incident->why_4 }}</p>
-                    </div>
-                @endif
-                @if($incident->why_5)
-                    <div class="flex items-start gap-2">
-                        <span class="font-mono font-bold text-neutral-500 shrink-0 w-16">Why 5:</span>
-                        <p class="text-neutral-700">{{ $incident->why_5 }}</p>
-                    </div>
-                @endif
-            </div>
+        <x-capa.form.rencana-penanganan :values="$capa" :readonly="true" />
 
-            <div class="pt-3 border-t border-neutral-200 mt-2">
-                <span class="text-[11px] font-bold text-neutral-900 uppercase tracking-wider block mb-1">
-                    Kesimpulan Akar Masalah:
-                </span>
-                <p class="text-xs text-neutral-800 font-medium bg-neutral-50 p-2.5 rounded border border-neutral-200">
-                    {{ $incident->kesimpulan_akar_masalah ?: '-' }}
-                </p>
-            </div>
-        </div>
-
-        {{-- Tindakan Koreksi & Korektif --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {{-- Tindakan Koreksi (Sementara) --}}
-            <div class="border border-neutral-200 rounded-md p-4 space-y-2 bg-white">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <h4 class="text-xs font-bold text-neutral-900 uppercase tracking-wider">
-                        Tindakan Koreksi (Sementara)
-                    </h4>
-                </div>
-                <p class="text-xs text-neutral-800 leading-relaxed min-h-[48px]">
-                    {{ $incident->koreksi_deskripsi ?: '-' }}
-                </p>
-                <div class="pt-2 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500">
-                    <span>PIC: <strong class="text-neutral-700">{{ $incident->koreksi_pic ?: '-' }}</strong></span>
-                    <span>Waktu: <strong class="text-neutral-700">{{ $incident->koreksi_waktu ?: '-' }}</strong></span>
-                </div>
-            </div>
-
-            {{-- Tindakan Korektif (Akar Masalah) --}}
-            <div class="border border-neutral-200 rounded-md p-4 space-y-2 bg-white">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-brand"></span>
-                    <h4 class="text-xs font-bold text-neutral-900 uppercase tracking-wider">
-                        Tindakan Korektif (Akar Masalah)
-                    </h4>
-                </div>
-                <p class="text-xs text-neutral-800 leading-relaxed min-h-[48px]">
-                    {{ $incident->korektif_deskripsi ?: '-' }}
-                </p>
-                <div class="pt-2 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500">
-                    <span>PIC: <strong class="text-neutral-700">{{ $incident->korektif_pic ?: '-' }}</strong></span>
-                    <span>Waktu: <strong class="text-neutral-700">{{ $incident->korektif_waktu ?: '-' }}</strong></span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Dampak Lanjutan: Potensi Risiko & Peluang --}}
-        <div class="flex flex-wrap items-center gap-3 pt-2">
-            @if($incident->is_potensi_risiko)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-red-50 text-red-800 border border-red-200 text-xs font-medium">
-                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                    Potensi Risiko Signifikan
-                </span>
-            @endif
-            @if($incident->is_potensi_peluang)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[2px] bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Potensi Peluang Improvement
-                </span>
-            @endif
-        </div>
+        <x-capa.form.dampak :values="$capa" :readonly="true" />
     </div>
 
     {{-- =========================================================================
@@ -330,53 +189,8 @@
             @endif
         </div>
 
-        @if($incident->video)
-            <div class="bg-neutral-50 rounded-md p-4 space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <h4 class="text-xs font-semibold text-neutral-900">
-                        {{ $incident->video->title }}
-                    </h4>
-                    @if($incident->video->video_external_link)
-                        <a href="{{ $incident->video->video_external_link }}"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           class="inline-flex items-center gap-1 text-xs text-brand font-medium hover:underline">
-                            <span>Buka Tautan Eksternal</span>
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                        </a>
-                    @endif
-                </div>
-
-                @if($incident->video->video_file_url)
-                    <div class="aspect-video bg-black rounded overflow-hidden max-w-lg mx-auto">
-                        <video controls class="w-full h-full object-contain">
-                            <source src="{{ asset($incident->video->video_file_url) }}" type="video/mp4">
-                            Browser Anda tidak mendukung pemutar video HTML5.
-                        </video>
-                    </div>
-                @elseif($incident->video->video_external_link)
-                    <div class="p-3 bg-white border border-neutral-200 rounded flex items-center gap-3">
-                        <div class="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center text-neutral-600 shrink-0">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                            </svg>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="text-[11px] text-neutral-500 font-sans">Tautan Video:</div>
-                            <a href="{{ $incident->video->video_external_link }}" target="_blank" class="text-xs font-mono text-brand truncate block hover:underline">
-                                {{ $incident->video->video_external_link }}
-                            </a>
-                        </div>
-                    </div>
-                @endif
-            </div>
-        @else
-            <div class="text-center py-6 text-xs text-neutral-500 bg-neutral-50 rounded-md border border-dashed border-neutral-300">
-                Tidak ada video yang dilampirkan pada pelaporan ini.
-            </div>
-        @endif
+        {{-- Video Player (Shared Component) --}}
+        <x-capa.video-player :incident="$incident" />
     </div>
 
     {{-- =========================================================================
@@ -561,8 +375,17 @@
                     </button>
                     <button type="button"
                             wire:click="confirmApprove"
-                            class="px-4 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-medium transition-colors shadow-xs">
-                        Konfirmasi Setujui &amp; Terbitkan Lesson Learned
+                            wire:loading.attr="disabled"
+                            wire:target="confirmApprove"
+                            class="inline-flex items-center gap-2 px-4 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-medium transition-colors shadow-xs disabled:opacity-60 disabled:cursor-not-allowed">
+                        <span wire:loading.remove wire:target="confirmApprove">Konfirmasi Setujui &amp; Terbitkan Lesson Learned</span>
+                        <span wire:loading wire:target="confirmApprove" class="flex items-center gap-2">
+                            <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Memproses Persetujuan...</span>
+                        </span>
                     </button>
                 </div>
             </div>

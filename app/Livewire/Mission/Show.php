@@ -6,8 +6,10 @@ use App\Models\PointTransaction;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizOption;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -134,46 +136,58 @@ class Show extends Component
         // Passing grade: minimum 70%
         $this->passed = ($this->score >= 70);
 
-        // Cek ledger point_transactions: apakah sudah pernah diberi reward untuk misi ini?
-        $hasPointTransaction = PointTransaction::where('user_id', $userId)
-            ->where('source_type', 'mission_completed')
-            ->where('source_id', $this->quiz->id)
-            ->exists();
+        // Klik ganda = dua submit bersamaan. Keduanya antre di baris users milik pengirim,
+        // jadi cek idempotensi di bawah tidak bisa sama-sama lolos. Pola yang sama dengan
+        // approve BA (BaIncidentService::approve + KpiContributionService::recordBaVideoApproved).
+        [$pointsEarned, $alreadyRewarded, $attempt] = DB::transaction(function () use ($userId): array {
+            User::query()->whereKey($userId)->lockForUpdate()->first();
 
-        $this->alreadyRewarded = $hasPointTransaction;
+            // sharedLock (locking read): lihat versi ter-commit terbaru, bukan snapshot.
+            $hasPointTransaction = PointTransaction::where('user_id', $userId)
+                ->where('source_type', 'mission_completed')
+                ->where('source_id', $this->quiz->id)
+                ->sharedLock()
+                ->exists();
 
-        // Tentukan perolehan poin: hanya jika lulus dan belum pernah klaim
-        if ($this->passed && ! $hasPointTransaction) {
-            $this->pointsEarned = (int) $this->quiz->points_reward;
+            $pointsEarned = 0;
 
-            // Catat poin resmi ke ledger point_transactions (DoD #2)
-            PointTransaction::create([
+            // Tentukan perolehan poin: hanya jika lulus dan belum pernah klaim
+            if ($this->passed && ! $hasPointTransaction) {
+                $pointsEarned = (int) $this->quiz->points_reward;
+
+                // Catat poin resmi ke ledger point_transactions (DoD #2)
+                PointTransaction::create([
+                    'id' => (string) Str::uuid(),
+                    'user_id' => $userId,
+                    'ledger_type' => PointTransaction::LEDGER_XP,
+                    'points' => $pointsEarned,
+                    'source_type' => 'mission_completed',
+                    'source_id' => $this->quiz->id,
+                    'description' => "Menyelesaikan Misi: {$this->quiz->title}",
+                    'created_at' => now(),
+                ]);
+
+                $hasPointTransaction = true;
+            }
+
+            // Catat riwayat percobaan di quiz_attempts
+            $attempt = QuizAttempt::create([
                 'id' => (string) Str::uuid(),
+                'quiz_id' => $this->quiz->id,
                 'user_id' => $userId,
-                'ledger_type' => PointTransaction::LEDGER_XP,
-                'points' => $this->pointsEarned,
-                'source_type' => 'mission_completed',
-                'source_id' => $this->quiz->id,
-                'description' => "Menyelesaikan Misi: {$this->quiz->title}",
-                'created_at' => now(),
+                'score' => $this->score,
+                'passed' => $this->passed,
+                'points_earned' => $pointsEarned,
+                'attempted_at' => now(),
             ]);
 
-            $this->alreadyRewarded = true;
-        } else {
-            $this->pointsEarned = 0;
-        }
+            return [$pointsEarned, $hasPointTransaction, $attempt];
+        }, attempts: 3);
 
-        // Catat riwayat percobaan di quiz_attempts
-        $this->latestAttempt = QuizAttempt::create([
-            'id' => (string) Str::uuid(),
-            'quiz_id' => $this->quiz->id,
-            'user_id' => $userId,
-            'score' => $this->score,
-            'passed' => $this->passed,
-            'points_earned' => $this->pointsEarned,
-            'attempted_at' => now(),
-        ]);
-
+        // State komponen diisi setelah commit, supaya retry deadlock tidak meninggalkan state setengah jadi.
+        $this->pointsEarned = $pointsEarned;
+        $this->alreadyRewarded = $alreadyRewarded;
+        $this->latestAttempt = $attempt;
         $this->isSubmitted = true;
     }
 

@@ -16,3 +16,5 @@ phpunit.xml
 .editorconfig
 .ai
 README.md
+storage/backups
+scripts

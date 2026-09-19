@@ -17,12 +17,13 @@ fi
 
 # Wait for the database, then migrate. Managed databases are often not reachable
 # yet when the container boots, so retry before giving up -- but never start the
-# app with an unmigrated schema.
+# app with an unmigrated schema. The TCP probe first keeps an unreachable host from
+# costing ~20s per attempt (Laravel retries timed-out connections internally).
 MIGRATE_ATTEMPTS="${MIGRATE_ATTEMPTS:-10}"
 MIGRATE_DELAY="${MIGRATE_DELAY:-3}"
 
 attempt=1
-until php artisan migrate --force --no-interaction; do
+until php docker/db-reachable.php && php artisan migrate --force --no-interaction; do
     if [ "$attempt" -ge "$MIGRATE_ATTEMPTS" ]; then
         echo "FATAL: migrations failed after ${MIGRATE_ATTEMPTS} attempts; refusing to start." >&2
         exit 1

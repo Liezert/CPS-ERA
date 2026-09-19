@@ -14,6 +14,13 @@ class AdminOverviewWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
 
+    /**
+     * Matikan auto-polling bawaan StatsOverviewWidget.
+     * Pada shared hosting dengan ~70 concurrent user, wire:poll
+     * menimbulkan beban server berlebihan (hit tiap ~30 detik per user).
+     */
+    protected ?string $pollingInterval = null;
+
     protected function getStats(): array
     {
         $learningCount = LearningMaterial::count();
