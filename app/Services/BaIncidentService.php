@@ -221,7 +221,29 @@ class BaIncidentService
             throw new DomainException('Alasan ketidakefektifan wajib dicantumkan jika status verifikasi dinyatakan tidak efektif.');
         }
 
-        return DB::transaction(function () use ($incident, $actor, $statusVerifikasi, $buktiObjektif, $alasanTidakEfektif, $logAction): BaIncident {
+        // Siapkan baris KPI tahunan pembuat BA SEBELUM transaksi dibuka (autocommit),
+        // sehingga di dalam transaksi hanya ada SELECT ... FOR UPDATE pada baris yang
+        // sudah ada -- tanpa S-lock duplicate-key yang memicu deadlock.
+        $creator = $incident->creator ?: User::find($incident->created_by);
+        if ($creator) {
+            app(KpiContributionService::class)->ensureYearlyRecord($creator);
+        }
+
+        return DB::transaction(function () use ($incident, $actor, $creator, $statusVerifikasi, $buktiObjektif, $alasanTidakEfektif, $logAction): BaIncident {
+            // Pengecekan status di atas hanya fail-fast dari model di memori: dua approval
+            // bersamaan bisa sama-sama lolos di sana. Di sini baris BA dikunci dan dibaca
+            // ulang, sehingga hanya satu approval yang bisa melanjutkan.
+            $locked = BaIncident::query()->whereKey($incident->getKey())->lockForUpdate()->firstOrFail();
+
+            if (in_array($locked->status, ['approved', 'closed'], true)) {
+                throw new DomainException('Laporan BA sudah disetujui sebelumnya.');
+            }
+
+            // Sinkronkan instance milik pemanggil dengan versi terkunci alih-alih menggantinya:
+            // pemanggil (Filament action, review() -> close()) mengandalkan model yang mereka
+            // kirim ikut ter-update oleh approve().
+            $incident->setRawAttributes($locked->getAttributes(), true);
+
             $incident->update([
                 'status' => 'approved',
                 'status_verifikasi' => $statusVerifikasi,
@@ -257,7 +279,6 @@ class BaIncidentService
             ]);
 
             // 2. Berikan Poin CPS ERA kepada pembuat BA via KpiContributionService (Jalur A, cap 3/tahun)
-            $creator = $incident->creator ?: User::find($incident->created_by);
             if ($creator) {
                 app(KpiContributionService::class)->recordBaVideoApproved($creator, $incident);
             }
@@ -295,7 +316,7 @@ class BaIncidentService
             }
 
             return $incident->fresh();
-        });
+        }, attempts: 3);
     }
 
     /**

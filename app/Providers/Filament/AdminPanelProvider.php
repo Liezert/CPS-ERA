@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\BaIncidents\Pages\ViewBaIncident;
 use App\Filament\Widgets\AdminOverviewWidget;
 use App\Filament\Widgets\QuickActionsWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -17,6 +18,7 @@ use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Vite;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\HtmlString;
@@ -93,6 +95,17 @@ class AdminPanelProvider extends PanelProvider
                         }
                     </style>
                 ')
+            )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                // Halaman review CAPA memakai komponen form employee (Tailwind v3 app),
+                // dimuat sebagai CSS ter-scope `.capa-scope` agar tidak bentrok dengan Filament.
+                fn (): HtmlString => new HtmlString(
+                    '<link rel="preconnect" href="https://fonts.bunny.net">'
+                    .'<link href="https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600&display=swap" rel="stylesheet" />'
+                    .app(Vite::class)('resources/css/capa-admin.css')->toHtml()
+                ),
+                scopes: ViewBaIncident::class,
             )
             ->middleware([
                 EncryptCookies::class,

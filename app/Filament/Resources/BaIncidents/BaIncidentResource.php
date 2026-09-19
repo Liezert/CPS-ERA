@@ -10,7 +10,12 @@ use App\Filament\Resources\BaIncidents\Schemas\BaIncidentForm;
 use App\Filament\Resources\BaIncidents\Schemas\BaIncidentInfolist;
 use App\Filament\Resources\BaIncidents\Tables\BaIncidentsTable;
 use App\Models\BaIncident;
+use App\Services\BaIncidentService;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -69,6 +74,64 @@ class BaIncidentResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function approveAction(): Action
+    {
+        return Action::make('approve')
+            ->label('Setujui & Verifikasi')
+            ->color('success')
+            ->icon('heroicon-o-check-circle')
+            ->visible(fn (BaIncident $record): bool => in_array($record->status, ['submitted', 'created', 'draft'], true) && auth()->user()->can('review', $record))
+            ->requiresConfirmation()
+            ->modalHeading('Verifikasi & Setujui Laporan BA')
+            ->modalDescription('Reviewer wajib memverifikasi hasil efektivitas tindakan korektif. Materi Lesson Learned dan penambahan poin akan otomatis diproses.')
+            ->schema([
+                Radio::make('status_verifikasi')
+                    ->label('Status Verifikasi Hasil')
+                    ->options([
+                        'efektif' => 'Diverifikasi Efektif',
+                        'tidak_efektif' => 'Tidak Efektif',
+                    ])
+                    ->default('efektif')
+                    ->required()
+                    ->live(),
+                Textarea::make('bukti_objektif')
+                    ->label('Bukti Objektif Efektivitas')
+                    ->placeholder('Sebutkan data hasil pengukuran / inspeksi QC...')
+                    ->visible(fn ($get) => $get('status_verifikasi') === 'efektif')
+                    ->required(fn ($get) => $get('status_verifikasi') === 'efektif'),
+                Textarea::make('alasan_tidak_efektif')
+                    ->label('Alasan Ketidakefektifan')
+                    ->placeholder('Jelaskan parameter yang belum terpenuhi...')
+                    ->visible(fn ($get) => $get('status_verifikasi') === 'tidak_efektif')
+                    ->required(fn ($get) => $get('status_verifikasi') === 'tidak_efektif'),
+            ])
+            ->action(function (BaIncident $record, array $data): void {
+                app(BaIncidentService::class)->approve($record, auth()->user(), $data);
+                Notification::make()->title('BA berhasil disetujui & diverifikasi')->success()->send();
+            });
+    }
+
+    public static function rejectAction(): Action
+    {
+        return Action::make('reject')
+            ->label('Tolak / Revisi')
+            ->color('danger')
+            ->icon('heroicon-o-x-circle')
+            ->visible(fn (BaIncident $record): bool => in_array($record->status, ['submitted', 'created', 'draft'], true) && auth()->user()->can('review', $record))
+            ->requiresConfirmation()
+            ->modalHeading('Tolak & Minta Perbaikan Laporan BA')
+            ->schema([
+                Textarea::make('catatan_penolakan')
+                    ->label('Catatan Alasan Penolakan / Revisi')
+                    ->placeholder('Jelaskan bagian analisa atau tindakan yang perlu dilengkapi pembuat...')
+                    ->required(),
+            ])
+            ->action(function (BaIncident $record, array $data): void {
+                app(BaIncidentService::class)->reject($record, auth()->user(), $data['catatan_penolakan']);
+                Notification::make()->title('BA ditolak dan catatan revisi telah dikirim')->warning()->send();
+            });
     }
 
     public static function getPages(): array

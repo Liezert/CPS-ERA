@@ -198,6 +198,40 @@ class BaIncident extends Model implements HasMedia
     }
 
     /**
+     * Nilai form CAPA untuk komponen bersama components/capa/form/* (mode readonly).
+     * Kuncinya sama dengan Livewire\Ba\Create::capaFormValues() yang dipakai mode edit.
+     *
+     * @return array<string, mixed>
+     */
+    public function capaFormValues(): array
+    {
+        return [
+            'nomorBaPreview' => $this->nomor_ba,
+            'divisionId' => $this->division_id,
+            'tanggalPengisian' => $this->tanggal_pengisian?->format('Y-m-d') ?? '',
+            'sumberKetidaksesuaian' => $this->sumber_ketidaksesuaian ?? 'laporan_ketidaksesuaian',
+            'sumberKetidaksesuaianLainnya' => $this->sumber_ketidaksesuaian_lainnya ?? '',
+            'tanggalMasalah' => $this->tanggal_masalah?->format('Y-m-d') ?? '',
+            'lokasi' => $this->lokasi ?? '',
+            'deskripsiMasalah' => $this->deskripsi_masalah ?? ($this->description ?? ''),
+            'why1' => $this->why_1 ?? '',
+            'why2' => $this->why_2 ?? '',
+            'why3' => $this->why_3 ?? '',
+            'why4' => $this->why_4 ?? '',
+            'why5' => $this->why_5 ?? '',
+            'kesimpulanAkarMasalah' => $this->kesimpulan_akar_masalah ?? '',
+            'koreksiDeskripsi' => $this->koreksi_deskripsi ?? '',
+            'koreksiPic' => $this->koreksi_pic ?? '',
+            'koreksiWaktu' => $this->koreksi_waktu ?? '',
+            'korektifDeskripsi' => $this->korektif_deskripsi ?? '',
+            'korektifPic' => $this->korektif_pic ?? '',
+            'korektifWaktu' => $this->korektif_waktu ?? '',
+            'isPotensiRisiko' => (bool) $this->is_potensi_risiko,
+            'isPotensiPeluang' => (bool) $this->is_potensi_peluang,
+        ];
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -10,6 +10,13 @@ use Illuminate\Support\Str;
 class KnowledgeDocumentObserver
 {
     /**
+     * Kirim notifikasi setelah transaksi commit. Fan-out ke semua user memasang S-lock
+     * (cek FK) di setiap baris users; bila dipegang di dalam transaksi approve BA, ia
+     * membentuk siklus deadlock dengan UPDATE users milik PointTransactionObserver.
+     */
+    public bool $afterCommit = true;
+
+    /**
      * Handle the KnowledgeDocument "created" event.
      */
     public function created(KnowledgeDocument $document): void

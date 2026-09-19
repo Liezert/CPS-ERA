@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Quizzes\Schemas;
 
 use App\Enums\QuizRelatedType;
+use App\Models\BaIncident;
 use App\Models\LearningMaterial;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -19,6 +20,7 @@ class QuizForm
             ->components([
                 TextInput::make('title')
                     ->label('Judul Quiz / Misi')
+                    ->default(fn () => request()->query('title'))
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
@@ -29,7 +31,7 @@ class QuizForm
                         'mission_quiz' => 'Mission: Quiz',
                         'post_test' => 'Post-Test (Learning)',
                     ])
-                    ->default('mission_quiz')
+                    ->default(fn () => request()->query('related_type') === 'ba_incident' ? 'post_test' : 'mission_quiz')
                     ->required(),
                 TextInput::make('points_reward')
                     ->label('Reward Poin')
@@ -39,13 +41,39 @@ class QuizForm
                 Select::make('related_type')
                     ->label('Terkait Dengan')
                     ->options(QuizRelatedType::class)
-                    ->default(QuizRelatedType::None->value)
+                    ->default(fn () => request()->query('related_type') ?? QuizRelatedType::None->value)
                     ->live(),
                 Select::make('related_id')
-                    ->label('Materi Pembelajaran Terkait')
-                    ->options(fn () => LearningMaterial::pluck('title', 'id'))
+                    ->label(function ($get): string {
+                        $type = $get('related_type');
+                        $value = $type instanceof \BackedEnum ? $type->value : (string) $type;
+
+                        return match ($value) {
+                            'ba_incident' => 'Laporan BA / CAPA Terkait',
+                            'learning_material' => 'Materi Pembelajaran Terkait',
+                            default => 'Entitas Terkait',
+                        };
+                    })
+                    ->default(fn () => request()->query('related_id'))
+                    ->options(function ($get): array {
+                        $type = $get('related_type');
+                        $value = $type instanceof \BackedEnum ? $type->value : (string) $type;
+
+                        return match ($value) {
+                            'ba_incident' => BaIncident::orderBy('created_at', 'desc')->get()->mapWithKeys(fn ($ba) => [
+                                $ba->id => $ba->nomor_ba.' — '.($ba->title ?: 'CAPA '.$ba->nomor_ba),
+                            ])->toArray(),
+                            'learning_material' => LearningMaterial::orderBy('title')->pluck('title', 'id')->toArray(),
+                            default => [],
+                        };
+                    })
                     ->searchable()
-                    ->visible(fn ($get) => $get('related_type') === 'learning_material'),
+                    ->visible(function ($get): bool {
+                        $type = $get('related_type');
+                        $value = $type instanceof \BackedEnum ? $type->value : (string) $type;
+
+                        return in_array($value, ['learning_material', 'ba_incident'], true);
+                    }),
                 Textarea::make('description')
                     ->label('Deskripsi / Petunjuk Pengerjaan')
                     ->rows(3)

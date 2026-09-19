@@ -85,3 +85,6 @@ AGENTS.md
 
 # Local database dumps & file archives (never track backups)
 /storage/backups/
+
+# One-off concurrency/simulation scripts (never commit)
+/scripts/

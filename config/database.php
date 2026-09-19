@@ -61,6 +61,10 @@ return [
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // Batasi connect timeout: tanpa ini, host DB yang tak terjangkau membuat tiap
+                // percobaan menunggu TCP timeout OS (~85 dtk), dan retry migrate di start.sh
+                // baru menyerah setelah ~14 menit. Hanya berlaku untuk koneksi, bukan query.
+                PDO::ATTR_TIMEOUT => 5,
             ]) : [],
         ],
 

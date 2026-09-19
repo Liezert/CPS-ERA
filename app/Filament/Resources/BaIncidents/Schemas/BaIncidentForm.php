@@ -115,32 +115,10 @@ class BaIncidentForm
                             ->label('Terdapat Potensi Peluang Improvement'),
                     ])->columns(2),
 
-                Section::make('Verifikasi Tindakan Korektif (Reviewer)')
-                    ->description('Evaluasi efektivitas tindakan oleh Atasan / Admin.')
-                    ->schema([
-                        Select::make('status_verifikasi')
-                            ->label('Status Verifikasi')
-                            ->options([
-                                'efektif' => 'Efektif',
-                                'tidak_efektif' => 'Tidak Efektif',
-                            ])
-                            ->live()
-                            ->disabled(fn () => ! auth()->user()?->hasAnyRole(['admin', 'supervisor'])),
-                        Textarea::make('bukti_objektif')
-                            ->label('Bukti Objektif Efektivitas')
-                            ->visible(fn ($get) => $get('status_verifikasi') === 'efektif')
-                            ->disabled(fn () => ! auth()->user()?->hasAnyRole(['admin', 'supervisor']))
-                            ->columnSpanFull(),
-                        Textarea::make('alasan_tidak_efektif')
-                            ->label('Alasan Ketidakefektifan')
-                            ->visible(fn ($get) => $get('status_verifikasi') === 'tidak_efektif')
-                            ->disabled(fn () => ! auth()->user()?->hasAnyRole(['admin', 'supervisor']))
-                            ->columnSpanFull(),
-                        Textarea::make('catatan_penolakan')
-                            ->label('Catatan Penolakan (Jika status Rejected)')
-                            ->disabled(fn () => ! auth()->user()?->hasAnyRole(['admin', 'supervisor']))
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                // Field reviewer (status_verifikasi, bukti_objektif, alasan_tidak_efektif,
+                // catatan_penolakan) sengaja tidak ada di form ini: hanya boleh diubah lewat
+                // approveAction()/rejectAction(), yang memanggil BaIncidentService (lock,
+                // idempotensi, pemberian poin). Form ini hanya untuk revisi isian employee.
             ]);
     }
 }

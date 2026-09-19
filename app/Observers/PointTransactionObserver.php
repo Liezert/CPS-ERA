@@ -8,6 +8,13 @@ use App\Services\LevelCalculator;
 
 class PointTransactionObserver
 {
+    /**
+     * Sinkronkan users.xp/level setelah transaksi commit, supaya X-lock pada baris users
+     * tidak dipegang di dalam transaksi pemanggil (sumber deadlock approve BA bersamaan).
+     * Aman karena sinkronisasi dihitung ulang dari SUM ledger, bukan increment.
+     */
+    public bool $afterCommit = true;
+
     public function __construct(
         protected LevelCalculator $levelCalculator
     ) {}
