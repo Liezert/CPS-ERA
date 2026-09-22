@@ -27,6 +27,7 @@ use Spatie\Permission\Traits\HasRoles;
     'xp',
     'total_points',
     'level',
+    'must_change_password',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
@@ -206,6 +207,7 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'xp' => 'integer',
             'level' => 'integer',
         ];
