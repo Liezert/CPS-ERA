@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Filament\Resources\Users\Actions\ResetPasswordAction;
 use App\Models\PointTransaction;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -37,6 +39,11 @@ class UsersTable
                     ->label('Divisi')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('must_change_password')
+                    ->label('Kata Sandi')
+                    ->badge()
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Sementara' : 'Pribadi')
+                    ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
                 TextColumn::make('level')
                     ->label('Level')
                     ->badge()
@@ -64,6 +71,8 @@ class UsersTable
                     ]),
             ])
             ->recordActions([
+                EditAction::make(),
+                ResetPasswordAction::make(),
                 Action::make('adjustXp')
                     ->label('Koreksi XP')
                     ->icon(Heroicon::OutlinedAdjustmentsVertical)

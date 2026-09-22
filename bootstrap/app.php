@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePasswordIsChanged;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
@@ -30,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
             AddQueuedCookiesToResponse::class,
             StartSession::class,
         ]);
+
+        // Akun dengan kata sandi sementara hanya boleh ke halaman ganti kata sandi.
+        $middleware->web(append: [EnsurePasswordIsChanged::class]);
+        $middleware->api(append: [EnsurePasswordIsChanged::class]);
 
         $middleware->validateCsrfTokens(except: [
             'login',
