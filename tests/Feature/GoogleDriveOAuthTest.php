@@ -84,8 +84,8 @@ class GoogleDriveOAuthTest extends TestCase
     {
         Http::fake([
             GoogleDriveService::TOKEN_ENDPOINT => Http::response([
-                'access_token' => 'token-akses-uji',
-                'refresh_token' => 'refresh-token-uji',
+                'access_token' => 'token-akses-baru',
+                'refresh_token' => 'refresh-token-asli',
                 'expires_in' => 3600,
             ]),
             GoogleDriveOAuthController::USERINFO_ENDPOINT => Http::response(['email' => 'drive-cps@gmail.com']),
@@ -100,14 +100,14 @@ class GoogleDriveOAuthTest extends TestCase
 
         $token = GoogleDriveToken::sole();
 
-        $this->assertSame('refresh-token-uji', Crypt::decryptString($token->refresh_token));
+        $this->assertSame('refresh-token-asli', Crypt::decryptString($token->refresh_token));
         $this->assertSame('drive-cps@gmail.com', $token->connected_email);
         $this->assertSame($this->admin->id, $token->connected_by);
         $this->assertNotNull($token->connected_at);
 
         // Token mentah tidak boleh tersimpan apa adanya di basis data.
-        $this->assertNotSame('refresh-token-uji', $token->refresh_token);
-        $this->assertDatabaseMissing('google_drive_tokens', ['refresh_token' => 'refresh-token-uji']);
+        $this->assertNotSame('refresh-token-asli', $token->refresh_token);
+        $this->assertDatabaseMissing('google_drive_tokens', ['refresh_token' => 'refresh-token-asli']);
 
         Http::assertSent(function ($request): bool {
             if ($request->url() !== GoogleDriveService::TOKEN_ENDPOINT) {
@@ -162,7 +162,7 @@ class GoogleDriveOAuthTest extends TestCase
     public function test_callback_melaporkan_respons_tanpa_refresh_token(): void
     {
         Http::fake([
-            GoogleDriveService::TOKEN_ENDPOINT => Http::response(['access_token' => 'token-akses-uji']),
+            GoogleDriveService::TOKEN_ENDPOINT => Http::response(['access_token' => 'token-tanpa-refresh']),
         ]);
 
         $this->actingAs($this->admin)
@@ -176,16 +176,16 @@ class GoogleDriveOAuthTest extends TestCase
     public function test_menghubungkan_ulang_mengganti_koneksi_lama_dan_membuang_cache_token(): void
     {
         GoogleDriveToken::create([
-            'refresh_token' => Crypt::encryptString('refresh-token-uji'),
+            'refresh_token' => Crypt::encryptString('refresh-token-lama'),
             'connected_email' => 'lama@gmail.com',
             'connected_at' => now()->subDay(),
         ]);
-        Cache::put(GoogleDriveService::ACCESS_TOKEN_CACHE_KEY, 'token-akses-uji', 3300);
+        Cache::put(GoogleDriveService::ACCESS_TOKEN_CACHE_KEY, 'token-akses-lama', 3300);
 
         Http::fake([
             GoogleDriveService::TOKEN_ENDPOINT => Http::response([
-                'access_token' => 'token-akses-uji',
-                'refresh_token' => 'refresh-token-uji',
+                'access_token' => 'token-akses-baru',
+                'refresh_token' => 'refresh-token-baru',
             ]),
             GoogleDriveOAuthController::USERINFO_ENDPOINT => Http::response(['email' => 'baru@gmail.com']),
         ]);
@@ -196,7 +196,7 @@ class GoogleDriveOAuthTest extends TestCase
             ->assertSessionHas('gdrive_status');
 
         $this->assertDatabaseCount('google_drive_tokens', 1);
-        $this->assertSame('refresh-token-uji', GoogleDriveToken::sole()->plainRefreshToken());
+        $this->assertSame('refresh-token-baru', GoogleDriveToken::sole()->plainRefreshToken());
         $this->assertNull(Cache::get(GoogleDriveService::ACCESS_TOKEN_CACHE_KEY));
     }
 

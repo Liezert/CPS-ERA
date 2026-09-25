@@ -165,7 +165,7 @@ class GoogleDriveServiceTest extends TestCase
 
     public function test_cache_token_dapat_dibuang_saat_akun_drive_diganti(): void
     {
-        Cache::put(GoogleDriveService::ACCESS_TOKEN_CACHE_KEY, 'token-akses-uji', 60);
+        Cache::put(GoogleDriveService::ACCESS_TOKEN_CACHE_KEY, 'token-akses-lama', 60);
 
         GoogleDriveService::forgetCachedAccessToken();
 
