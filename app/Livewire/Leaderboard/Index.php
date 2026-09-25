@@ -4,7 +4,6 @@ namespace App\Livewire\Leaderboard;
 
 use App\Models\Division;
 use App\Models\User;
-use App\Services\LevelCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -53,13 +52,7 @@ class Index extends Component
         $query = User::with('division')
             ->orderBy('xp', 'desc')
             ->orderBy('name', 'asc')
-            ->when($this->search !== '', function ($q) {
-                $term = '%'.$this->search.'%';
-                $q->where(function ($sub) use ($term) {
-                    $sub->where('name', 'like', $term)
-                        ->orWhere('employee_id', 'like', $term);
-                });
-            })
+            ->when($this->search !== '', fn ($q) => $q->where('name', 'like', '%'.$this->search.'%'))
             ->when($this->selectedDivision !== 'all', function ($q) {
                 $q->where('division_id', $this->selectedDivision);
             });
@@ -67,14 +60,9 @@ class Index extends Component
         $users = $query->paginate(15);
 
         // 2. Hitung Posisi Peringkat Individual Pengguna Saat Ini
-        $myRank = null;
-        $myPointsToNext = 0;
-        if ($currentUser) {
-            $userPoints = (int) ($currentUser->xp ?? 0);
-            $myRank = User::where('xp', '>', $userPoints)->count() + 1;
-            $calculator = new LevelCalculator;
-            $myPointsToNext = $calculator->pointsToNextLevel($userPoints);
-        }
+        $myRank = $currentUser
+            ? User::where('xp', '>', (int) ($currentUser->xp ?? 0))->count() + 1
+            : null;
 
         // 3. Daftar Divisi untuk Opsi Filter
         $divisions = Division::orderBy('name')->get();
@@ -83,7 +71,6 @@ class Index extends Component
             'users' => $users,
             'currentUser' => $currentUser,
             'myRank' => $myRank,
-            'myPointsToNext' => $myPointsToNext,
             'divisions' => $divisions,
         ]);
     }

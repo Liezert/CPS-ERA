@@ -29,9 +29,9 @@ class StageFiveDashboardTest extends TestCase
     }
 
     /**
-     * DoD #1: Header memuat sapaan nama user, avatar inisial, chip level (brand-tint), dan tombol aksi utama.
+     * DoD #1: Header memuat sapaan nama user, avatar inisial, dan tombol aksi utama. Level sudah dihapus dari CPS ERA.
      */
-    public function test_dashboard_header_renders_user_greeting_avatar_level_chip_and_main_action(): void
+    public function test_dashboard_header_renders_user_greeting_avatar_and_main_action_without_level(): void
     {
         $division = Division::first();
         $user = User::factory()->create([
@@ -39,7 +39,6 @@ class StageFiveDashboardTest extends TestCase
             'employee_id' => 'CPS-00222',
             'division_id' => $division->id,
             'jabatan' => 'Leader Produksi',
-            'level' => 2,
         ]);
         $user->assignRole('employee');
 
@@ -56,8 +55,9 @@ class StageFiveDashboardTest extends TestCase
         $response->assertSee('AD'); // Inisial dari Ahmad Dahlan
         $response->assertSee('bg-brand-tint', false);
 
-        // Chip level (brand-tint)
-        $response->assertSee('Level 2');
+        // Level sudah dihapus: tidak ada chip/progres level
+        $response->assertDontSee('Level 1');
+        $response->assertDontSee('Lv.');
         $response->assertDontSee('PRD §5.3');
 
         // Tombol aksi utama "Buat Laporan CAPA" tanpa panah
@@ -73,7 +73,7 @@ class StageFiveDashboardTest extends TestCase
     {
         $user = User::factory()->create([
             'employee_id' => 'CPS-00333',
-            'total_points' => 0, // Sengaja diisi 0 di tabel users untuk membuktikan agregasi ledger
+            'xp' => 0, // Sengaja diisi 0 di tabel users untuk membuktikan agregasi ledger
         ]);
         $user->assignRole('employee');
 
@@ -101,15 +101,19 @@ class StageFiveDashboardTest extends TestCase
 
         // Total harus 200 (150 + 50) dari ledger
         $response->assertSee('200');
-        $response->assertSee('XP & Level');
+        $response->assertSee('Total XP');
+        $response->assertDontSee('XP & Level');
+        // XP yang sama dipakai peringkat Leaderboard
+        $response->assertSee('Peringkat Leaderboard');
+        $response->assertSee(route('leaderboard.index'), false);
     }
 
     /**
-     * DoD #2: Grid metric card memuat Learning Progress %, KPI Contribution, dan progress bar level.
+     * DoD #2: Grid metric card memuat Learning Progress %, KPI Contribution, dan progress bar (tanpa level).
      */
     public function test_dashboard_metric_cards_and_progress_bars(): void
     {
-        $user = User::factory()->create(['level' => 2]);
+        $user = User::factory()->create();
         $user->assignRole('employee');
 
         $category = LearningCategory::create([
@@ -145,9 +149,9 @@ class StageFiveDashboardTest extends TestCase
         $response->assertSee('KPI Contribution');
         $response->assertSee('materi');
 
-        // 3. Level & progress bar hijau
-        $response->assertSee('Level 2');
+        // 3. Progress bar hijau, tanpa progres level
         $response->assertSee('bg-brand h-1.5 rounded-full', false);
+        $response->assertDontSee('Level 1 &rarr;', false);
     }
 
     /**

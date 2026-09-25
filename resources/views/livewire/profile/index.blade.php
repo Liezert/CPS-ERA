@@ -17,7 +17,7 @@
     </div>
 
     {{-- =========================================================================
-         1. CARD IDENTITAS PEGAWAI (Nama, Employee ID, Jabatan, Divisi, Avatar, Level)
+         1. CARD IDENTITAS PEGAWAI (Nama, Employee ID, Jabatan, Divisi, Avatar)
          ========================================================================= --}}
     <div class="bg-white border border-neutral-200 rounded-lg p-5 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -35,16 +35,9 @@
                 @endif
 
                 <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 class="font-sans font-bold text-xl text-neutral-900 leading-tight">
-                            {{ $user->name }}
-                        </h2>
-
-                        {{-- Chip Level (Warna hijau brand-tint diizinkan pada chip level per DS §2) --}}
-                        <span class="inline-flex items-center bg-brand-tint text-brand-dark border border-brand/20 font-mono text-xs font-medium px-2.5 py-0.5 rounded-badge">
-                            Level {{ $currentLevel }}
-                        </span>
-                    </div>
+                    <h2 class="font-sans font-bold text-xl text-neutral-900 leading-tight">
+                        {{ $user->name }}
+                    </h2>
 
                     {{-- Metadata: Employee ID (format CPS-00124, IBM Plex Mono) + Jabatan + Divisi --}}
                     <div class="flex items-center gap-2 sm:gap-3 flex-wrap mt-2 text-xs font-sans text-neutral-600">
@@ -61,40 +54,23 @@
                     </div>
                 </div>
             </div>
-
-            {{-- Bagian Kanan: Level & Progress Bar XP --}}
-            <div class="w-full sm:w-64 pt-4 sm:pt-0 border-t sm:border-t-0 border-neutral-100 flex flex-col justify-center">
-                <div class="flex items-center justify-between text-xs mb-1.5">
-                    <span class="font-sans font-medium text-neutral-600">Progress Level {{ $currentLevel }} &rarr; {{ $nextLevel }}</span>
-                    <span class="font-mono text-neutral-700 font-semibold">{{ $levelProgressPercent }}%</span>
-                </div>
-                {{-- Progress Bar Tipis Hijau (Kepatuhan Design System §5 & Aksesibilitas ARIA) --}}
-                <div class="w-full bg-neutral-200 h-2 rounded-full overflow-hidden"
-                     role="progressbar"
-                     aria-valuenow="{{ $levelProgressPercent }}"
-                     aria-valuemin="0"
-                     aria-valuemax="100"
-                     aria-label="Progress kenaikan ke Level {{ $nextLevel }}">
-                    <div class="bg-brand h-2 rounded-full transition-all duration-300" style="width: {{ $levelProgressPercent }}%"></div>
-                </div>
-            </div>
         </div>
     </div>
 
     {{-- =========================================================================
          2. RINGKASAN METRIK (DoD #1: Metric card konsisten visual dengan Dashboard Stage 5)
          ========================================================================= --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {{-- Metric 1: Learning Progress % --}}
         <x-ui.metric-card label="Learning Progress" value="{{ $learningProgress }}%">
             <span class="text-neutral-600">Materi Pelatihan Selesai</span>
         </x-ui.metric-card>
 
-        {{-- Metric 2: KPI Contribution % (Client-Approved: Video Post-Test Gate) --}}
-        <x-ui.metric-card label="KPI Contribution" value="{{ $kpiContribution }}%">
+        {{-- Metric 2: KPI Contribution ("X dari N materi" periode aktif, sumber sama dengan Dashboard) --}}
+        <x-ui.metric-card label="KPI Contribution" value="{{ $kpiData['summary'] }}">
             <div class="space-y-1.5 w-full">
                 <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans">
-                    <span>{{ $kpiData['passed_video_count'] }}/{{ $kpiData['target_video_count'] }} video ({{ $kpiData['period_label'] }})</span>
+                    <span class="font-medium text-neutral-700">{{ $kpiData['is_complete'] ? 'Target periode tercapai' : 'Post-test 100%' }}</span>
                     <span class="font-mono font-medium">{{ $kpiContribution }}%</span>
                 </div>
                 <div class="w-full bg-neutral-200 h-1.5 rounded-full overflow-hidden"
@@ -102,9 +78,10 @@
                      aria-valuenow="{{ $kpiContribution }}"
                      aria-valuemin="0"
                      aria-valuemax="100"
-                     aria-label="Progress KPI Contribution {{ $kpiContribution }}%">
+                     aria-label="Progres KPI {{ $kpiData['summary'] }}">
                     <div class="bg-brand h-1.5 rounded-full transition-all duration-300" style="width: {{ $kpiContribution }}%"></div>
                 </div>
+                <p class="text-[10px] text-neutral-500 font-mono">Periode {{ $kpiData['period_label'] }}</p>
             </div>
         </x-ui.metric-card>
 
@@ -112,36 +89,6 @@
         <x-ui.metric-card label="Total Poin Saya" value="{{ number_format($totalPoints) }} Pts" :is-technical="true">
             <span class="text-neutral-600">Agregasi ledger point_transactions</span>
         </x-ui.metric-card>
-
-        {{-- Metric 4: Target Level Berikutnya & Progress Bar (Gaya persis Dashboard Stage 5) --}}
-        <div class="bg-neutral-50/70 p-5 border border-neutral-200 rounded-md flex flex-col justify-between hover:border-neutral-300 transition-colors group">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-neutral-600">
-                    Target Level Berikutnya
-                </p>
-                <div class="mt-2 flex items-baseline justify-between">
-                    <p class="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight font-sans group-hover:text-brand-dark transition-colors">
-                        Level {{ $nextLevel }}
-                    </p>
-                    <span class="text-xs font-mono font-bold text-neutral-700 tabular-nums px-1.5 py-0.5 rounded-[2px] bg-white border border-neutral-200 shadow-2xs">{{ $levelProgressPercent }}%</span>
-                </div>
-            </div>
-
-            <div class="mt-3">
-                {{-- Progress bar menuju level berikutnya --}}
-                <div class="w-full bg-neutral-200 h-2 rounded-full overflow-hidden"
-                     role="progressbar"
-                     aria-valuenow="{{ $levelProgressPercent }}"
-                     aria-valuemin="0"
-                     aria-valuemax="100"
-                     aria-label="Progress menuju Level {{ $nextLevel }}">
-                    <div class="bg-brand h-2 rounded-full transition-all duration-300 group-hover:brightness-105" style="width: {{ $levelProgressPercent }}%"></div>
-                </div>
-                <div class="flex items-center justify-between text-[11px] text-neutral-600 mt-1.5 font-sans font-medium">
-                    <span>Lv. {{ $currentLevel }} menuju Lv. {{ $nextLevel }}</span>
-                </div>
-            </div>
-        </div>
     </div>
 
     {{-- =========================================================================

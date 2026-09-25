@@ -44,11 +44,6 @@ class UsersTable
                     ->badge()
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Sementara' : 'Pribadi')
                     ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
-                TextColumn::make('level')
-                    ->label('Level')
-                    ->badge()
-                    ->color('success')
-                    ->sortable(),
                 TextColumn::make('xp')
                     ->label('XP Saat Ini')
                     ->numeric()
@@ -60,15 +55,6 @@ class UsersTable
                 SelectFilter::make('division_id')
                     ->label('Divisi')
                     ->relationship('division', 'name'),
-                SelectFilter::make('level')
-                    ->label('Level')
-                    ->options([
-                        1 => 'Level 1',
-                        2 => 'Level 2',
-                        3 => 'Level 3',
-                        4 => 'Level 4',
-                        5 => 'Level 5',
-                    ]),
             ])
             ->recordActions([
                 EditAction::make(),

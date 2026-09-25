@@ -25,8 +25,6 @@ use Spatie\Permission\Traits\HasRoles;
     'jabatan',
     'avatar_url',
     'xp',
-    'total_points',
-    'level',
     'must_change_password',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -209,7 +207,6 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'xp' => 'integer',
-            'level' => 'integer',
         ];
     }
 
@@ -227,21 +224,5 @@ class User extends Authenticatable implements FilamentUser
         $second = isset($parts[1]) ? substr($parts[1], 0, 1) : '';
 
         return strtoupper($first.$second);
-    }
-
-    /**
-     * Backward-compatibility accessor untuk total_points -> xp.
-     */
-    public function getTotalPointsAttribute(): int
-    {
-        return (int) ($this->attributes['xp'] ?? 0);
-    }
-
-    /**
-     * Backward-compatibility mutator untuk total_points -> xp.
-     */
-    public function setTotalPointsAttribute(mixed $value): void
-    {
-        $this->attributes['xp'] = (int) $value;
     }
 }

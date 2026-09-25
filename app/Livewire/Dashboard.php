@@ -7,6 +7,7 @@ use App\Models\KnowledgeDocument;
 use App\Models\Quiz;
 use App\Models\User;
 use App\Models\UserLearningProgress;
+use App\Services\KpiContributionCalculator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -33,11 +34,8 @@ class Dashboard extends Component
                 ->avg('progress_percent') ?? 0
         );
 
-        // 4. Level & Target Level
-        $currentLevel = $user->level ?? 1;
-        $nextLevel = $currentLevel + 1;
-        // Formula XP progress: placeholder 65% menuju level berikutnya
-        $levelProgressPercent = 65;
+        // 4. Peringkat Leaderboard (urutan XP yang sama dengan halaman Leaderboard)
+        $leaderboardRank = User::where('xp', '>', $xp)->count() + 1;
 
         // 5. Knowledge Repository Terbaru (3 item terpublikasi untuk layout grid kartu)
         $latestKnowledge = KnowledgeDocument::with(['division', 'creator', 'topic'])
@@ -81,10 +79,9 @@ class Dashboard extends Component
             'initials' => $initials,
             'xp' => $xp,
             'kpiYearly' => $kpiYearly,
+            'kpi' => app(KpiContributionCalculator::class)->calculate($user),
             'learningProgress' => $learningProgress,
-            'currentLevel' => $currentLevel,
-            'nextLevel' => $nextLevel,
-            'levelProgressPercent' => $levelProgressPercent,
+            'leaderboardRank' => $leaderboardRank,
             'latestKnowledge' => $latestKnowledge,
             'latestBa' => $latestBa,
             'continueLearning' => $continueLearning,

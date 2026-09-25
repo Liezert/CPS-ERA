@@ -38,8 +38,7 @@ class StageTwelveProfileTest extends TestCase
             'employee_id' => 'CPS-00124',
             'jabatan' => 'Automation Specialist',
             'division_id' => $this->division->id,
-            'total_points' => 1250,
-            'level' => 'Technician',
+            'xp' => 1250,
         ]);
         $this->user->assignRole('employee');
 
@@ -85,14 +84,18 @@ class StageTwelveProfileTest extends TestCase
             ->assertSee('Learning Progress')
             ->assertSee('KPI Contribution')
             ->assertSee('Total Poin Saya')
-            ->assertSee('Target Level Berikutnya')
             // 2. Memeriksa nilai & status metric
             ->assertSee('80%')
-            ->assertSee('video')
+            // KPI Contribution kini berbasis materi Learning (bukan video).
+            ->assertSee('0 dari 5 materi')
+            ->assertDontSee('video')
             ->assertSee('Pts')
             // 3. Memeriksa sub-teks footer metric card konsisten
             ->assertSee('Materi Pelatihan Selesai')
-            ->assertSee('Agregasi ledger point_transactions');
+            ->assertSee('Agregasi ledger point_transactions')
+            // Level sudah dihapus dari CPS ERA
+            ->assertDontSee('Target Level Berikutnya')
+            ->assertDontSee('Progress Level');
 
         $html = $component->html();
 
@@ -146,7 +149,7 @@ class StageTwelveProfileTest extends TestCase
     }
 
     /**
-     * Test identitas lengkap (Nama, Jabatan, Divisi, Avatar, Level, Progress Bar) tampil benar.
+     * Test identitas lengkap (Nama, Jabatan, Divisi, Avatar) tampil benar, tanpa level.
      */
     public function test_profile_identity_details_render_correctly(): void
     {
@@ -156,8 +159,8 @@ class StageTwelveProfileTest extends TestCase
             ->assertSee('Automation Specialist')
             ->assertSee($this->division->name)
             ->assertSee('AF') // Inisial avatar
-            ->assertSee('Level')
-            ->assertSee('Progress Level');
+            ->assertDontSee('Progress Level')
+            ->assertDontSee('Level 1');
     }
 
     /**

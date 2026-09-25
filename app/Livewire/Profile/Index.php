@@ -6,7 +6,6 @@ use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserLearningProgress;
 use App\Services\KpiContributionCalculator;
-use App\Services\LevelCalculator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -270,7 +269,7 @@ SVG;
     /**
      * Render halaman Profile dengan identitas, metrik konsisten Dashboard, dan grafik performa 6 bulan.
      */
-    public function render(LevelCalculator $levelCalculator, KpiContributionCalculator $kpiCalculator): View
+    public function render(KpiContributionCalculator $kpiCalculator): View
     {
         /** @var User $user */
         $user = Auth::user()->load('division');
@@ -289,16 +288,11 @@ SVG;
             UserLearningProgress::where('user_id', $user->id)->avg('progress_percent') ?? 0
         );
 
-        // 5. Level & Target Level (TODO PRD §5.3 Poin 1)
-        $currentLevel = $user->level ?? 2;
-        $nextLevel = $currentLevel + 1;
-        $levelProgressPercent = 65; // Menunggu formula XP PRD §5.3
-
-        // 6. KPI Contribution (Client-Approved: Video Post-Test Gate)
+        // 5. KPI Contribution (materi Learning per periode, sumber sama dengan Dashboard)
         $kpiData = $kpiCalculator->calculate($user);
         $kpiContribution = $kpiData['percentage'];
 
-        // 7. Grafik Performa Bulanan (6 bulan terakhir)
+        // 6. Grafik Performa Bulanan (6 bulan terakhir)
         $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
         $transactions = PointTransaction::where('user_id', $user->id)
             ->where('created_at', '>=', $sixMonthsAgo)
@@ -336,9 +330,6 @@ SVG;
             'initials' => $initials,
             'totalPoints' => $totalPoints,
             'learningProgress' => $learningProgress,
-            'currentLevel' => $currentLevel,
-            'nextLevel' => $nextLevel,
-            'levelProgressPercent' => $levelProgressPercent,
             'kpiContribution' => $kpiContribution,
             'kpiData' => $kpiData,
             'monthlyPerformance' => $monthlyPerformance,
