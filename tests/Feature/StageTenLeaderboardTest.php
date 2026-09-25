@@ -42,32 +42,28 @@ class StageTenLeaderboardTest extends TestCase
             'name' => 'Ahmad Juara Satu',
             'employee_id' => 'CPS-00001',
             'division_id' => $this->divisionProduksi->id,
-            'total_points' => 3500,
-            'level' => 2,
+            'xp' => 3500,
         ]);
 
         $this->userRunnerUp = User::factory()->create([
             'name' => 'Budi Juara Dua',
             'employee_id' => 'CPS-00002',
             'division_id' => $this->divisionQC->id,
-            'total_points' => 2200,
-            'level' => 2,
+            'xp' => 2200,
         ]);
 
         $this->userThird = User::factory()->create([
             'name' => 'Candra Juara Tiga',
             'employee_id' => 'CPS-00003',
             'division_id' => $this->divisionProduksi->id,
-            'total_points' => 1500,
-            'level' => 1,
+            'xp' => 1500,
         ]);
 
         $this->userFourth = User::factory()->create([
             'name' => 'Dedi Peringkat Empat',
             'employee_id' => 'CPS-00004',
             'division_id' => $this->divisionQC->id,
-            'total_points' => 750,
-            'level' => 1,
+            'xp' => 750,
         ]);
     }
 
@@ -130,12 +126,13 @@ class StageTenLeaderboardTest extends TestCase
         $component->assertSeeHtml('hidden md:block bg-white border border-neutral-200 rounded-lg overflow-hidden');
         $component->assertSeeHtml('id="leaderboard-table"');
 
-        // 2. Verifikasi 5 kolom tabel hadir pada desktop: Rank, Nama, Divisi, Points, Level
+        // 2. Verifikasi 4 kolom tabel hadir pada desktop: Rank, Nama, Divisi, Points (Level sudah dihapus)
         $component->assertSeeHtml('>Rank</th>')
             ->assertSeeHtml('>Nama Pegawai</th>')
             ->assertSeeHtml('>Divisi</th>')
             ->assertSeeHtml('>Points</th>')
-            ->assertSeeHtml('>Level</th>');
+            ->assertDontSeeHtml('>Level</th>')
+            ->assertDontSee('Lv.');
 
         // 3. Verifikasi kontainer kartu mobile aktif di mobile dan tersembunyi di desktop (block md:hidden)
         $component->assertSeeHtml('block md:hidden space-y-3');
@@ -147,7 +144,7 @@ class StageTenLeaderboardTest extends TestCase
     }
 
     /**
-     * Uji Filter Divisi & Pencarian Nama/ID Pegawai.
+     * Uji Filter Divisi & Pencarian Nama Pegawai.
      */
     public function test_leaderboard_division_filter_and_search_preserves_sorting(): void
     {
@@ -171,11 +168,28 @@ class StageTenLeaderboardTest extends TestCase
             ->assertSee('Dedi Peringkat Empat')
             ->assertDontSee('Candra Juara Tiga');
 
-        // 3. Pencarian Employee ID
+        // 3. Pencarian hanya berdasarkan nama: ID pegawai tidak lagi dipakai di Leaderboard
         Livewire::actingAs($this->userChampion)
             ->test(LeaderboardIndex::class)
             ->set('search', 'CPS-00002')
-            ->assertSee('Budi Juara Dua')
-            ->assertDontSee('CPS-00003');
+            ->assertDontSee('Budi Juara Dua');
+    }
+
+    /**
+     * Leaderboard hanya menampilkan nama (tanpa ID pegawai) dan filter berisi 12 divisi.
+     */
+    public function test_leaderboard_hides_employee_ids_and_lists_twelve_divisions(): void
+    {
+        Livewire::actingAs($this->userChampion)
+            ->test(LeaderboardIndex::class)
+            ->assertSee('Ahmad Juara Satu')
+            ->assertDontSee('CPS-00001')
+            ->assertDontSee('CPS-00002')
+            ->assertDontSee('CPS-00003')
+            ->assertDontSee('CPS-00004')
+            ->assertSee('Cari nama pegawai...')
+            ->assertSee('Semua Divisi (12 Divisi)')
+            ->assertSee('Marketing & Sales')
+            ->assertDontSeeHtml('>Sales</option>');
     }
 }

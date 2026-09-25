@@ -3,7 +3,7 @@
          1. HEADER SAPAAN USER & TOMBOL AKSI UTAMA (Design System §2 & §5)
          ========================================================================= --}}
     <div class="bg-neutral-50/70 border border-neutral-200 rounded-md p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {{-- Kiri: Avatar + Sapaan + Chip Level --}}
+        {{-- Kiri: Avatar + Sapaan --}}
         <div class="flex items-center gap-4">
             {{-- Avatar (Foto Profil atau Inisial jika belum ada foto) --}}
             @if ($user->avatar_url)
@@ -17,16 +17,9 @@
             @endif
 
             <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="font-sans font-semibold text-lg text-neutral-900 leading-tight">
-                        Selamat bertugas, {{ $user->name }}
-                    </h1>
-                    
-                    {{-- Chip Level (Hijau diizinkan di chip level) --}}
-                    <span class="inline-flex items-center bg-brand-tint text-brand-dark border border-brand/20 font-mono text-xs font-medium px-2.5 py-0.5 rounded-badge">
-                        Level {{ $currentLevel }}
-                    </span>
-                </div>
+                <h1 class="font-sans font-semibold text-lg text-neutral-900 leading-tight">
+                    Selamat bertugas, {{ $user->name }}
+                </h1>
 
                 <p class="font-sans text-xs text-neutral-600 mt-1 flex items-center gap-2 flex-wrap">
                     <span class="font-mono text-neutral-800 bg-white px-1.5 py-0.5 border border-neutral-200 rounded-badge">
@@ -52,25 +45,16 @@
 
     {{-- =========================================================================
          2. GRID METRIC CARD (4 Kolom Desktop, 2 Tablet, 1 Mobile)
-         Sesuai PRD v2.0 §3.6: XP & Level, Learning Progress, KPI Contribution, Poin CPS ERA Tahun Ini
+         Total XP (sumber peringkat Leaderboard), Learning Progress, KPI Contribution, Poin CPS ERA Tahun Ini
          ========================================================================= --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 desktop:grid-cols-4 gap-4 mb-6">
-        {{-- Metric 1: XP & Level --}}
-        <x-ui.metric-card label="XP & Level" value="{{ number_format($xp) }}" unit="XP">
-            <div class="space-y-1.5 w-full">
-                <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans">
-                    <span class="font-medium text-neutral-700">Level {{ $currentLevel }} &rarr; Lv. {{ $nextLevel }}</span>
-                    <span class="font-mono font-medium">{{ $levelProgressPercent }}%</span>
-                </div>
-                <div class="w-full bg-neutral-200 h-1.5 rounded-full overflow-hidden"
-                     role="progressbar"
-                     aria-valuenow="{{ $levelProgressPercent }}"
-                     aria-valuemin="0"
-                     aria-valuemax="100"
-                     aria-label="Progres XP level berikutnya">
-                    <div class="bg-brand h-1.5 rounded-full transition-all duration-300" style="width: {{ $levelProgressPercent }}%"></div>
-                </div>
-            </div>
+        {{-- Metric 1: Total XP (nilai yang sama dengan peringkat Leaderboard) --}}
+        <x-ui.metric-card label="Total XP" value="{{ number_format($xp) }}" unit="XP">
+            <a href="{{ route('leaderboard.index') }}"
+               class="flex items-center justify-between w-full text-[11px] font-sans text-neutral-600 hover:text-brand-dark transition">
+                <span class="font-medium text-neutral-700">Peringkat Leaderboard</span>
+                <span class="font-mono font-medium">#{{ $leaderboardRank }}</span>
+            </a>
         </x-ui.metric-card>
 
         {{-- Metric 2: Learning Progress % --}}
@@ -91,25 +75,22 @@
             </div>
         </x-ui.metric-card>
 
-        {{-- Metric 3: KPI Contribution ("X dari 5 materi") --}}
-        @php
-            $materialsCount = $kpiYearly->materials_completed_count ?? 0;
-            $kpiPercent = min(100, (int) round(($materialsCount / 5) * 100));
-        @endphp
-        <x-ui.metric-card label="KPI Contribution" value="{{ $materialsCount }} dari 5 materi">
+        {{-- Metric 3: KPI Contribution ("X dari N materi" periode aktif) --}}
+        <x-ui.metric-card label="KPI Contribution" value="{{ $kpi['summary'] }}">
             <div class="space-y-1.5 w-full">
                 <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans">
-                    <span class="font-medium text-neutral-700">Jalur B (Post-Test 100%)</span>
-                    <span class="font-mono font-medium">{{ $kpiPercent }}%</span>
+                    <span class="font-medium text-neutral-700">{{ $kpi['is_complete'] ? 'Target periode tercapai' : 'Post-test 100%' }}</span>
+                    <span class="font-mono font-medium">{{ $kpi['percentage'] }}%</span>
                 </div>
                 <div class="w-full bg-neutral-200 h-1.5 rounded-full overflow-hidden"
                      role="progressbar"
-                     aria-valuenow="{{ $kpiPercent }}"
+                     aria-valuenow="{{ $kpi['percentage'] }}"
                      aria-valuemin="0"
                      aria-valuemax="100"
-                     aria-label="Progres bundle materi KPI {{ $materialsCount }} dari 5">
-                    <div class="bg-brand h-1.5 rounded-full transition-all duration-300" style="width: {{ $kpiPercent }}%"></div>
+                     aria-label="Progres KPI {{ $kpi['summary'] }}">
+                    <div class="bg-brand h-1.5 rounded-full transition-all duration-300" style="width: {{ $kpi['percentage'] }}%"></div>
                 </div>
+                <p class="text-[10px] text-neutral-500 font-mono">Periode {{ $kpi['period_label'] }}</p>
             </div>
         </x-ui.metric-card>
 
@@ -291,7 +272,7 @@
                     Knowledge Terbaru
                 </h2>
                 <p class="font-sans text-xs text-neutral-600 mt-0.5">
-                    Knowledge Repository Terbaru: SOP, Best Practice &amp; Lesson Learned terverifikasi
+                    Knowledge Repository Terbaru: SOP &amp; Best Practice terverifikasi
                 </p>
             </div>
             <a href="{{ route('knowledge.index') }}" 
