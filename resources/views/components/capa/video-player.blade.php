@@ -7,11 +7,21 @@
     $ba = $incident ?? $record ?? (isset($getRecord) ? $getRecord() : null);
     $video = $ba?->video;
     $gdriveId = null;
+    $legacyFilePath = null;
 
-    if ($video && !empty($video->video_external_link)) {
-        if (preg_match('/(?:drive\.google\.com\/(?:file\/d\/|open\?id=)|docs\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/', $video->video_external_link, $matches)) {
-            $gdriveId = $matches[1];
+    // Berkas yang diunggah aplikasi kini tersimpan di Drive: kolom video_file_url
+    // berisi file ID. Nilai lama berupa path lokal tetap diputar seperti semula.
+    if ($video && !empty($video->video_file_url)) {
+        if (\App\Services\GoogleDriveService::isDriveFileId($video->video_file_url)) {
+            $gdriveId = $video->video_file_url;
+        } else {
+            $legacyFilePath = $video->video_file_url;
         }
+    }
+
+    // Tautan eksternal manual (Drive/OneDrive) tetap ditangani seperti sebelumnya.
+    if (!$gdriveId && $video && !empty($video->video_external_link)) {
+        $gdriveId = \App\Services\GoogleDriveService::fileIdFrom($video->video_external_link);
     }
 @endphp
 
@@ -28,13 +38,13 @@
                 </h4>
             </div>
 
-            @if($video->video_external_link)
-                <a href="{{ $video->video_external_link }}"
+            @if($video->video_external_link || $gdriveId)
+                <a href="{{ $video->video_external_link ?: 'https://drive.google.com/file/d/'.$gdriveId.'/view' }}"
                    target="_blank"
                    rel="noopener noreferrer"
                    class="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-neutral-300 hover:border-brand hover:text-brand rounded-md text-xs font-medium text-neutral-700 transition-colors shadow-2xs"
                    style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 4px 10px; background-color: #ffffff; border: 1px solid #d4d4d8; border-radius: 6px; font-size: 0.75rem; font-weight: 500; color: #27272a; text-decoration: none;">
-                    <span>Buka Video Eksternal</span>
+                    <span>{{ $video->video_external_link ? 'Buka Video Eksternal' : 'Buka di Google Drive' }}</span>
                     <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
@@ -42,12 +52,12 @@
             @endif
         </div>
 
-        {{-- Case 1: Local HTML5 Video Player --}}
-        @if($video->video_file_url)
+        {{-- Case 1: Berkas lama yang masih tersimpan lokal (HTML5 player) --}}
+        @if($legacyFilePath)
             <div class="aspect-video bg-black rounded-md overflow-hidden max-w-2xl mx-auto shadow-sm"
                  style="position: relative; width: 100%; max-width: 42rem; margin: 0 auto; aspect-ratio: 16/9; background-color: #000000; border-radius: 8px; overflow: hidden;">
                 <video controls class="w-full h-full object-contain" style="width: 100%; height: 100%; object-fit: contain;">
-                    <source src="{{ asset($video->video_file_url) }}" type="video/mp4">
+                    <source src="{{ asset($legacyFilePath) }}" type="video/mp4">
                     Browser Anda tidak mendukung pemutar video HTML5.
                 </video>
             </div>
