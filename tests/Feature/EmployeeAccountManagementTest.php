@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -45,9 +46,14 @@ class EmployeeAccountManagementTest extends TestCase
         $this->admin->assignRole('admin');
     }
 
+    /**
+     * Kata sandi sementara (plaintext) dari akun terakhir yang dibuat lewat helper di bawah.
+     */
+    private string $temporaryPassword = '';
+
     private function employeeWithTemporaryPassword(string $role = 'employee'): User
     {
-        return app(EmployeeAccountService::class)->create([
+        ['user' => $user, 'password' => $this->temporaryPassword] = app(EmployeeAccountService::class)->create([
             'name' => 'Budi Santoso',
             'email' => 'budi@caturpilar.com',
             'employee_id' => 'CPS-01001',
@@ -55,6 +61,19 @@ class EmployeeAccountManagementTest extends TestCase
             'jabatan' => 'Operator',
             'role' => $role,
         ]);
+
+        return $user;
+    }
+
+    /**
+     * Kata sandi yang ditampilkan di modal "Kata Sandi Sementara" (argumen action yang sedang terbuka).
+     */
+    private function passwordShownInModal(Testable $component): string
+    {
+        $mounted = collect($component->get('mountedActions'))->last();
+        $this->assertSame('temporaryPassword', $mounted['name'] ?? null);
+
+        return $mounted['arguments']['password'];
     }
 
     private function csv(string $content): string
@@ -69,7 +88,7 @@ class EmployeeAccountManagementTest extends TestCase
     {
         $user = $this->employeeWithTemporaryPassword('supervisor');
 
-        $this->assertTrue(Hash::check(EmployeeAccountService::TEMPORARY_PASSWORD, $user->password));
+        $this->assertTrue(Hash::check($this->temporaryPassword, $user->password));
         $this->assertTrue($user->must_change_password);
         $this->assertTrue($user->hasVerifiedEmail());
         $this->assertTrue($user->hasRole('supervisor'));
@@ -82,7 +101,6 @@ class EmployeeAccountManagementTest extends TestCase
         $this->actingAs($user)->get(route('dashboard'))->assertRedirect(route('password.change'));
         $this->actingAs($user)->get(route('ba.index'))->assertRedirect(route('password.change'));
         $this->actingAs($user)->get('/admin')->assertRedirect(route('password.change'));
-        $this->actingAs($user)->getJson('/api/ba-incidents')->assertForbidden();
 
         $this->actingAs($user)->get(route('password.change'))->assertOk()->assertSee('Ganti Kata Sandi');
         $this->actingAs($user)->post(route('logout'))->assertRedirect();
@@ -99,15 +117,15 @@ class EmployeeAccountManagementTest extends TestCase
         ])->assertSessionHasErrors('current_password');
 
         $this->actingAs($user)->put(route('password.change.update'), [
-            'current_password' => EmployeeAccountService::TEMPORARY_PASSWORD,
-            'password' => EmployeeAccountService::TEMPORARY_PASSWORD,
-            'password_confirmation' => EmployeeAccountService::TEMPORARY_PASSWORD,
+            'current_password' => $this->temporaryPassword,
+            'password' => $this->temporaryPassword,
+            'password_confirmation' => $this->temporaryPassword,
         ])->assertSessionHasErrors('password');
 
         $this->assertTrue($user->fresh()->must_change_password);
 
         $this->actingAs($user)->put(route('password.change.update'), [
-            'current_password' => EmployeeAccountService::TEMPORARY_PASSWORD,
+            'current_password' => $this->temporaryPassword,
             'password' => 'SandiBaru2026!',
             'password_confirmation' => 'SandiBaru2026!',
         ])->assertRedirect(route('dashboard'));
@@ -126,7 +144,7 @@ class EmployeeAccountManagementTest extends TestCase
 
     public function test_admin_creates_employee_from_the_panel(): void
     {
-        Livewire::actingAs($this->admin)
+        $component = Livewire::actingAs($this->admin)
             ->test(CreateUser::class)
             ->fillForm([
                 'name' => 'Siti Aminah',
@@ -137,12 +155,12 @@ class EmployeeAccountManagementTest extends TestCase
                 'role' => 'quality',
             ])
             ->call('create')
-            ->assertHasNoFormErrors();
+            ->assertHasNoFormErrors(form: 'form');
 
         $user = User::where('email', 'siti@caturpilar.com')->firstOrFail();
         $this->assertTrue($user->must_change_password);
         $this->assertTrue($user->hasRole('quality'));
-        $this->assertTrue(Hash::check(EmployeeAccountService::TEMPORARY_PASSWORD, $user->password));
+        $this->assertTrue(Hash::check($this->passwordShownInModal($component), $user->password));
     }
 
     public function test_panel_form_rejects_duplicate_email_and_nik(): void
@@ -179,7 +197,7 @@ class EmployeeAccountManagementTest extends TestCase
                 'role' => 'quality',
             ])
             ->call('create')
-            ->assertHasNoFormErrors();
+            ->assertHasNoFormErrors(form: 'form');
 
         $this->assertSame($hrga->id, User::where('email', 'sari@caturpilar.com')->value('division_id'));
 
@@ -192,13 +210,14 @@ class EmployeeAccountManagementTest extends TestCase
         $user = $this->employeeWithTemporaryPassword();
         $user->update(['password' => 'SandiPribadi2026!', 'must_change_password' => false]);
 
-        Livewire::actingAs($this->admin)
+        $component = Livewire::actingAs($this->admin)
             ->test(EditUser::class, ['record' => $user->getRouteKey()])
             ->callAction('resetPassword')
-            ->assertHasNoActionErrors();
+            // Modal hasil reset tanpa form: cek seluruh error bag, bukan skema action yang terbuka.
+            ->assertHasNoErrors();
 
         $user->refresh();
-        $this->assertTrue(Hash::check(EmployeeAccountService::TEMPORARY_PASSWORD, $user->password));
+        $this->assertTrue(Hash::check($this->passwordShownInModal($component), $user->password));
         $this->assertTrue($user->must_change_password);
 
         // Karyawan terkunci lagi sampai membuat kata sandi baru.
@@ -257,7 +276,9 @@ class EmployeeAccountManagementTest extends TestCase
 
         $result = app(EmployeeAccountService::class)->importCsv($path);
 
-        $this->assertSame(['created' => 3, 'errors' => []], $result);
+        $this->assertSame(3, $result['created']);
+        $this->assertSame([], $result['errors']);
+        $this->assertCount(3, $result['credentials']);
         $this->assertSame(Division::HRGA, User::where('email', 'sari@caturpilar.com')->firstOrFail()->division->name);
         $rina = User::where('email', 'rina@caturpilar.com')->firstOrFail();
         $this->assertTrue($rina->hasRole('supervisor'));

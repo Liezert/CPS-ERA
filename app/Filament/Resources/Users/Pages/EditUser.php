@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\Actions\ResetPasswordAction;
+use App\Filament\Resources\Users\Concerns\ShowsTemporaryPassword;
 use App\Filament\Resources\Users\UserResource;
 use App\Models\User;
 use Filament\Resources\Pages\EditRecord;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class EditUser extends EditRecord
 {
+    use ShowsTemporaryPassword;
+
     protected static string $resource = UserResource::class;
 
     protected function getHeaderActions(): array
