@@ -34,8 +34,7 @@ class StageElevenNotificationAchievementTest extends TestCase
 
         $this->user = User::factory()->create([
             'division_id' => $this->division->id,
-            'total_points' => 350,
-            'level' => 'Technician',
+            'xp' => 350,
         ]);
         $this->user->assignRole('employee');
     }
@@ -175,10 +174,12 @@ class StageElevenNotificationAchievementTest extends TestCase
         $bladeFile = file_get_contents(resource_path('views/livewire/achievement/index.blade.php'));
         $this->assertStringContainsString('TODO: Menunggu keputusan PRD §5.3 (Poin 5: Kriteria unlock achievement)', $bladeFile);
 
-        // 3. Periksa antarmuka saat dirender memuat catatan kriteria PRD §5.3
+        // 3. Penanda PRD §5.3 hanya untuk developer: tidak tampil di antarmuka (keputusan owner 2026-09-25)
         Livewire::actingAs($this->user)
             ->test(AchievementIndex::class)
-            ->assertSee('[Menunggu Keputusan PRD §5.3: Kriteria Otomatisasi Unlock Achievement]');
+            ->assertDontSee('PRD §5.3')
+            ->assertDontSee('Catatan Kriteria')
+            ->assertDontSee('Interim');
     }
 
     /**
