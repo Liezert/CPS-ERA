@@ -1,13 +1,10 @@
 <?php
 
 use App\Http\Middleware\EnsurePasswordIsChanged;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
-use Illuminate\Session\Middleware\StartSession;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -15,7 +12,6 @@ use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -26,24 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
 
-        $middleware->api(prepend: [
-            EncryptCookies::class,
-            AddQueuedCookiesToResponse::class,
-            StartSession::class,
-        ]);
+        $middleware->append(SecurityHeaders::class);
 
         // Akun dengan kata sandi sementara hanya boleh ke halaman ganti kata sandi.
         $middleware->web(append: [EnsurePasswordIsChanged::class]);
-        $middleware->api(append: [EnsurePasswordIsChanged::class]);
-
-        $middleware->validateCsrfTokens(except: [
-            'login',
-            'logout',
-            'api/*',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
-        );
+        //
     })->create();
