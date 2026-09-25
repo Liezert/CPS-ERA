@@ -91,3 +91,8 @@ AGENTS.md
 
 # Kredensial service account Google (rahasia)
 /storage/app/google-drive-*.json
+
+# Konfigurasi AI tooling lokal (tidak ikut repository)
+/.claude/
+/.agents/
+boost.json
