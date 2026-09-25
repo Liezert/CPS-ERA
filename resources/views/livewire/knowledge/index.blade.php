@@ -62,7 +62,7 @@
     </div>
 
     {{-- =========================================================================
-         2. SEARCH BAR REAKTIF & FILTER 13 DIVISI & TIPE MATERI (Design System §8)
+         2. SEARCH BAR REAKTIF & FILTER DIVISI & TIPE MATERI (Design System §8)
          ========================================================================= --}}
     <div class="bg-neutral-50/50 border border-neutral-200 rounded-md p-4">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
@@ -99,12 +99,12 @@
                 </select>
             </div>
 
-            {{-- Kolom Filter Divisi (13 Divisi Tetap sesuai Design System §8) --}}
+            {{-- Kolom Filter Divisi --}}
             <div class="md:col-span-3">
                 <select wire:model.live="selectedDivisionId"
                         class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors"
                         aria-label="Filter berdasarkan divisi">
-                    <option value="">Semua Divisi (13 Divisi)</option>
+                    <option value="">Semua Divisi ({{ $divisions->count() }} Divisi)</option>
                     @foreach($divisions as $div)
                         <option value="{{ $div->id }}">{{ $div->name }}</option>
                     @endforeach
@@ -535,6 +535,25 @@
                                     <x-layout.nav-icon name="document-text" class="w-3.5 h-3.5" />
                                     <span>Lihat BA</span>
                                 </a>
+                            </div>
+                        @endif
+
+                        {{-- Pratinjau Berkas Drive (PDF / Office) langsung di halaman --}}
+                        @if(!empty($viewingDocument->preview_url))
+                            <div class="space-y-2">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-900 font-sans">
+                                    Pratinjau Berkas
+                                </h3>
+                                <div class="rounded-md border border-neutral-200 overflow-hidden bg-neutral-50"
+                                     style="aspect-ratio: 4 / 3;">
+                                    <iframe src="{{ $viewingDocument->preview_url }}"
+                                            class="w-full h-full border-0"
+                                            title="Pratinjau {{ $viewingDocument->title }}"
+                                            loading="lazy"></iframe>
+                                </div>
+                                <p class="text-[11px] text-neutral-500 font-sans">
+                                    Pratinjau disediakan Google Drive. Gunakan tombol di bawah bila berkas tidak tampil.
+                                </p>
                             </div>
                         @endif
 

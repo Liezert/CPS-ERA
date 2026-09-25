@@ -42,13 +42,11 @@ class KnowledgeDocumentsTable
                         'dokumen' => 'primary',
                         'video' => 'info',
                         'presentasi' => 'warning',
-                        'lesson_learned' => 'danger',
                         'sop' => 'success',
                         'link' => 'gray',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'lesson_learned' => 'Lesson Learned',
                         'sop' => 'SOP',
                         default => ucfirst($state),
                     }),
@@ -83,7 +81,6 @@ class KnowledgeDocumentsTable
                         'dokumen' => 'Dokumen',
                         'video' => 'Video',
                         'presentasi' => 'Presentasi',
-                        'lesson_learned' => 'Lesson Learned',
                         'sop' => 'SOP',
                         'link' => 'Link',
                     ]),

@@ -88,3 +88,6 @@ AGENTS.md
 
 # One-off concurrency/simulation scripts (never commit)
 /scripts/
+
+# Kredensial service account Google (rahasia)
+/storage/app/google-drive-*.json
