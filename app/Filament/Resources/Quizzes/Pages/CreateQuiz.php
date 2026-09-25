@@ -27,7 +27,8 @@ class CreateQuiz extends CreateRecord
             $fillData['title'] = request()->query('title');
         }
 
-        if (request()->query('related_type') === 'ba_incident') {
+        // Kuis yang dibuka untuk materi Learning (termasuk dari tombol Buat Post-Test di review CAPA) adalah post-test.
+        if (request()->filled('related_type')) {
             $fillData['type'] = 'post_test';
         }
 

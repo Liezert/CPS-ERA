@@ -1,9 +1,12 @@
 @php
+    use App\Enums\BaIncidentStatus;
     use App\Filament\Resources\BaIncidents\BaIncidentResource;
 
     $status = $record->status;
-    $isReviewed = in_array($status, ['approved', 'reviewed', 'closed'], true);
-    $isRejected = $status === 'rejected';
+    $isReviewed = $status === BaIncidentStatus::Approved->value;
+    // Merah untuk dua kasus ditolak: diminta revisi (Supervisor) dan ditolak permanen (HR).
+    $isRejected = in_array($status, [BaIncidentStatus::RevisionRequested->value, BaIncidentStatus::Rejected->value], true);
+    $statusLabel = BaIncidentStatus::tryFrom($status)?->getLabel() ?? ucfirst($status);
     $hasVideo = $record->video && ($record->video->video_file_url || $record->video->video_external_link);
     $indexUrl = BaIncidentResource::getUrl('index');
 @endphp
@@ -115,11 +118,11 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-xs font-bold font-sans text-neutral-900">Langkah 3: Review Admin</span>
                             @if ($isReviewed)
-                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge">{{ $status === 'closed' ? 'Selesai' : 'Disetujui' }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge">{{ $statusLabel }}</span>
                             @elseif ($isRejected)
-                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-red-800 bg-red-50 border border-red-200 rounded-badge">Perlu Revisi</span>
+                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-red-800 bg-red-50 border border-red-200 rounded-badge">{{ $statusLabel }}</span>
                             @else
-                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-badge">{{ $status === 'draft' ? 'Draft' : 'Menunggu Review' }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-badge">{{ $statusLabel }}</span>
                             @endif
                         </div>
                         <p class="text-xs text-neutral-600 truncate mt-0.5">

@@ -22,9 +22,6 @@
                             <label for="nomor_ba" class="block text-xs font-semibold text-neutral-800 font-sans truncate">
                                 No. FTK / Register BA
                             </label>
-                            <span class="text-[10px] font-mono text-neutral-600 bg-neutral-100 border border-neutral-200 px-1.5 py-0.2 rounded-badge shrink-0">
-                                Otomatis
-                            </span>
                         </div>
                         <div class="relative">
                             <input type="text"
@@ -39,7 +36,6 @@
                                 </svg>
                             </div>
                         </div>
-                        <p class="text-[11px] text-neutral-500 leading-tight">Terbit otomatis berurutan tahunan.</p>
                     </div>
 
                     {{-- Kolom 2: Tanggal Pengisian --}}
@@ -53,7 +49,6 @@
                                id="tanggal_pengisian"
                                @if ($readonly) value="{{ $values['tanggalPengisian'] }}" readonly @else wire:model.live="tanggalPengisian" @endif
                                class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
-                        <p class="text-[11px] text-neutral-500 leading-tight">Tanggal resmi pencatatan berkas.</p>
                         @error('tanggalPengisian')
                             <span class="text-xs text-red-600 mt-0.5 block font-sans">{{ $message }}</span>
                         @enderror
@@ -69,12 +64,11 @@
                         <select id="division_id"
                                 @if ($readonly) disabled @else wire:model.live="divisionId" @endif
                                 class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 truncate cursor-pointer">
-                            <option value="">-- Pilih Divisi (13 Opsi Resmi) --</option>
+                            <option value="">-- Pilih Divisi (12 Opsi Resmi) --</option>
                             @foreach($divisions as $div)
                                 <option value="{{ $div->id }}" @selected($readonly && (string) $values['divisionId'] === (string) $div->id)>{{ $div->name }}</option>
                             @endforeach
                         </select>
-                        <p class="text-[11px] text-neutral-500 leading-tight">Divisi penanggung jawab area kejadian.</p>
                         @error('divisionId')
                             <span class="text-xs text-red-600 mt-0.5 block font-sans">{{ $message }}</span>
                         @enderror

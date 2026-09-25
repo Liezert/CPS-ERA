@@ -28,6 +28,19 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'google_drive' => [
+        // OAuth pengguna: satu akun Drive dihubungkan lewat layar consent.
+        'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_DRIVE_REDIRECT_URI', env('APP_URL').'/admin/google-drive/callback'),
+
+        'folder_id_ba' => env('GOOGLE_DRIVE_FOLDER_ID_BA'),
+        'folder_id_knowledge' => env('GOOGLE_DRIVE_FOLDER_ID_KNOWLEDGE'),
+
+        // Arsip jalur service account (tidak dipakai: tanpa kuota penyimpanan).
+        'credentials_path' => env('GOOGLE_DRIVE_CREDENTIALS_PATH'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

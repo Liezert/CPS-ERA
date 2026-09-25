@@ -6,7 +6,7 @@ use App\Livewire\Ba\Create as BaCreate;
 use App\Livewire\Ba\Show as BaShow;
 use App\Models\BaIncident;
 use App\Models\Division;
-use App\Models\KnowledgeDocument;
+use App\Models\LearningMaterial;
 use App\Models\User;
 use App\Models\Video;
 use App\Services\BaIncidentService;
@@ -105,7 +105,6 @@ class BaCapaRevisionTest extends TestCase
 
         $incident = BaIncident::find($incidentId);
         $this->assertSame('draft', $incident->status);
-        $this->assertFalse($incident->isSubmitted());
 
         // 2. Lewat Service class:
         $service = app(BaIncidentService::class);
@@ -201,11 +200,16 @@ class BaCapaRevisionTest extends TestCase
         ]);
 
         $incident->refresh();
-        $this->assertSame('submitted', $incident->status);
+        $this->assertSame('pending_supervisor', $incident->status);
+
+        // Tahap Supervisor meneruskan ke HR; evaluasi formal diisi HR di tahap final.
+        $service->approveAsSupervisor($incident, $this->supervisorProduksi, 'Sensor sudah dicek langsung di lapangan.');
+        $incident->refresh();
+        $this->assertSame('pending_hr', $incident->status);
 
         // 1. Coba approve tanpa status_verifikasi
         try {
-            $service->approve($incident, $this->supervisorProduksi, [
+            $service->approve($incident, $this->admin, [
                 'status_verifikasi' => null,
             ]);
             $this->fail('Harus melempar DomainException jika status_verifikasi kosong.');
@@ -215,7 +219,7 @@ class BaCapaRevisionTest extends TestCase
 
         // 2. Coba status_verifikasi = efektif tanpa bukti_objektif
         try {
-            $service->approve($incident, $this->supervisorProduksi, [
+            $service->approve($incident, $this->admin, [
                 'status_verifikasi' => 'efektif',
                 'bukti_objektif' => '',
             ]);
@@ -226,7 +230,7 @@ class BaCapaRevisionTest extends TestCase
 
         // 3. Coba status_verifikasi = tidak_efektif tanpa alasan_tidak_efektif
         try {
-            $service->approve($incident, $this->supervisorProduksi, [
+            $service->approve($incident, $this->admin, [
                 'status_verifikasi' => 'tidak_efektif',
                 'alasan_tidak_efektif' => '',
             ]);
@@ -236,7 +240,7 @@ class BaCapaRevisionTest extends TestCase
         }
 
         // 4. Approve dengan data verifikasi lengkap
-        $approved = $service->approve($incident, $this->supervisorProduksi, [
+        $approved = $service->approve($incident, $this->admin, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Sensor telah diuji 24 jam nonstop tanpa alarm kegagalan.',
         ]);
@@ -244,14 +248,17 @@ class BaCapaRevisionTest extends TestCase
         $this->assertSame('approved', $approved->status);
         $this->assertSame('efektif', $approved->status_verifikasi);
         $this->assertSame('Sensor telah diuji 24 jam nonstop tanpa alarm kegagalan.', $approved->bukti_objektif);
-        $this->assertSame($this->supervisorProduksi->id, $approved->reviewed_by);
+        $this->assertSame($this->admin->id, $approved->reviewed_by);
         $this->assertNotNull($approved->reviewed_at);
+        $this->assertSame($this->supervisorProduksi->id, $approved->supervisor_reviewed_by);
+        $this->assertNotNull($approved->points_awarded_at);
+        $this->assertNotNull($approved->published_at);
     }
 
     /**
-     * TEST 4: Reject menyimpan catatan_penolakan, status berubah jadi 'rejected'.
+     * TEST 4: Reject Supervisor menyimpan catatan_penolakan dan mengembalikan laporan untuk direvisi.
      */
-    public function test_reject_stores_catatan_penolakan_and_sets_status_to_rejected(): void
+    public function test_supervisor_reject_stores_catatan_penolakan_and_requests_revision(): void
     {
         $service = app(BaIncidentService::class);
 
@@ -285,31 +292,31 @@ class BaCapaRevisionTest extends TestCase
         $rejectionNote = 'Analisis 5 Why belum mendalam, harap periksa juga spesifikasi torsi pengencangan baut.';
         $rejected = $service->reject($incident, $this->supervisorProduksi, $rejectionNote);
 
-        $this->assertSame('rejected', $rejected->status);
+        $this->assertSame('revision_requested', $rejected->status);
         $this->assertSame($rejectionNote, $rejected->catatan_penolakan);
-        $this->assertSame($this->supervisorProduksi->id, $rejected->reviewed_by);
-        $this->assertNotNull($rejected->reviewed_at);
+        // reviewed_by adalah kolom reviewer tahap HR; penolakan Supervisor tidak mengisinya.
+        $this->assertNull($rejected->reviewed_by);
 
         // Activity log tercatat
         $this->assertDatabaseHas('ba_activity_logs', [
             'ba_incident_id' => $incident->id,
             'actor_id' => $this->supervisorProduksi->id,
-            'action' => 'BA Ditolak / Perbaikan Diminta',
+            'action' => 'BA Ditolak Supervisor — Revisi Diminta',
             'note' => $rejectionNote,
         ]);
 
         // Cek via Livewire Show page bahwa banner penolakan dan tombol revisi tampil
         Livewire::actingAs($this->employeeProduksi)
             ->test(BaShow::class, ['incident' => $rejected])
-            ->assertSeeHtml('Laporan BA Ini Ditolak / Perlu Revisi')
+            ->assertSeeHtml('Laporan BA Ini Perlu Revisi')
             ->assertSeeHtml($rejectionNote)
             ->assertSeeHtml('Edit Ulang &amp; Resubmit BA');
     }
 
     /**
-     * TEST 5: Setelah approved, entri lesson_learned otomatis muncul di knowledge_documents dan poin diberikan.
+     * TEST 5: Setelah approved, hasil laporan masuk ke Learning (bukan Knowledge Repository) dan poin diberikan.
      */
-    public function test_approving_automatically_creates_lesson_learned_and_awards_points(): void
+    public function test_approving_sends_report_to_learning_not_knowledge_repository_and_awards_points(): void
     {
         $service = app(BaIncidentService::class);
 
@@ -331,31 +338,25 @@ class BaCapaRevisionTest extends TestCase
 
         $incident->refresh();
 
-        // Pastikan belum ada dokumen lesson learned sebelum approve
-        $this->assertDatabaseMissing('knowledge_documents', [
-            'source_ba_id' => $incident->id,
-        ]);
+        $this->assertDatabaseMissing('learning_materials', ['source_ba_id' => $incident->id]);
 
-        // Supervisor menyetujui
-        $service->approve($incident, $this->supervisorProduksi, [
+        // Supervisor meneruskan, lalu HR menyetujui final
+        $service->approveAsSupervisor($incident, $this->supervisorProduksi);
+        $service->approve($incident->fresh(), $this->admin, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Grafik tekanan boiler stabil pada 4.8 - 5.2 bar selama 14 hari pemantauan.',
         ]);
 
-        // Verifikasi entri knowledge_documents bertipe lesson_learned otomatis terbuat
-        $this->assertDatabaseHas('knowledge_documents', [
-            'source_ba_id' => $incident->id,
-            'division_id' => $this->divisionProduksi->id,
-            'type' => 'lesson_learned',
-            'status' => 'published',
-        ]);
+        // Knowledge Repository khusus berkas resmi perusahaan: laporan CAPA tidak masuk ke sana.
+        $this->assertDatabaseMissing('knowledge_documents', ['source_ba_id' => $incident->id]);
 
-        $lessonDoc = KnowledgeDocument::where('source_ba_id', $incident->id)->first();
-        $this->assertNotNull($lessonDoc);
-        $this->assertStringContainsString($incident->nomor_ba, $lessonDoc->title);
-        $this->assertStringContainsString('Tekanan uap boiler fluktuatif', $lessonDoc->description);
-        $this->assertStringContainsString('Dosis bahan kimia water treatment tidak stabil', $lessonDoc->description);
-        $this->assertStringContainsString('Instalasi dosing pump otomatis', $lessonDoc->description);
+        // Hasil laporan menjadi materi Learning kandidat (terbit setelah post-test dibuat).
+        $material = LearningMaterial::where('source_ba_id', $incident->id)->firstOrFail();
+        $this->assertSame('candidate', $material->status);
+        $this->assertStringContainsString($incident->nomor_ba, $material->title);
+        $this->assertStringContainsString('Tekanan uap boiler fluktuatif', $material->description);
+        $this->assertStringContainsString('Dosis bahan kimia water treatment tidak stabil', $material->description);
+        $this->assertStringContainsString('Instalasi dosing pump otomatis', $material->description);
 
         // Verifikasi point transaction untuk pembuat BA (PRD v2.0: 1 poin KPI ba_video_approved)
         $this->assertDatabaseHas('point_transactions', [

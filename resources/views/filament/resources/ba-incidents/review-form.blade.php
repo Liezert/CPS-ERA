@@ -127,7 +127,7 @@
                         <div class="min-w-0 flex-1">
                             <span class="font-bold block text-neutral-900">Laporan menunggu verifikasi reviewer.</span>
                             <span class="text-neutral-700 block mt-0.5">
-                                Periksa kelengkapan bagian 1&ndash;7, lalu pilih <strong>Setujui &amp; Verifikasi</strong> atau <strong>Tolak / Revisi</strong> di bawah.
+                                Periksa kelengkapan bagian 1&ndash;7 sebelum memberi keputusan lewat tombol di bawah.
                             </span>
                         </div>
                     </div>
@@ -154,6 +154,15 @@
                         </a>
                     @endif
 
+                    @if ($actions->has('delete_archived_video'))
+                        <button type="button"
+                                wire:click="mountAction('delete_archived_video')"
+                                wire:loading.attr="disabled"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-red-300 rounded-md text-xs font-sans font-medium text-red-700 bg-white hover:bg-red-50 hover:border-red-400 hover:shadow-xs active:scale-[0.98] transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-red-500/20 shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed">
+                            <span>{{ $actions->get('delete_archived_video')->getLabel() }}</span>
+                        </button>
+                    @endif
+
                     @if ($actions->has('reject'))
                         <button type="button"
                                 wire:click="mountAction('reject')"
@@ -162,7 +171,7 @@
                             <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span>Tolak / Minta Revisi</span>
+                            <span>{{ $actions->get('reject')->getLabel() }}</span>
                         </button>
                     @endif
 
@@ -174,7 +183,7 @@
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span>Setujui &amp; Verifikasi</span>
+                            <span>{{ $actions->get('approve')->getLabel() }}</span>
                         </button>
                     @endif
 
@@ -190,5 +199,10 @@
                 </div>
             </div>
         </div>
+
+        {{-- Riwayat aktivitas untuk audit Supervisor & tim HR --}}
+        @can('viewActivityLog', $record)
+            <x-capa.activity-timeline :logs="$record->activityLogs()->with('actor')->get()" />
+        @endcan
     </div>
 </div>

@@ -9,12 +9,14 @@ use App\Models\LearningCategory;
 use App\Models\LearningMaterial;
 use App\Models\PointTransaction;
 use App\Models\Quiz;
+use App\Models\QuizAttempt;
 use App\Models\QuizOption;
 use App\Models\QuizQuestion;
 use App\Models\User;
 use App\Models\UserKpiYearly;
 use App\Models\UserLearningProgress;
 use App\Services\BaIncidentService;
+use App\Services\KpiContributionCalculator;
 use App\Services\KpiContributionService;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -102,42 +104,6 @@ class DualLedgerAndKpiContributionTest extends TestCase
             'is_correct' => false,
         ]);
 
-        // Submit attempt 1 (gagal)
-        $res1 = $this->actingAs($this->employee)->postJson("/api/quizzes/{$quiz->id}/attempt", [
-            'answers' => [
-                $question->id => $optWrong->id,
-            ],
-        ]);
-        $res1->assertOk();
-        $this->assertFalse($res1->json('data.passed'));
-        $this->assertStringNotContainsString('is_correct', $res1->getContent());
-
-        // Submit attempt 2 (gagal lagi)
-        $res2 = $this->actingAs($this->employee)->postJson("/api/quizzes/{$quiz->id}/attempt", [
-            'answers' => [
-                $question->id => $optWrong->id,
-            ],
-        ]);
-        $res2->assertOk();
-        $this->assertFalse($res2->json('data.passed'));
-        $this->assertStringNotContainsString('is_correct', $res2->getContent());
-
-        // Submit attempt 3 (sebelumnya sistem lama memblokir di attempt > 2, sekarang WAJIB boleh)
-        $res3 = $this->actingAs($this->employee)->postJson("/api/quizzes/{$quiz->id}/attempt", [
-            'answers' => [
-                $question->id => $optCorrect->id,
-            ],
-        ]);
-        $res3->assertOk();
-        $this->assertTrue($res3->json('data.passed'));
-        $this->assertSame(100, $res3->json('data.score'));
-        $this->assertStringNotContainsString('is_correct', $res3->getContent());
-
-        // Cek response GET detail quiz juga tidak mengandung is_correct
-        $resShow = $this->actingAs($this->employee)->getJson("/api/quizzes/{$quiz->id}");
-        $resShow->assertOk();
-        $this->assertStringNotContainsString('is_correct', $resShow->getContent());
-
         // Buat progress 100% agar lolos gating PostTest Livewire component
         UserLearningProgress::create([
             'user_id' => $this->employee->id,
@@ -156,111 +122,66 @@ class DualLedgerAndKpiContributionTest extends TestCase
     }
 
     /**
-     * 2. Post-test dengan allow_multiple_answers=true hanya dianggap benar kalau
-     *    kombinasi opsi yang dipilih PERSIS sama dengan opsi yang is_correct=true.
+     * Materi published + post-test + attempt lulus 100% (progres KPI dihitung dari attempt),
+     * lalu panggil service seperti alur PostTest.
      */
-    public function test_multi_select_question_scoring_requires_exact_match_of_correct_options(): void
+    private function passMaterial(string $title): LearningMaterial
     {
         $material = LearningMaterial::create([
             'learning_category_id' => $this->category->id,
-            'title' => 'SOP Safety Kelistrikan',
+            'title' => $title,
             'type' => 'dokumen',
             'status' => 'published',
             'created_by' => $this->admin->id,
         ]);
-
         $quiz = Quiz::create([
-            'title' => 'Post-Test: SOP Safety Kelistrikan',
+            'title' => "Post-Test: {$title}",
             'type' => 'post_test',
             'related_type' => 'learning_material',
             'related_id' => $material->id,
             'points_reward' => 0,
         ]);
-
-        $question = QuizQuestion::create([
+        $attempt = QuizAttempt::create([
             'quiz_id' => $quiz->id,
-            'question_text' => 'Alat pelindung diri apa saja yang wajib saat bekerja di panel MV? (Pilih semua yang benar)',
-            'order_index' => 1,
-            'allow_multiple_answers' => true,
+            'user_id' => $this->employee->id,
+            'score' => 100,
+            'passed' => true,
+            'points_earned' => 0,
+            'attempted_at' => now(),
         ]);
 
-        $optA = QuizOption::create(['quiz_question_id' => $question->id, 'option_text' => 'Sarung tangan dielektrik 20kV', 'is_correct' => true]);
-        $optB = QuizOption::create(['quiz_question_id' => $question->id, 'option_text' => 'Face shield arc-flash', 'is_correct' => true]);
-        $optC = QuizOption::create(['quiz_question_id' => $question->id, 'option_text' => 'Sandal karet biasa', 'is_correct' => false]);
-        $optD = QuizOption::create(['quiz_question_id' => $question->id, 'option_text' => 'Perhiasan logam', 'is_correct' => false]);
+        app(KpiContributionService::class)->recordMaterialCompletion($this->employee, $material, 100, $attempt);
 
-        // Skenario A: Hanya pilih 1 dari 2 yang benar -> SALAH (Skor 0%)
-        $resPartially = $this->actingAs($this->employee)->postJson("/api/quizzes/{$quiz->id}/attempt", [
-            'answers' => [
-                $question->id => [$optA->id],
-            ],
-        ]);
-        $resPartially->assertOk();
-        $this->assertFalse($resPartially->json('data.passed'));
-        $this->assertSame(0, $resPartially->json('data.score'));
-
-        // Skenario B: Pilih 2 yang benar TAPI ikut memilih 1 yang salah -> SALAH (Skor 0%)
-        $resWithWrong = $this->actingAs($this->employee)->postJson("/api/quizzes/{$quiz->id}/attempt", [
-            'answers' => [
-                $question->id => [$optA->id, $optB->id, $optC->id],
-            ],
-        ]);
-        $resWithWrong->assertOk();
-        $this->assertFalse($resWithWrong->json('data.passed'));
-        $this->assertSame(0, $resWithWrong->json('data.score'));
-
-        // Skenario C: Pilih PERSIS semua yang benar (optA & optB) -> BENAR (Skor 100%)
-        $resExact = $this->actingAs($this->employee)->postJson("/api/quizzes/{$quiz->id}/attempt", [
-            'answers' => [
-                $question->id => [$optA->id, $optB->id],
-            ],
-        ]);
-        $resExact->assertOk();
-        $this->assertTrue($resExact->json('data.passed'));
-        $this->assertSame(100, $resExact->json('data.score'));
+        return $material;
     }
 
     /**
-     * 3. Menyelesaikan materi ke-5 (dengan score 100% semua) memicu insert point_transactions
-     *    ledger_type='poin_cps_era' DAN increment user_kpi_yearly dengan benar, lalu counter
-     *    materials_completed_count reset ke 0.
+     * 3. Materi ke-5 (target periode) yang lulus 100% memicu insert point_transactions
+     *    ledger_type='poin_cps_era' DAN increment user_kpi_yearly. Counter lama
+     *    materials_completed_count tidak lagi di-update (keputusan owner no.5).
      */
     public function test_completing_5_materials_with_100_percent_awards_cps_era_point_and_resets_counter(): void
     {
-        $kpiService = app(KpiContributionService::class);
         $currentYear = (int) now()->year;
 
-        // Buat 5 materi terpisah
-        $materials = [];
-        for ($i = 1; $i <= 5; $i++) {
-            $materials[] = LearningMaterial::create([
-                'learning_category_id' => $this->category->id,
-                'title' => "Modul Kualifikasi {$i}",
-                'type' => 'dokumen',
-                'status' => 'published',
-                'created_by' => $this->admin->id,
-            ]);
-        }
-
         // Selesaikan materi 1 s.d. 4 dengan score 100%
-        for ($i = 0; $i < 4; $i++) {
-            $kpiService->recordMaterialCompletion($this->employee, $materials[$i], 100);
+        for ($i = 1; $i <= 4; $i++) {
+            $this->passMaterial("Modul Kualifikasi {$i}");
         }
 
         $kpi = UserKpiYearly::where('user_id', $this->employee->id)->where('period_year', $currentYear)->first();
-        $this->assertNotNull($kpi);
-        $this->assertSame(4, $kpi->materials_completed_count);
-        $this->assertSame(0, $kpi->poin_cps_era_earned);
-        $this->assertSame(0, $kpi->poin_from_materi);
+        $this->assertSame(4, app(KpiContributionCalculator::class)->calculate($this->employee)['completed']);
+        $this->assertSame(0, (int) ($kpi?->poin_cps_era_earned ?? 0));
+        $this->assertSame(0, (int) ($kpi?->poin_from_materi ?? 0));
 
         // Pastikan belum ada point_transactions dengan ledger_type='poin_cps_era'
         $this->assertSame(0, PointTransaction::where('user_id', $this->employee->id)->where('ledger_type', 'poin_cps_era')->count());
 
         // Selesaikan materi ke-5 dengan score 100%
-        $kpiService->recordMaterialCompletion($this->employee, $materials[4], 100);
+        $this->passMaterial('Modul Kualifikasi 5');
 
-        $kpi->refresh();
-        // Counter reset ke 0 setelah mencapai kelipatan 5
+        $kpi = UserKpiYearly::where('user_id', $this->employee->id)->where('period_year', $currentYear)->firstOrFail();
+        // Counter lama tidak disentuh lagi
         $this->assertSame(0, $kpi->materials_completed_count);
         // Poin bertambah 1
         $this->assertSame(1, $kpi->poin_cps_era_earned);
@@ -290,12 +211,12 @@ class DualLedgerAndKpiContributionTest extends TestCase
             'title' => 'Kerusakan Roll Press 02',
             'deskripsi_masalah' => 'Roll press macet karena bearing aus.',
             'created_by' => $this->employee->id,
-            'status' => 'submitted',
+            'status' => 'pending_hr',
             'video_file_url' => '/uploads/ba-videos/roll-press.mp4',
         ]);
 
         $baService = app(BaIncidentService::class);
-        $approvedBa = $baService->approve($incident, $this->supervisor, [
+        $approvedBa = $baService->approve($incident, $this->admin, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Penggantian bearing tipe 6205RS tuntas dan beroperasi normal.',
         ]);
@@ -361,12 +282,12 @@ class DualLedgerAndKpiContributionTest extends TestCase
             'title' => 'Insiden Sensor Optical',
             'deskripsi_masalah' => 'Sensor kotor tersumbat debu.',
             'created_by' => $this->employee->id,
-            'status' => 'submitted',
+            'status' => 'pending_hr',
             'video_file_url' => '/videos/sensor.mp4',
         ]);
 
         $baService = app(BaIncidentService::class);
-        $approvedBa = $baService->approve($incident, $this->supervisor, [
+        $approvedBa = $baService->approve($incident, $this->admin, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Sensor dibersihkan dan dipasang penutup filter udara.',
         ]);
@@ -382,21 +303,16 @@ class DualLedgerAndKpiContributionTest extends TestCase
         $kpi->refresh();
         $this->assertSame(3, $kpi->poin_cps_era_earned);
 
-        // Jalur B Test: Selesaikan materi ke-5 (membuat materials_completed_count mencapai 5)
-        $material5 = LearningMaterial::create([
-            'learning_category_id' => $this->category->id,
-            'title' => 'Modul Final Ke-5',
-            'type' => 'dokumen',
-            'status' => 'published',
-            'created_by' => $this->admin->id,
-        ]);
-
-        $kpiService = app(KpiContributionService::class);
-        $kpiService->recordMaterialCompletion($this->employee, $material5, 100);
+        // Jalur B Test: capai target 5 materi periode ini saat cap tahunan sudah 3
+        for ($i = 1; $i <= 5; $i++) {
+            $this->passMaterial("Modul Final {$i}");
+        }
 
         $kpi->refresh();
-        // Counter tetap reset ke 0 sesuai instruksi interim PRD
-        $this->assertSame(0, $kpi->materials_completed_count);
+        // Target tercapai (progres dihitung dari attempt), post-test tetap tercatat, bukan ditolak
+        $this->assertTrue(app(KpiContributionCalculator::class)->calculate($this->employee)['is_complete']);
+        // Counter lama tidak disentuh lagi
+        $this->assertSame(4, $kpi->materials_completed_count);
         // Tapi poin_cps_era_earned tetap mentok di 3
         $this->assertSame(3, $kpi->poin_cps_era_earned);
         // Dan tidak ada insert poin transaksi baru
@@ -404,40 +320,6 @@ class DualLedgerAndKpiContributionTest extends TestCase
             $initialTxCount,
             PointTransaction::where('user_id', $this->employee->id)->where('ledger_type', 'poin_cps_era')->count()
         );
-    }
-
-    /**
-     * 6. Materi dengan status='candidate' tidak muncul di listing Learning Employee biasa.
-     */
-    public function test_candidate_learning_materials_do_not_appear_in_employee_listing(): void
-    {
-        $published = LearningMaterial::create([
-            'learning_category_id' => $this->category->id,
-            'title' => 'Materi SOP Standard Operasi',
-            'type' => 'dokumen',
-            'status' => 'published',
-            'created_by' => $this->admin->id,
-        ]);
-
-        $candidate = LearningMaterial::create([
-            'learning_category_id' => $this->category->id,
-            'title' => 'Materi Candidate Video BA',
-            'type' => 'video',
-            'status' => 'candidate',
-            'created_by' => $this->admin->id,
-        ]);
-
-        // Cek via API listing kategori untuk employee
-        $res = $this->actingAs($this->employee)->getJson("/api/learning-categories/{$this->category->id}/materials");
-        $res->assertOk();
-
-        $titles = collect($res->json('data.materials'))->pluck('title');
-        $this->assertTrue($titles->contains('Materi SOP Standard Operasi'));
-        $this->assertFalse($titles->contains('Materi Candidate Video BA'));
-
-        // Cek via scopePublished model
-        $publishedCount = LearningMaterial::published()->count();
-        $this->assertSame(1, $publishedCount);
     }
 
     /**

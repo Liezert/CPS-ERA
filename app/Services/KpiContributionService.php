@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BaIncident;
+use App\Models\KpiSetting;
 use App\Models\LearningMaterial;
 use App\Models\PointTransaction;
 use App\Models\QuizAttempt;
@@ -21,14 +22,18 @@ class KpiContributionService
     }
 
     /**
-     * Catat penyelesaian materi pembelajaran (Jalur B KPI Contribution).
-     * Syarat lulus & kredit: score persis 100%.
-     * Setiap 5 materi unik di tahun berjalan memberikan +1 Poin CPS ERA (maks 3/tahun gabungan).
+     * Catat penyelesaian materi pembelajaran (Jalur B KPI Contribution, aturan owner).
+     *
+     * Progres periode dihitung dari data attempt (KpiContributionCalculator). Tepat 1 Poin CPS ERA
+     * diberikan saat progres periode aktif PERTAMA KALI mencapai target; setelah itu tidak ada poin
+     * materi lagi di periode tersebut. Batas 3 poin/tahun (Jalur A + B) tetap berlaku, dan poin
+     * dicatat ke tahun kalender saat poin diberikan. Counter materials_completed_count tidak lagi
+     * di-update (riwayat poin lama tidak diubah).
      *
      * @param  User  $user  User yang menyelesaikan
      * @param  LearningMaterial  $material  Materi yang diselesaikan
      * @param  int  $score  Skor post-test (0-100)
-     * @param  QuizAttempt|null  $currentAttempt  Attempt saat ini untuk pengecekan idempotensi
+     * @param  QuizAttempt|null  $currentAttempt  Attempt yang baru disimpan (sudah tercatat sebelum pemanggilan ini)
      */
     public function recordMaterialCompletion(
         User $user,
@@ -36,9 +41,76 @@ class KpiContributionService
         int $score,
         ?QuizAttempt $currentAttempt = null
     ): ?UserKpiYearly {
-        $year = (int) now()->year;
+        $this->awardMaterialXp($user, $material);
 
-        return DB::transaction(function () use ($user, $material, $score, $currentAttempt, $year): ?UserKpiYearly {
+        // Kredit KPI HANYA untuk skor tepat 100.
+        if ($score !== 100) {
+            return null;
+        }
+
+        $setting = KpiSetting::current();
+        $target = max(1, (int) $setting->target_materials);
+        $calculator = app(KpiContributionCalculator::class);
+
+        $after = $calculator->countCompletedMaterials($user, $setting);
+        $before = $currentAttempt
+            ? $calculator->countCompletedMaterials($user, $setting, $currentAttempt->id)
+            : $after;
+
+        // Hanya transisi "di bawah target -> mencapai target" yang memberi poin. Attempt di luar
+        // periode, materi yang sudah dihitung, atau materi ke-6 dst. tidak mengubah apa pun.
+        if ($after < $target || ($currentAttempt && $before >= $target)) {
+            return null;
+        }
+
+        $year = (int) now()->year;
+        $this->ensureYearlyRecord($user, $year);
+
+        return DB::transaction(function () use ($user, $setting, $target, $year): UserKpiYearly {
+            $kpiYearly = $this->lockYearlyRecord($user, $year);
+
+            if ($kpiYearly->poin_cps_era_earned >= 3) {
+                return $kpiYearly;
+            }
+
+            // Unique (user_id, kpi_setting_id): eksekusi kedua / request bersamaan tidak memberi poin lagi.
+            $claimed = DB::table('kpi_period_awards')->insertOrIgnore([
+                'user_id' => $user->id,
+                'kpi_setting_id' => $setting->id,
+                'award_year' => $year,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($claimed === 0) {
+                return $kpiYearly;
+            }
+
+            $kpiYearly->poin_cps_era_earned += 1;
+            $kpiYearly->poin_from_materi += 1;
+            $kpiYearly->save();
+
+            PointTransaction::create([
+                'user_id' => $user->id,
+                'ledger_type' => PointTransaction::LEDGER_POIN_CPS_ERA,
+                'points' => 1,
+                'source_type' => 'kpi_materi_bundle_completed',
+                'source_id' => null,
+                'description' => "Poin CPS ERA: target {$target} materi Learning tercapai (periode "
+                    .$setting->period_start->toDateString().' s/d '.$setting->period_end->toDateString().')',
+                'created_at' => now(),
+            ]);
+
+            return $kpiYearly->fresh();
+        }, attempts: 3);
+    }
+
+    /**
+     * XP opsional materi (xp_reward), diberikan sekali per materi. Tidak terkait KPI dan tidak berubah.
+     */
+    private function awardMaterialXp(User $user, LearningMaterial $material): void
+    {
+        DB::transaction(function () use ($user, $material): void {
             // 1. Berikan XP opsional materi jika ada dan belum pernah diberikan
             if ($material->xp_reward && $material->xp_reward > 0) {
                 $hasReceivedXp = PointTransaction::where('user_id', $user->id)
@@ -59,62 +131,7 @@ class KpiContributionService
                     ]);
                 }
             }
-
-            // 2. Kredit KPI HANYA diberikan jika score = 100 persis
-            if ($score !== 100) {
-                return null;
-            }
-
-            // 3. Cek idempotensi: materi yang sama tidak dihitung dobel dalam tahun yang sama
-            $postTest = $material->postTest;
-            if ($postTest) {
-                $alreadyCreditedThisYear = QuizAttempt::where('user_id', $user->id)
-                    ->where('quiz_id', $postTest->id)
-                    ->where('score', 100)
-                    ->where('passed', true)
-                    ->whereYear('attempted_at', $year)
-                    ->when($currentAttempt, fn ($q) => $q->where('id', '!=', $currentAttempt->id))
-                    ->exists();
-
-                if ($alreadyCreditedThisYear) {
-                    return $this->getOrCreateYearlyRecord($user, $year);
-                }
-            }
-
-            // Ensure row exists, then re-fetch with pessimistic lock to prevent race conditions
-            $kpiYearly = $this->lockYearlyRecord($user, $year);
-
-            // 4. Increment materials_completed_count
-            $newCount = $kpiYearly->materials_completed_count + 1;
-
-            if ($newCount >= 5) {
-                // Reset counter kembali ke 0 setiap kelipatan 5
-                $kpiYearly->materials_completed_count = 0;
-
-                // Cek cap tahunan (maksimal 3 Poin CPS ERA per tahun gabungan)
-                if ($kpiYearly->poin_cps_era_earned < 3) {
-                    $kpiYearly->poin_cps_era_earned += 1;
-                    $kpiYearly->poin_from_materi += 1;
-
-                    // Catat ke buku besar point_transactions
-                    PointTransaction::create([
-                        'user_id' => $user->id,
-                        'ledger_type' => PointTransaction::LEDGER_POIN_CPS_ERA,
-                        'points' => 1,
-                        'source_type' => 'kpi_materi_bundle_completed',
-                        'source_id' => null,
-                        'description' => "Poin CPS ERA: Menyelesaikan bundle 5 materi Learning (Tahun {$year})",
-                        'created_at' => now(),
-                    ]);
-                }
-            } else {
-                $kpiYearly->materials_completed_count = $newCount;
-            }
-
-            $kpiYearly->save();
-
-            return $kpiYearly->fresh();
-        }, attempts: 3);
+        });
     }
 
     /**

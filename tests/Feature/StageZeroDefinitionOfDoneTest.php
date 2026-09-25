@@ -106,29 +106,28 @@ class StageZeroDefinitionOfDoneTest extends TestCase
     }
 
     /**
-     * DoD #1.2: Pastikan 13 divisi tetap di-seed dengan benar sesuai Design System §8 & DivisionSeeder.
+     * DoD #1.2: Pastikan 12 divisi tetap di-seed dengan benar sesuai Design System §8 & DivisionSeeder.
      */
-    public function test_dod_1_thirteen_divisions_are_present(): void
+    public function test_dod_1_twelve_divisions_are_present(): void
     {
         $this->seed(DivisionSeeder::class);
 
         $expectedDivisions = [
             'Engineering',
             'Finance Accounting Tax',
-            'Gudang RM',
             'HRGA',
-            'Keamanan',
+            'Jahit',
+            'Marketing & Sales',
             'PPIC',
+            'Plant Balben & Krian',
             'Produksi',
             'Purchasing',
             'Quality Control',
-            'Repair',
-            'Sales & Marketing',
+            'RM Warehouse',
             'Warehouse & Delivery',
-            'IT',
         ];
 
-        $this->assertCount(13, Division::all(), 'Jumlah divisi harus tepat 13.');
+        $this->assertCount(12, Division::all(), 'Jumlah divisi harus tepat 12.');
         foreach ($expectedDivisions as $name) {
             $this->assertDatabaseHas('divisions', ['name' => $name]);
         }
@@ -155,7 +154,7 @@ class StageZeroDefinitionOfDoneTest extends TestCase
         $this->assertInstanceOf(Relation::class, $ba->creator());
         $this->assertInstanceOf(Relation::class, $ba->reviewer());
         $this->assertInstanceOf(Relation::class, $ba->activityLogs());
-        $this->assertInstanceOf(Relation::class, $ba->lessonLearned());
+        $this->assertInstanceOf(Relation::class, $ba->learningMaterial());
 
         $log = new BaActivityLog;
         $this->assertInstanceOf(Relation::class, $log->incident());

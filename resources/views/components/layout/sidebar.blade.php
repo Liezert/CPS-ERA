@@ -146,7 +146,7 @@
                 </div>
 
                 @if ($isQuality || $isAdmin)
-                    <a href="{{ route('management.learning-categories') }}"
+                    <a href="{{ route('filament.admin.resources.learning-categories.index') }}"
                        title="Kelola Materi Learning"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm transition-colors duration-150 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 tablet:justify-center desktop:justify-start">
                         <div class="shrink-0">
@@ -279,7 +279,7 @@
                     </div>
 
                     @if ($isQuality || $isAdmin)
-                        <a href="{{ route('management.learning-categories') }}"
+                        <a href="{{ route('filament.admin.resources.learning-categories.index') }}"
                            @click="mobileMenuOpen = false"
                            class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50">
                             @include('components.layout.nav-icon', ['name' => 'folder-cog'])

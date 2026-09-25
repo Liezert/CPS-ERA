@@ -193,7 +193,7 @@
                         <svg class="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>Selamat! Anda berhasil menjawab seluruh soal dengan benar (100%). Progress KPI Contribution materi ini telah dicatatkan ke akun Anda.</span>
+                        <span>Selamat! Skor Anda 100%. Materi ini dihitung ke progres KPI Contribution periode ini.</span>
                     </div>
                 @else
                     <div class="p-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-700">

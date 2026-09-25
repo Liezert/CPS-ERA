@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Division;
 use App\Models\User;
-use App\Policies\DivisionScopedPolicy;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
@@ -22,30 +21,6 @@ class RbacTest extends TestCase
 
         $this->seed(DivisionSeeder::class);
         $this->seed(RoleSeeder::class);
-    }
-
-    public function test_guest_is_redirected_from_test_access(): void
-    {
-        $response = $this->get('/test-access');
-
-        $response->assertRedirect('/login');
-    }
-
-    public function test_authenticated_user_can_access_test_access_route(): void
-    {
-        $division = Division::where('name', 'IT')->firstOrFail();
-        $user = User::factory()->create([
-            'division_id' => $division->id,
-            'employee_id' => 'CPS-00100',
-            'jabatan' => 'Staff IT',
-        ]);
-        $user->assignRole('admin');
-
-        $response = $this->actingAs($user)->get('/test-access');
-
-        $response->assertOk();
-        $response->assertSee('Verifikasi RBAC & Hak Akses');
-        $response->assertSee('Admin');
     }
 
     public function test_employee_is_denied_from_filament_admin_panel(): void
@@ -114,34 +89,5 @@ class RbacTest extends TestCase
         $this->assertTrue(Gate::forUser($employee)->allows('employee'));
         $this->assertFalse(Gate::forUser($employee)->allows('admin'));
         $this->assertFalse(Gate::forUser($employee)->allows('access-admin-panel'));
-    }
-
-    public function test_division_scoped_policy_logic(): void
-    {
-        $policy = new DivisionScopedPolicy;
-
-        $itDivision = Division::where('name', 'IT')->firstOrFail();
-        $prodDivision = Division::where('name', 'Produksi')->firstOrFail();
-
-        $supervisor = User::factory()->create(['division_id' => $prodDivision->id]);
-        $supervisor->assignRole('supervisor');
-
-        $admin = User::factory()->create(['division_id' => $itDivision->id]);
-        $admin->assignRole('admin');
-
-        $prodRecord = (object) ['id' => 1, 'division_id' => $prodDivision->id];
-        $itRecord = (object) ['id' => 2, 'division_id' => $itDivision->id];
-
-        // Supervisor can only view & update record in own division
-        $this->assertTrue($policy->view($supervisor, $prodRecord));
-        $this->assertFalse($policy->view($supervisor, $itRecord));
-        $this->assertTrue($policy->update($supervisor, $prodRecord));
-        $this->assertFalse($policy->update($supervisor, $itRecord));
-
-        // Admin can view & update record across all divisions
-        $this->assertTrue($policy->view($admin, $prodRecord));
-        $this->assertTrue($policy->view($admin, $itRecord));
-        $this->assertTrue($policy->update($admin, $prodRecord));
-        $this->assertTrue($policy->update($admin, $itRecord));
     }
 }

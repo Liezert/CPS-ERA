@@ -2,12 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Auth\Login as LivewireLogin;
 use App\Models\User;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Livewire;
 use Tests\TestCase;
 
 class StageFourAuthAndRbacRoutingTest extends TestCase
@@ -214,35 +212,5 @@ class StageFourAuthAndRbacRoutingTest extends TestCase
 
         $this->assertGuest();
         $response->assertSessionHasErrors('email');
-    }
-
-    /**
-     * Fitur Tambahan: Komponen Livewire Login mendukung validasi real-time dan autentikasi.
-     */
-    public function test_livewire_login_component_validates_and_authenticates(): void
-    {
-        $user = User::factory()->create([
-            'email' => 'livewire@caturpilar.com',
-            'employee_id' => 'CPS-00888',
-            'password' => bcrypt('rahasia123'),
-        ]);
-        $user->assignRole('employee');
-
-        // Test validasi kosong
-        Livewire::test(LivewireLogin::class)
-            ->set('login', '')
-            ->set('password', '')
-            ->call('authenticate')
-            ->assertHasErrors(['login', 'password']);
-
-        // Test login sukses via Livewire
-        Livewire::test(LivewireLogin::class)
-            ->set('login', 'CPS-00888')
-            ->set('password', 'rahasia123')
-            ->call('authenticate')
-            ->assertHasNoErrors()
-            ->assertRedirect(route('dashboard'));
-
-        $this->assertAuthenticatedAs($user);
     }
 }

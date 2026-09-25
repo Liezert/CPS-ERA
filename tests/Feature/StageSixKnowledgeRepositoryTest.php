@@ -35,9 +35,9 @@ class StageSixKnowledgeRepositoryTest extends TestCase
     }
 
     /**
-     * DoD #1: Filter 13 divisi sesuai daftar tetap di Design System §8.
+     * DoD #1: Filter 12 divisi (Marketing & Sales digabung) sesuai daftar tetap di Design System §8.
      */
-    public function test_knowledge_repository_contains_all_13_fixed_divisions_from_design_system(): void
+    public function test_knowledge_repository_contains_all_12_fixed_divisions_from_design_system(): void
     {
         $user = User::factory()->create();
         $user->assignRole('employee');
@@ -45,29 +45,28 @@ class StageSixKnowledgeRepositoryTest extends TestCase
         $expectedDivisions = [
             'Engineering',
             'Finance Accounting Tax',
-            'Gudang RM',
             'HRGA',
-            'Keamanan',
+            'Jahit',
+            'Marketing & Sales',
             'PPIC',
+            'Plant Balben & Krian',
             'Produksi',
             'Purchasing',
             'Quality Control',
-            'Repair',
-            'Sales & Marketing',
+            'RM Warehouse',
             'Warehouse & Delivery',
-            'IT',
         ];
 
         $response = $this->actingAs($user)->get(route('knowledge.index'));
         $response->assertStatus(200);
 
-        // Verifikasi semua 13 divisi hadir di dropdown filter
+        // Verifikasi semua 12 divisi hadir di dropdown filter
         foreach ($expectedDivisions as $divName) {
             $response->assertSee($divName);
         }
 
-        // Verifikasi total divisi di database adalah tepat 13
-        $this->assertCount(13, Division::all());
+        // Verifikasi total divisi di database adalah tepat 12
+        $this->assertCount(12, Division::all());
     }
 
     /**
@@ -159,9 +158,9 @@ class StageSixKnowledgeRepositoryTest extends TestCase
         $user2->assignRole('employee');
 
         $doc = KnowledgeDocument::factory()->create([
-            'title' => 'Lesson Learned Penanganan Short Shot Mold A',
+            'title' => 'SOP Penanganan Short Shot Mold A',
             'status' => 'published',
-            'type' => 'lesson_learned',
+            'type' => 'sop',
         ]);
 
         // User 1 membuka halaman dan toggle bookmark
@@ -224,15 +223,15 @@ class StageSixKnowledgeRepositoryTest extends TestCase
     }
 
     /**
-     * Verifikasi Desain: 6 Tipe Materi ditandai LEWAT IKON OUTLINE, bukan warna berbeda per tipe.
-     * Tidak ada badge rainbow/warna-warni per tipe (Dokumen/Video/Presentasi/Lesson Learned/SOP/Link).
+     * Verifikasi Desain: 5 Tipe Materi ditandai LEWAT IKON OUTLINE, bukan warna berbeda per tipe.
+     * Tidak ada badge rainbow/warna-warni per tipe (Dokumen/Video/Presentasi/SOP/Link).
      */
     public function test_material_types_use_outline_icons_without_rainbow_badge_colors(): void
     {
         $user = User::factory()->create();
         $user->assignRole('employee');
 
-        $types = ['dokumen', 'video', 'presentasi', 'lesson_learned', 'sop', 'link'];
+        $types = ['dokumen', 'video', 'presentasi', 'sop', 'link'];
 
         foreach ($types as $type) {
             KnowledgeDocument::factory()->create([
@@ -256,7 +255,6 @@ class StageSixKnowledgeRepositoryTest extends TestCase
         $response->assertSee('Dokumen');
         $response->assertSee('Video');
         $response->assertSee('Presentasi');
-        $response->assertSee('Lesson Learned');
         $response->assertSee('SOP');
     }
 

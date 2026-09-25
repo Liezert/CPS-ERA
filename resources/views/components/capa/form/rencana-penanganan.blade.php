@@ -18,7 +18,7 @@
                     <div class="min-w-0 flex-1">
                         <span class="font-bold block text-neutral-900">Tautan Rujukan Sasaran Tindakan Korektif:</span>
                         <span class="italic text-neutral-700 block mt-0.5 line-clamp-2"
-                              @if ($readonly)>{{ $values['kesimpulanAkarMasalah'] ?: '(Menunggu pengisian Kesimpulan Akar Masalah pada Bagian 4)' }}</span>@else x-text="$wire.kesimpulanAkarMasalah ? $wire.kesimpulanAkarMasalah : '(Menunggu pengisian Kesimpulan Akar Masalah pada Bagian 4)'"></span>@endif
+                              @if ($readonly)>{{ $values['kesimpulanAkarMasalah'] ?: '-' }}</span>@else x-text="$wire.kesimpulanAkarMasalah"></span>@endif
                     </div>
                 </div>
 
@@ -33,23 +33,20 @@
                                         Tindakan Koreksi (Sementara)
                                     </h4>
                                 </div>
-                                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-badge">
-                                    Containment &middot; Mandat Operator/SPV
-                                </span>
                             </div>
-                            <p class="text-xs text-neutral-600 leading-relaxed">
-                                Tindakan darurat seketika di tempat untuk melokalisir dampak dan menghentikan meluasnya kerusakan (misal: mematikan mesin, isolasi batch produk).
-                            </p>
 
                             <div>
-                                <label for="koreksi_deskripsi" class="block text-xs font-semibold text-neutral-800 font-sans mb-1.5">
+                                <div class="flex items-center gap-1.5 mb-1.5">
+                                    <label for="koreksi_deskripsi" class="block text-xs font-semibold text-neutral-800 font-sans">
                                     Deskripsi Tindakan Koreksi <span class="text-red-500" title="Wajib diisi">*</span>
                                 </label>
+                                    <x-capa.field-hint field="koreksi_deskripsi" />
+                                </div>
                                 <textarea id="koreksi_deskripsi"
                                           @if ($readonly) readonly @else wire:model.live="koreksiDeskripsi" @endif
                                           rows="3"
-                                          placeholder="Contoh: Mematikan mesin injeksi, mengisolasi batch produksi 2 jam terakhir, dan memasang label peringatan status HOLD..."
                                           class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-150 leading-relaxed">{{ $readonly ? $values['koreksiDeskripsi'] : '' }}</textarea>
+                                <x-capa.field-helper field="koreksi_deskripsi" />
                                 @error('koreksiDeskripsi')
                                     <span class="text-xs text-red-600 mt-1 block font-sans">{{ $message }}</span>
                                 @enderror
@@ -79,7 +76,6 @@
                                     <input type="text"
                                            id="koreksi_waktu"
                                            @if ($readonly) value="{{ $values['koreksiWaktu'] }}" readonly @else wire:model.live="koreksiWaktu" @endif
-                                           placeholder="Contoh: Maks 1 Jam"
                                            class="w-full h-9 px-2.5 py-1.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-150" />
                                 </div>
                             </div>
@@ -96,23 +92,20 @@
                                         Tindakan Korektif (Akar Masalah)
                                     </h4>
                                 </div>
-                                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge">
-                                    Corrective &middot; Mandat Engineering/QC
-                                </span>
                             </div>
-                            <p class="text-xs text-neutral-600 leading-relaxed">
-                                Tindakan perbaikan permanen untuk memodifikasi sistem/SOP sehingga akar masalah hilang dan ketidaksesuaian tidak terulang kembali.
-                            </p>
 
                             <div>
-                                <label for="korektif_deskripsi" class="block text-xs font-semibold text-neutral-800 font-sans mb-1.5">
+                                <div class="flex items-center gap-1.5 mb-1.5">
+                                    <label for="korektif_deskripsi" class="block text-xs font-semibold text-neutral-800 font-sans">
                                     Deskripsi Tindakan Korektif <span class="text-red-500" title="Wajib diisi">*</span>
                                 </label>
+                                    <x-capa.field-hint field="korektif_deskripsi" />
+                                </div>
                                 <textarea id="korektif_deskripsi"
                                           @if ($readonly) readonly @else wire:model.live="korektifDeskripsi" @endif
                                           rows="3"
-                                          placeholder="Contoh: Merevisi lembar checklist serah terima shift harian, memasang saringan oli berkatup bypass otomatis, dan briefing SOP..."
                                           class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 leading-relaxed">{{ $readonly ? $values['korektifDeskripsi'] : '' }}</textarea>
+                                <x-capa.field-helper field="korektif_deskripsi" />
                                 @error('korektifDeskripsi')
                                     <span class="text-xs text-red-600 mt-1 block font-sans">{{ $message }}</span>
                                 @enderror
@@ -142,7 +135,6 @@
                                     <input type="text"
                                            id="korektif_waktu"
                                            @if ($readonly) value="{{ $values['korektifWaktu'] }}" readonly @else wire:model.live="korektifWaktu" @endif
-                                           placeholder="Contoh: Maks 3 Hari"
                                            class="w-full h-9 px-2.5 py-1.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                                 </div>
                             </div>

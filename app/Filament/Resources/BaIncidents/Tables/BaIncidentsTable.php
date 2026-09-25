@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BaIncidents\Tables;
 
+use App\Enums\BaIncidentStatus;
 use App\Filament\Resources\BaIncidents\BaIncidentResource;
 use App\Models\BaIncident;
 use Filament\Actions\ActionGroup;
@@ -32,14 +33,8 @@ class BaIncidentsTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'draft' => 'warning',
-                        'submitted', 'created' => 'info',
-                        'approved', 'reviewed', 'closed' => 'success',
-                        'rejected' => 'danger',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => ucfirst($state)),
+                    ->color(fn (string $state): string => BaIncidentStatus::tryFrom($state)?->getColor() ?? 'gray')
+                    ->formatStateUsing(fn (string $state): string => BaIncidentStatus::tryFrom($state)?->getLabel() ?? ucfirst($state)),
                 TextColumn::make('status_verifikasi')
                     ->label('Verifikasi')
                     ->badge()
@@ -65,15 +60,7 @@ class BaIncidentsTable
             ])
             ->filters([
                 SelectFilter::make('status')
-                    ->options([
-                        'draft' => 'Draft',
-                        'submitted' => 'Submitted',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        'created' => 'Created (Legacy)',
-                        'reviewed' => 'Reviewed (Legacy)',
-                        'closed' => 'Closed (Legacy)',
-                    ]),
+                    ->options(BaIncidentStatus::class),
                 SelectFilter::make('division_id')
                     ->label('Divisi')
                     ->relationship('division', 'name'),
@@ -85,7 +72,7 @@ class BaIncidentsTable
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make()
-                        ->visible(fn (BaIncident $record): bool => in_array($record->status, ['draft', 'created', 'rejected'], true) && auth()->user()->can('update', $record)),
+                        ->visible(fn (BaIncident $record): bool => $record->isEditable() && auth()->user()->can('update', $record)),
                 ]),
             ])
             ->toolbarActions([

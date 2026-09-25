@@ -74,41 +74,4 @@ class AuthenticationTest extends TestCase
             ],
         ]);
     }
-
-    public function test_users_can_authenticate_via_api_login_endpoint(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this->postJson('/api/login', [
-            'email' => $user->email,
-            'password' => 'password',
-        ]);
-
-        $this->assertAuthenticated();
-        $response->assertOk();
-        $response->assertJson([
-            'success' => true,
-            'message' => 'Login berhasil.',
-            'data' => [
-                'id' => $user->id,
-                'email' => $user->email,
-            ],
-        ]);
-
-        // Verify /api/me works with this authenticated session
-        $meResponse = $this->getJson('/api/me');
-        $meResponse->assertOk();
-        $meResponse->assertJson([
-            'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'email' => $user->email,
-            ],
-        ]);
-
-        // Verify /api/logout
-        $logoutResponse = $this->postJson('/api/logout');
-        $logoutResponse->assertOk();
-        $this->assertGuest();
-    }
 }

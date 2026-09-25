@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BaIncidents\Schemas;
 
+use App\Enums\BaIncidentStatus;
 use App\Models\BaIncident;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -34,21 +35,8 @@ class BaIncidentInfolist
                         TextEntry::make('status')
                             ->label('Status BA')
                             ->badge()
-                            ->color(fn (string $state): string => match ($state) {
-                                'draft' => 'warning',
-                                'submitted', 'created' => 'info',
-                                'approved', 'reviewed', 'closed' => 'success',
-                                'rejected' => 'danger',
-                                default => 'gray',
-                            })
-                            ->formatStateUsing(fn (string $state): string => match ($state) {
-                                'draft' => 'Draft',
-                                'submitted' => 'Diajukan',
-                                'approved' => 'Disetujui',
-                                'rejected' => 'Ditolak',
-                                'closed' => 'Selesai',
-                                default => ucfirst($state),
-                            }),
+                            ->color(fn (string $state): string => BaIncidentStatus::tryFrom($state)?->getColor() ?? 'gray')
+                            ->formatStateUsing(fn (string $state): string => BaIncidentStatus::tryFrom($state)?->getLabel() ?? ucfirst($state)),
                         TextEntry::make('creator.name')
                             ->label('Dibuat Oleh'),
                         TextEntry::make('created_at')
@@ -74,7 +62,7 @@ class BaIncidentInfolist
                     ])->columns(3),
 
                 // ── Section 2: Sumber Ketidaksesuaian ────────────────────────
-                Section::make(static::sectionHeader('2. Sumber Ketidaksesuaian', 'Pilihan Tunggal'))
+                Section::make(static::sectionHeader('2. Sumber Ketidaksesuaian', ''))
                     ->schema([
                         TextEntry::make('sumber_ketidaksesuaian')
                             ->label('Kategori Sumber')
@@ -88,7 +76,7 @@ class BaIncidentInfolist
                     ]),
 
                 // ── Section 3: Informasi Kejadian & Rincian Masalah ──────────
-                Section::make(static::sectionHeader('3. Informasi Kejadian & Rincian Masalah', 'Fakta Lapangan'))
+                Section::make(static::sectionHeader('3. Informasi Kejadian & Rincian Masalah', ''))
                     ->schema([
                         TextEntry::make('tanggal_masalah')
                             ->label('Tanggal Kejadian Masalah')
@@ -101,7 +89,7 @@ class BaIncidentInfolist
                     ])->columns(2),
 
                 // ── Section 4: Analisis Akar Masalah (5 Whys) ────────────────
-                Section::make(static::sectionHeader('4. Analisis Akar Masalah (5 Whys Causality Ladder)', 'Kaizen RCA', 'rca'))
+                Section::make(static::sectionHeader('4. Analisis Akar Masalah (5 Whys Causality Ladder)', ''))
                     ->schema([
                         TextEntry::make('why_1')->label('Why 1')->placeholder('-')->columnSpanFull(),
                         TextEntry::make('why_2')->label('Why 2')->visible(fn ($record): bool => filled($record->why_2))->columnSpanFull(),
@@ -120,7 +108,7 @@ class BaIncidentInfolist
                     ->schema([
                         TextEntry::make('rujukan_akar_masalah')
                             ->label('Tautan Rujukan Sasaran Tindakan Korektif')
-                            ->state(fn ($record): string => $record->kesimpulan_akar_masalah ?: '(Menunggu pengisian Kesimpulan Akar Masalah pada Bagian 4)')
+                            ->state(fn ($record): string => $record->kesimpulan_akar_masalah ?: '-')
                             ->columnSpanFull(),
                         ViewEntry::make('rencana_penanganan')
                             ->view('components.capa.koreksi-korektif-grid')
@@ -128,7 +116,7 @@ class BaIncidentInfolist
                     ]),
 
                 // ── Section 6: Identifikasi Dampak Lanjutan & Potensi ─────────
-                Section::make(static::sectionHeader('6. Identifikasi Dampak Lanjutan & Potensi', 'Manajemen Risiko'))
+                Section::make(static::sectionHeader('6. Identifikasi Dampak Lanjutan & Potensi', ''))
                     ->columnSpanFull()
                     ->schema([
                         IconEntry::make('is_potensi_risiko')

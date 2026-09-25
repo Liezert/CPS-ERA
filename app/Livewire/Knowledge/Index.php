@@ -133,18 +133,17 @@ class Index extends Component
     {
         $userId = Auth::id();
 
-        // 1. Ambil 13 Divisi Tetap sesuai Design System §8
+        // 1. Ambil daftar divisi
         $divisions = Division::orderBy('id')->get();
 
         // 2. Ambil Topik Knowledge Resmi (PRD v2.0 §3.2)
         $topics = KnowledgeTopic::orderBy('name')->get();
 
-        // 3. Daftar 6 Tipe Materi Resmi
+        // 3. Daftar 5 Tipe Materi Resmi
         $types = [
             'dokumen' => 'Dokumen',
             'video' => 'Video',
             'presentasi' => 'Presentasi',
-            'lesson_learned' => 'Lesson Learned',
             'sop' => 'SOP',
             'link' => 'Tautan / Link',
         ];
@@ -163,7 +162,7 @@ class Index extends Component
             $query->where('topic_id', $this->selectedTopicId);
         }
 
-        // Filter Divisi (13 divisi tetap)
+        // Filter Divisi
         if (! empty($this->selectedDivisionId)) {
             $query->where('division_id', $this->selectedDivisionId);
         }

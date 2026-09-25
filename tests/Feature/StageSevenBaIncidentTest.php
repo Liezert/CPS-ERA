@@ -8,6 +8,7 @@ use App\Models\BaActivityLog;
 use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\User;
+use App\Services\BaIncidentService;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -85,24 +86,22 @@ class StageSevenBaIncidentTest extends TestCase
     }
 
     /**
-     * Pilihan Divisi: 13 opsi tetap sesuai Design System §8.
+     * Pilihan Divisi: 11 divisi pelapor final (Marketing & Sales digabung). HRGA adalah role approval, bukan divisi pelapor.
      */
-    public function test_form_contains_13_fixed_divisions_from_design_system(): void
+    public function test_form_contains_11_final_divisions_without_hrga(): void
     {
         $expectedDivisions = [
             'Engineering',
             'Finance Accounting Tax',
-            'Gudang RM',
-            'HRGA',
-            'Keamanan',
+            'Jahit',
+            'Marketing & Sales',
             'PPIC',
+            'Plant Balben & Krian',
             'Produksi',
             'Purchasing',
             'Quality Control',
-            'Repair',
-            'Sales & Marketing',
+            'RM Warehouse',
             'Warehouse & Delivery',
-            'IT',
         ];
 
         $response = $this->actingAs($this->employeeProduksi)->get(route('ba.create'));
@@ -111,6 +110,9 @@ class StageSevenBaIncidentTest extends TestCase
         foreach ($expectedDivisions as $divName) {
             $response->assertSee($divName);
         }
+
+        $response->assertDontSee('>HRGA</option>', false);
+        $response->assertDontSee('>Sales</option>', false);
     }
 
     /**
@@ -138,7 +140,7 @@ class StageSevenBaIncidentTest extends TestCase
 
         $incident = BaIncident::where('lokasi', 'Lini Injeksi Moulding 03')->first();
         $this->assertNotNull($incident);
-        $this->assertSame('submitted', $incident->status);
+        $this->assertSame('pending_supervisor', $incident->status);
 
         // Verifikasi activity log penyerahan BA dibuat
         $this->assertDatabaseHas('ba_activity_logs', [
@@ -191,9 +193,10 @@ class StageSevenBaIncidentTest extends TestCase
     }
 
     /**
-     * DoD #4: Tombol approve/reject HANYA muncul untuk Supervisor dari divisi yang sama dengan BA tersebut.
+     * DoD #4 (diperbarui alur approval dua tahap): approve/reject HANYA di panel Filament, dan
+     * tahap Supervisor hanya untuk Supervisor dari divisi yang sama dengan BA tersebut.
      */
-    public function test_approve_reject_buttons_are_strictly_gated_to_supervisor_of_same_division(): void
+    public function test_approval_is_panel_only_and_gated_to_supervisor_of_same_division(): void
     {
         $incident = BaIncident::create([
             'nomor_ba' => 'BA-2026-0099',
@@ -202,52 +205,64 @@ class StageSevenBaIncidentTest extends TestCase
             'division_id' => $this->divisionProduksi->id, // Divisi Produksi
             'file_ba_url' => '/storage/ba.pdf',
             'file_ftk_url' => '/storage/ftk.pdf',
-            'status' => 'created',
+            'status' => 'pending_supervisor',
             'created_by' => $this->employeeProduksi->id,
         ]);
+        $panelUrl = route('filament.admin.resources.ba-incidents.view', $incident);
 
-        // 1. Employee (meskipun divisi sama) -> Tombol Approve TIDAK MUNCUL
+        // 1. Employee (meskipun divisi sama) -> tidak bisa review, tidak ada tautan panel
+        $this->assertFalse($this->employeeProduksi->can('reviewAsSupervisor', $incident));
         Livewire::actingAs($this->employeeProduksi)
             ->test(BaShow::class, ['incident' => $incident])
-            ->assertDontSee('Setujui BA (Approve)')
-            ->assertDontSee('Minta Revisi');
+            ->assertDontSee($panelUrl, false)
+            ->assertDontSee('Setujui BA (Approve)');
 
-        // 2. Supervisor Divisi Lain (Engineering) -> Tombol Approve TIDAK MUNCUL
-        Livewire::actingAs($this->supervisorEngineering)
-            ->test(BaShow::class, ['incident' => $incident])
-            ->assertDontSee('Setujui BA (Approve)')
-            ->assertDontSee('Minta Revisi');
+        // 2. Supervisor Divisi Lain (Engineering) -> tidak bisa review
+        $this->assertFalse($this->supervisorEngineering->can('reviewAsSupervisor', $incident));
 
-        // 3. Supervisor Divisi Sama (Produksi) -> Tombol Approve MUNCUL
+        // 3. Supervisor Divisi Sama (Produksi) -> bisa review, diarahkan ke panel (tanpa tombol di halaman detail)
+        $this->assertTrue($this->supervisorProduksi->can('reviewAsSupervisor', $incident));
         Livewire::actingAs($this->supervisorProduksi)
             ->test(BaShow::class, ['incident' => $incident])
-            ->assertSee('Setujui BA (Approve)')
-            ->assertSee('Minta Revisi')
-            // Eksekusi klik approve
-            ->call('approve');
+            ->assertSee($panelUrl, false)
+            ->assertDontSee('Setujui BA (Approve)')
+            ->assertDontSee('Minta Revisi');
+
+        // Tahap Supervisor meneruskan ke HR, lalu tim HR (quality) menyetujui final.
+        $service = app(BaIncidentService::class);
+        $service->approveAsSupervisor($incident, $this->supervisorProduksi, 'Baut pengganti sudah terpasang.');
+
+        $quality = User::factory()->create(['division_id' => $this->divisionEngineering->id]);
+        $quality->assignRole('quality');
+        $service->approve($incident->fresh(), $quality, [
+            'status_verifikasi' => 'efektif',
+            'bukti_objektif' => 'Verifikasi tindakan korektif diverifikasi efektif.',
+        ]);
 
         // Verifikasi status BA berubah menjadi 'approved'
         $incident->refresh();
         $this->assertSame('approved', $incident->status);
-        $this->assertSame($this->supervisorProduksi->id, $incident->reviewed_by);
+        $this->assertSame($this->supervisorProduksi->id, $incident->supervisor_reviewed_by);
+        $this->assertSame($quality->id, $incident->reviewed_by);
 
-        // Verifikasi otomatisasi PRD 3.1: Lesson Learned tercipta di knowledge_documents
-        $this->assertDatabaseHas('knowledge_documents', [
+        // Hasil laporan masuk Learning sebagai kandidat (terbit setelah post-test), bukan ke Knowledge Repository.
+        $this->assertDatabaseMissing('knowledge_documents', ['source_ba_id' => $incident->id]);
+        $this->assertDatabaseHas('learning_materials', [
             'source_ba_id' => $incident->id,
-            'type' => 'lesson_learned',
-            'status' => 'published',
+            'status' => 'candidate',
         ]);
 
         // Verifikasi log timeline riwayat bertambah
         $this->assertDatabaseHas('ba_activity_logs', [
             'ba_incident_id' => $incident->id,
             'actor_id' => $this->supervisorProduksi->id,
-            'action' => 'BA Disetujui',
+            'action' => 'BA Disetujui Supervisor',
         ]);
     }
 
     /**
-     * Timeline Update History menampilkan garis vertikal tipis dan titik.
+     * Timeline Update History menampilkan garis vertikal tipis dan titik. Timeline bersifat internal
+     * (Keputusan poin 28): tampil untuk reviewer, tidak untuk karyawan pelapor.
      */
     public function test_update_history_timeline_renders_logs_with_timestamps_and_notes(): void
     {
@@ -268,11 +283,16 @@ class StageSevenBaIncidentTest extends TestCase
             'note' => 'Dokumen fisik telah dikonfirmasi oleh shift malam.',
         ]);
 
-        $response = $this->actingAs($this->employeeProduksi)->get(route('ba.show', $incident->id));
+        $response = $this->actingAs($this->supervisorProduksi)->get(route('ba.show', $incident->id));
         $response->assertStatus(200);
 
         $response->assertSee('Laporan BA diterbitkan');
         $response->assertSee('Dokumen fisik telah dikonfirmasi oleh shift malam.');
         $response->assertSee('Update History (Riwayat Aktivitas)');
+
+        $this->actingAs($this->employeeProduksi)->get(route('ba.show', $incident->id))
+            ->assertOk()
+            ->assertDontSee('Update History (Riwayat Aktivitas)')
+            ->assertDontSee('Dokumen fisik telah dikonfirmasi oleh shift malam.');
     }
 }

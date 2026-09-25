@@ -60,12 +60,4 @@ class PointTransaction extends Model
     {
         return $query->where('ledger_type', self::LEDGER_XP);
     }
-
-    /**
-     * Scope query untuk transaksi ledger Poin CPS ERA (metrik formal HRD).
-     */
-    public function scopePoinCpsEra($query)
-    {
-        return $query->where('ledger_type', self::LEDGER_POIN_CPS_ERA);
-    }
 }

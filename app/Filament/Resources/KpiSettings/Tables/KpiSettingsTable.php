@@ -13,30 +13,20 @@ class KpiSettingsTable
     {
         return $table
             ->columns([
-                TextColumn::make('target_video_count')
-                    ->label('Target Video')
-                    ->sortable()
-                    ->suffix(' video')
-                    ->weight('bold'),
-
-                TextColumn::make('period_type')
-                    ->label('Tipe Periode')
-                    ->badge()
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'quarterly' => 'Kuartalan (Quarterly)',
-                        'all_time' => 'Sepanjang Waktu (All Time)',
-                        default => 'Bulanan (Monthly)',
-                    })
-                    ->color(fn (?string $state): string => match ($state) {
-                        'quarterly' => 'warning',
-                        'all_time' => 'info',
-                        default => 'success',
-                    })
+                TextColumn::make('period_start')
+                    ->label('Mulai Periode')
+                    ->date('d M Y')
                     ->sortable(),
 
-                TextColumn::make('points_reward')
-                    ->label('Poin Reward')
-                    ->suffix(' Pts')
+                TextColumn::make('period_end')
+                    ->label('Akhir Periode')
+                    ->date('d M Y')
+                    ->sortable(),
+
+                TextColumn::make('target_materials')
+                    ->label('Target Materi')
+                    ->suffix(' materi')
+                    ->weight('bold')
                     ->sortable(),
 
                 TextColumn::make('creator.name')

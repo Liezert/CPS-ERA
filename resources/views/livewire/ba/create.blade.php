@@ -15,8 +15,45 @@
                     if (focusable) focusable.focus();
                 }
             });
+        },
+
+        {{-- Salinan isian Langkah 1 di browser: kalau halaman harus dimuat ulang (mis. jaringan
+             putus), isian terakhir dipulihkan. Kunci per user + per draf, dihapus saat laporan terkirim. --}}
+        localDraftKey: 'cps-era:capa-draft:{{ auth()->id() }}:{{ $baIncidentId ?? 'baru' }}',
+        localDraftFields: @js(\App\Livewire\Ba\Create::LOCAL_DRAFT_FIELDS),
+        restoredAt: null,
+        readLocalDraft(key) {
+            try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+        },
+        saveLocalDraft() {
+            if (this.$wire.step !== 1) return;
+            const values = {};
+            this.localDraftFields.forEach(field => values[field] = this.$wire[field]);
+            try { localStorage.setItem(this.localDraftKey, JSON.stringify({ savedAt: Date.now(), values })); } catch (e) {}
+        },
+        discardLocalDraft() {
+            try { localStorage.removeItem(this.localDraftKey); } catch (e) {}
+            window.location.reload();
+        },
+        onDraftSaved(id) {
+            try { localStorage.removeItem(this.localDraftKey); } catch (e) {}
+            this.localDraftKey = 'cps-era:capa-draft:{{ auth()->id() }}:' + id;
+            this.saveLocalDraft();
+        },
+        init() {
+            const saved = this.readLocalDraft(this.localDraftKey);
+            if (! saved?.values) return;
+            const differs = this.localDraftFields.some(field => (saved.values[field] ?? '') !== (this.$wire[field] ?? ''));
+            if (! differs) return;
+            this.$wire.restoreLocalDraft(saved.values).then(() => {
+                this.restoredAt = new Date(saved.savedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+            });
         }
     }"
+    x-on:input.debounce.500ms="saveLocalDraft()"
+    x-on:change="saveLocalDraft()"
+    x-on:capa-draft-saved.window="onDraftSaved($event.detail.id)"
+    x-on:capa-draft-submitted.window="try { localStorage.removeItem(localDraftKey) } catch (e) {}"
     class="max-w-4xl mx-auto space-y-6 pb-12">
 
     {{-- =========================================================================
@@ -77,6 +114,19 @@
         </div>
     @endif
 
+    {{-- Isian yang belum tersimpan dipulihkan dari browser setelah halaman dimuat ulang --}}
+    <div x-show="restoredAt && $wire.step === 1" x-cloak
+         class="p-4 bg-amber-50 border border-amber-300 rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-sans text-amber-900 shadow-2xs" role="status">
+        <span>
+            Isian terakhir Anda (<span class="font-mono" x-text="restoredAt"></span>) dipulihkan dari perangkat ini.
+            Periksa kembali, lalu simpan draf atau lanjutkan ke Langkah 2.
+        </span>
+        <button type="button" x-on:click="discardLocalDraft()"
+                class="shrink-0 px-3 py-1.5 border border-amber-400 rounded-md bg-white font-medium hover:bg-amber-100 transition-colors">
+            Buang isian yang dipulihkan
+        </button>
+    </div>
+
     {{-- =========================================================================
          2. CONNECTED STEPPER PROGRESS PIPELINE (LANGKAH 1 & LANGKAH 2)
          - Navigasi dua arah dengan visual state yang dinamis & responsif
@@ -106,19 +156,12 @@
                         <span class="text-xs font-bold font-sans {{ $step === 1 ? 'text-neutral-900' : 'text-neutral-700' }}">
                             Langkah 1: Formulir CAPA
                         </span>
-                        @if($step === 1)
-                            <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge">
-                                Sedang Diisi
-                            </span>
-                        @else
+                        @if($step !== 1)
                             <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge">
                                 Draf Tersimpan (Klik untuk Edit)
                             </span>
                         @endif
                     </div>
-                    <p class="text-xs text-neutral-600 truncate mt-0.5">
-                        Identifikasi ketidaksesuaian &amp; investigasi 5 Whys
-                    </p>
                 </div>
             </button>
 
@@ -136,15 +179,8 @@
                             <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge">
                                 Wajib Diisi
                             </span>
-                        @else
-                            <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-neutral-600 bg-neutral-100 border border-neutral-200 rounded-badge">
-                                Tahap Berikutnya
-                            </span>
                         @endif
                     </div>
-                    <p class="text-xs text-neutral-600 truncate mt-0.5">
-                        Unggah berkas video (maks 100MB) atau tautan eksternal
-                    </p>
                 </div>
             </div>
         </div>
@@ -194,13 +230,7 @@
             <x-capa.form.dampak :values="$capa" />
 
             {{-- ACTION BAR STEP 1 DENGAN RESPONSIF TINGGI --}}
-            <div class="pt-5 border-t border-neutral-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-2 text-xs text-neutral-600 font-sans justify-center sm:justify-start">
-                    <svg class="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Langkah 1 dari 2: Data tersimpan aman di database saat Anda melanjutkan.</span>
-                </div>
+            <div class="pt-5 border-t border-neutral-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4">
 
                 {{-- Cluster Tombol Aksi: Stack di Mobile, Horizontal di Desktop --}}
                 <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
@@ -296,6 +326,16 @@
                 </p>
             </div>
 
+            @if ($hasExistingDriveVideo)
+                <div class="p-3 bg-brand-tint/30 border border-brand/20 rounded-md text-xs font-sans text-brand-dark">
+                    Video yang sudah dikirim sebelumnya akan dipakai lagi. Unggah video baru hanya jika ingin menggantinya.
+                </div>
+
+                @if ($existingVideoIncident)
+                    <x-capa.video-player :incident="$existingVideoIncident" />
+                @endif
+            @endif
+
             {{-- Pesan Error Spesifik Video Wajib --}}
             @error('videoRequired')
                 <div class="p-4 bg-red-50 border border-red-200 rounded-md text-xs font-semibold text-red-800 flex items-center gap-2.5 shadow-2xs" role="alert">
@@ -329,14 +369,61 @@
 
                 {{-- Opsi A: Upload Berkas Video --}}
                 @if ($videoMethod === 'file')
-                    <div class="space-y-4 bg-neutral-50/70 border border-neutral-200 rounded-md p-5 sm:p-6">
+                    {{-- Status unggahan mengikuti event upload Livewire (start/progress/finish/error),
+                         sehingga persentase yang tampil adalah progres unggahan sesungguhnya.
+                         Pratinjau diputar langsung dari berkas di perangkat pengguna (object URL),
+                         tanpa mengunduh ulang dari server. --}}
+                    <div x-data="{
+                            uploading: false,
+                            progress: 0,
+                            uploadFailed: false,
+                            previewUrl: null,
+                            previewUnsupported: false,
+                            setPreview(file) {
+                                if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+                                this.previewUnsupported = false;
+                                this.previewUrl = file ? URL.createObjectURL(file) : null;
+                            },
+                            clearPreview() {
+                                this.setPreview(null);
+                                this.$refs.videoInput.value = '';
+                            },
+                         }"
+                         x-on:livewire-upload-start="uploading = true; progress = 0; uploadFailed = false"
+                         x-on:livewire-upload-progress="progress = $event.detail.progress"
+                         x-on:livewire-upload-finish="uploading = false; progress = 100"
+                         x-on:livewire-upload-error="uploading = false; uploadFailed = true; clearPreview()"
+                         x-on:livewire-upload-cancel="uploading = false; clearPreview()"
+                         class="space-y-4 bg-neutral-50/70 border border-neutral-200 rounded-md p-5 sm:p-6">
                         <label class="block text-xs font-bold text-neutral-900 font-sans">
                             Pilih Berkas Video Penanganan (MP4, MOV, WEBM &mdash; Batas Maksimal 100MB)
                         </label>
 
-                        <div class="border-2 border-dashed border-neutral-300 rounded-md p-6 sm:p-8 text-center bg-white hover:border-brand hover:bg-brand-tint/10 transition-all duration-200 ease-out">
+                        {{-- Area unggah: klik memilih berkas, atau seret & lepas berkas ke sini.
+                             Berkas yang dilepas dipasang ke input lalu dipicu event change,
+                             sehingga wire:model memprosesnya sama seperti pemilihan manual. --}}
+                        <div x-data="{ dragging: false }"
+                             x-show="!uploading"
+                             @dragover.prevent="dragging = true"
+                             @dragenter.prevent="dragging = true"
+                             @dragleave.prevent="dragging = false"
+                             @drop.prevent="
+                                dragging = false;
+                                const dropped = $event.dataTransfer.files;
+                                if (! dropped.length) return;
+                                const transfer = new DataTransfer();
+                                transfer.items.add(dropped[0]);
+                                $refs.videoInput.files = transfer.files;
+                                $refs.videoInput.dispatchEvent(new Event('change', { bubbles: true }));
+                             "
+                             :class="dragging
+                                ? 'border-brand bg-brand-tint/20 ring-2 ring-brand/20'
+                                : 'border-neutral-300 bg-white hover:border-brand hover:bg-brand-tint/10'"
+                             class="border-2 border-dashed rounded-md p-6 sm:p-8 text-center transition-all duration-200 ease-out">
                             <input type="file"
                                    id="video_file"
+                                   x-ref="videoInput"
+                                   x-on:change="setPreview($event.target.files[0])"
                                    wire:model="videoFile"
                                    accept="video/mp4,video/quicktime,video/webm,video/x-matroska"
                                    class="hidden" />
@@ -347,7 +434,8 @@
                                     </svg>
                                 </div>
                                 <div class="text-xs font-bold text-brand hover:text-brand-dark hover:underline font-sans">
-                                    Klik di sini untuk memilih file rekaman video dari perangkat Anda
+                                    <span x-show="!dragging">{{ $videoFile ? 'Ganti video: klik atau seret berkas lain ke sini' : 'Klik di sini atau seret berkas video ke area ini' }}</span>
+                                    <span x-show="dragging" x-cloak>Lepaskan berkas untuk mengunggah</span>
                                 </div>
                                 <div class="text-xs text-neutral-500 font-sans">
                                     Mendukung format video resmi: <span class="font-mono font-medium">.mp4</span>, <span class="font-mono font-medium">.mov</span>, <span class="font-mono font-medium">.webm</span> (Batas ukuran maksimal 100MB)
@@ -355,31 +443,55 @@
                             </label>
                         </div>
 
-                        {{-- Status Uploading Livewire --}}
-                        <div wire:loading wire:target="videoFile" class="text-xs text-brand-dark font-medium flex items-center gap-2 p-2.5 bg-brand-tint/40 rounded-md border border-brand/30">
-                            <svg class="animate-spin h-4 w-4 text-brand" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Sedang memproses dan mengunggah berkas video ke penyimpanan... Mohon tunggu.</span>
+                        {{-- Progress bar unggahan (persentase nyata dari Livewire) --}}
+                        <div x-show="uploading" x-cloak class="p-3.5 bg-white border border-brand/30 rounded-md space-y-2 shadow-2xs" role="status" aria-live="polite">
+                            <div class="flex items-center justify-between text-xs font-sans">
+                                <span class="font-medium text-brand-dark">Mengunggah video&hellip;</span>
+                                <span class="font-mono font-semibold text-brand-dark" x-text="progress + '%'"></span>
+                            </div>
+                            <div class="w-full bg-neutral-100 rounded-full h-2 overflow-hidden"
+                                 role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="progress" aria-label="Progres unggahan video">
+                                <div class="bg-brand h-2 rounded-full transition-all duration-200" :style="{ width: progress + '%' }"></div>
+                            </div>
+                            <p class="text-[11px] text-neutral-500 font-sans">Jangan menutup halaman sampai unggahan selesai.</p>
                         </div>
 
-                        {{-- Card Berkas Video yang Telah Terpilih --}}
+                        <div x-show="uploadFailed" x-cloak class="p-3 bg-red-50 border border-red-200 rounded-md text-xs font-sans text-red-800" role="alert">
+                            Unggahan video gagal. Periksa koneksi internet serta ukuran/format berkas, lalu coba unggah ulang.
+                        </div>
+
+                        {{-- Berkas terunggah + pratinjau --}}
                         @if ($videoFile)
-                            <div class="p-3.5 bg-brand-tint/40 border border-brand/30 rounded-md flex items-center justify-between text-xs shadow-2xs">
-                                <div class="flex items-center gap-2.5 font-medium text-brand-dark min-w-0">
-                                    <svg class="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                    </svg>
-                                    <span class="truncate font-sans max-w-xs sm:max-w-md">
-                                        Berkas video terpilih: <strong>{{ is_object($videoFile) && method_exists($videoFile, 'getClientOriginalName') ? $videoFile->getClientOriginalName() : 'Video Terlampir' }}</strong>
-                                    </span>
+                            <div x-show="!uploading" class="space-y-3">
+                                <div class="p-3.5 bg-brand-tint/40 border border-brand/30 rounded-md flex items-center justify-between text-xs shadow-2xs">
+                                    <div class="flex items-center gap-2.5 font-medium text-brand-dark min-w-0">
+                                        <svg class="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                        </svg>
+                                        <span class="truncate font-sans max-w-xs sm:max-w-md">
+                                            Berhasil terunggah: <strong>{{ is_object($videoFile) && method_exists($videoFile, 'getClientOriginalName') ? $videoFile->getClientOriginalName() : 'Video Terlampir' }}</strong>
+                                        </span>
+                                    </div>
+                                    <button type="button"
+                                            wire:click="$set('videoFile', null)"
+                                            x-on:click="clearPreview()"
+                                            class="text-red-700 hover:text-red-900 hover:underline text-xs font-semibold shrink-0 ml-3 font-sans transition-colors duration-150">
+                                        Hapus
+                                    </button>
                                 </div>
-                                <button type="button"
-                                        wire:click="$set('videoFile', null)"
-                                        class="text-red-700 hover:text-red-900 hover:underline text-xs font-semibold shrink-0 ml-3 font-sans transition-colors duration-150">
-                                    Hapus
-                                </button>
+
+                                <div x-show="previewUrl" x-cloak class="space-y-1.5">
+                                    <p class="text-xs font-bold text-neutral-900 font-sans">Pratinjau Video</p>
+                                    <video x-show="!previewUnsupported"
+                                           :src="previewUrl"
+                                           x-on:error="previewUnsupported = true"
+                                           controls
+                                           preload="metadata"
+                                           class="w-full max-h-96 rounded-md border border-neutral-200 bg-black"></video>
+                                    <p x-show="previewUnsupported" class="p-3 bg-neutral-100 border border-neutral-200 rounded-md text-xs text-neutral-600 font-sans">
+                                        Browser ini tidak bisa memutar format berkas tersebut untuk pratinjau. Berkas tetap bisa dikirim.
+                                    </p>
+                                </div>
                             </div>
                         @endif
 
@@ -445,9 +557,48 @@
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span>Memproses Pengiriman...</span>
+                        <span>Mengunggah ke Drive...</span>
                     </span>
                 </button>
+            </div>
+        </div>
+
+        {{-- =====================================================================
+             OVERLAY PROSES UNGGAH KE GOOGLE DRIVE
+             - Video dikirim bertahap per potongan; proses bisa memakan waktu lama
+               sehingga pengguna perlu tahu sistem sedang bekerja, bukan menggantung.
+             ===================================================================== --}}
+        <div wire:loading.flex wire:target="submit"
+             class="fixed inset-0 z-50 items-center justify-center bg-neutral-900/60 p-4"
+             role="status"
+             aria-live="polite">
+            <div class="bg-white rounded-md border border-neutral-200 shadow-xl max-w-md w-full p-6 space-y-4 text-center">
+                <div class="w-12 h-12 rounded-full bg-brand-tint flex items-center justify-center mx-auto">
+                    <svg class="animate-spin h-6 w-6 text-brand" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+
+                <div class="space-y-1.5">
+                    <h3 class="text-sm font-bold text-neutral-900 font-sans">
+                        Mengunggah video ke Google Drive
+                    </h3>
+                    <p class="text-xs text-neutral-600 leading-relaxed">
+                        Berkas dikirim bertahap per potongan 8 MB. Video berukuran besar dapat memakan waktu
+                        beberapa menit, tergantung kecepatan jaringan.
+                    </p>
+                </div>
+
+                {{-- Bar indeterminate: menandakan proses berjalan tanpa mengklaim persentase palsu --}}
+                <div class="w-full bg-neutral-100 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-brand h-1.5 w-1/3 rounded-full animate-pulse"></div>
+                </div>
+
+                <p class="text-[11px] text-neutral-500 font-sans">
+                    Mohon <strong class="text-neutral-700">jangan menutup atau memuat ulang halaman ini</strong>
+                    sampai proses selesai.
+                </p>
             </div>
         </div>
     @endif

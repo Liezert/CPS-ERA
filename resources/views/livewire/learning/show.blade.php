@@ -85,8 +85,32 @@
                         Media &amp; Berkas Pembelajaran
                     </h3>
 
-                    @if($material->type === 'video')
-                        {{-- Video Player Container --}}
+                    @if($material->type === 'video' && $material->drive_preview_url)
+                        {{-- Video tersimpan di Google Drive: diputar langsung lewat iframe preview Drive --}}
+                        <div class="space-y-2">
+                            <div class="bg-neutral-900 rounded-md overflow-hidden aspect-video">
+                                <iframe src="{{ $material->drive_preview_url }}"
+                                        title="{{ $material->title }}"
+                                        class="w-full h-full border-0"
+                                        allow="autoplay; fullscreen"
+                                        allowfullscreen
+                                        loading="lazy"></iframe>
+                            </div>
+                            <div class="flex justify-end">
+                                <a href="{{ $material->drive_view_url }}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="inline-flex items-center gap-1.5 text-xs font-sans font-medium text-neutral-600 hover:text-brand transition-colors">
+                                    <span>Buka di Google Drive</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+
+                    @elseif($material->type === 'video')
+                        {{-- Video di luar Drive (tautan eksternal): dibuka di tab baru --}}
                         <div class="bg-neutral-900 rounded-md overflow-hidden aspect-video flex flex-col items-center justify-center text-white p-6 text-center">
                             <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3">
                                 <x-layout.nav-icon name="video" class="w-6 h-6 text-white" />
@@ -262,11 +286,9 @@
 
                             <div class="p-2.5 bg-white border border-brand/20 rounded-badge text-xs font-sans text-neutral-700">
                                 <p class="font-medium text-neutral-900">{{ $postTest->title }}</p>
-                                @if($postTest->points_reward > 0)
-                                    <p class="font-mono text-[11px] text-brand mt-1">
-                                        +{{ $postTest->points_reward }} Poin KPI jika lulus
-                                    </p>
-                                @endif
+                                <p class="font-mono text-[11px] text-brand mt-1">
+                                    Lulus dengan skor 100% menambah progres KPI periode ini
+                                </p>
                             </div>
 
                             {{-- Tombol Lanjut ke Post-Test --}}
