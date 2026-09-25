@@ -4,9 +4,14 @@ namespace App\Livewire\Ba;
 
 use App\Models\BaIncident;
 use App\Models\Division;
+use App\Models\User;
 use App\Services\BaIncidentService;
+use App\Services\GoogleDriveService;
+use DomainException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -20,9 +25,11 @@ class Create extends Component
 
     public int $step = 1;
 
-    #[Url]
+    // Terkunci: ID laporan hanya boleh diisi server (mount/penyimpanan), bukan diubah dari klien.
+    #[Url, Locked]
     public ?string $incidentId = null;
 
+    #[Locked]
     public ?string $baIncidentId = null;
 
     public string $nomorBaPreview = '';
@@ -78,12 +85,24 @@ class Create extends Component
 
     public string $videoExternalLink = '';
 
+    // Resubmit: video yang sudah pernah dikirim ke Drive dipakai lagi kalau tidak diganti.
+    public bool $hasExistingDriveVideo = false;
+
     public string $videoTitle = '';
+
+    /** Field Langkah 1 yang disalin ke localStorage dan boleh dipulihkan lewat restoreLocalDraft(). */
+    public const LOCAL_DRAFT_FIELDS = [
+        'divisionId', 'tanggalPengisian', 'sumberKetidaksesuaian', 'sumberKetidaksesuaianLainnya',
+        'tanggalMasalah', 'lokasi', 'deskripsiMasalah', 'why1', 'why2', 'why3', 'why4', 'why5',
+        'kesimpulanAkarMasalah', 'koreksiDeskripsi', 'koreksiPic', 'koreksiWaktu',
+        'korektifDeskripsi', 'korektifPic', 'korektifWaktu', 'isPotensiRisiko', 'isPotensiPeluang',
+    ];
 
     public function mount(BaIncidentService $service, ?string $incidentId = null): void
     {
         $user = Auth::user();
-        $this->divisionId = $user?->division_id;
+        // User HRGA tidak punya divisi pelapor bawaan; ia harus memilih divisi secara eksplisit.
+        $this->divisionId = Division::reportable()->whereKey($user?->division_id)->value('id');
         $this->tanggalPengisian = now()->format('Y-m-d');
         $this->tanggalMasalah = now()->format('Y-m-d');
 
@@ -92,6 +111,8 @@ class Create extends Component
         if ($targetId) {
             $existing = BaIncident::with('video')->find($targetId);
             if ($existing && ($existing->created_by === $user?->id || $user?->hasRole('admin'))) {
+                abort_unless($existing->isEditable(), 403, "Laporan {$existing->nomor_ba} sedang dalam proses review atau sudah final, sehingga tidak bisa diubah.");
+
                 $this->baIncidentId = $existing->id;
                 $this->nomorBaPreview = $existing->nomor_ba;
                 $this->divisionId = $existing->division_id;
@@ -118,6 +139,7 @@ class Create extends Component
                 $this->isPotensiPeluang = (bool) $existing->is_potensi_peluang;
 
                 if ($existing->video) {
+                    $this->hasExistingDriveVideo = GoogleDriveService::isDriveFileId($existing->video->video_file_url);
                     $this->videoExternalLink = $existing->video->video_external_link ?? '';
                     if (! empty($existing->video->video_external_link)) {
                         $this->videoMethod = 'link';
@@ -138,7 +160,7 @@ class Create extends Component
     protected function stepOneRules(): array
     {
         return [
-            'divisionId' => ['required', 'exists:divisions,id'],
+            'divisionId' => ['required', Rule::exists('divisions', 'id')->whereNot('name', Division::HRGA)],
             'tanggalPengisian' => ['required', 'date'],
             'sumberKetidaksesuaian' => ['required', 'string', 'in:keluhan_pelanggan,audit,laporan_ketidaksesuaian,pencapaian_sasaran_program,lain_lain'],
             'sumberKetidaksesuaianLainnya' => ['nullable', 'string', 'max:255', 'required_if:sumberKetidaksesuaian,lain_lain'],
@@ -211,9 +233,12 @@ class Create extends Component
             'is_potensi_peluang' => $this->isPotensiPeluang,
         ];
 
-        $incident = $service->saveDraft($data, $user, $this->baIncidentId);
-        $this->baIncidentId = $incident->id;
-        $this->nomorBaPreview = $incident->nomor_ba;
+        $incident = $this->persistDraft($service, $data, $user);
+        if (! $incident) {
+            return;
+        }
+
+        $this->rememberSavedDraft($incident);
 
         $this->step = 2;
     }
@@ -224,7 +249,7 @@ class Create extends Component
     public function saveDraftOnly(BaIncidentService $service): void
     {
         $this->validate([
-            'divisionId' => ['required', 'exists:divisions,id'],
+            'divisionId' => ['required', Rule::exists('divisions', 'id')->whereNot('name', Division::HRGA)],
         ], [
             'divisionId.required' => 'Divisi wajib dipilih untuk menyimpan draf.',
         ]);
@@ -256,11 +281,67 @@ class Create extends Component
             'is_potensi_peluang' => $this->isPotensiPeluang,
         ];
 
-        $incident = $service->saveDraft($data, $user, $this->baIncidentId);
-        $this->baIncidentId = $incident->id;
-        $this->nomorBaPreview = $incident->nomor_ba;
+        $incident = $this->persistDraft($service, $data, $user);
+        if (! $incident) {
+            return;
+        }
+
+        $this->rememberSavedDraft($incident);
 
         session()->flash('success', "Draf laporan {$incident->nomor_ba} berhasil disimpan ke sistem.");
+    }
+
+    /**
+     * Simpan isi form lewat service. Kalau status laporan berubah selama form terbuka
+     * (mis. sudah masuk review), kembalikan pengguna ke halaman detail dengan penjelasan.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function persistDraft(BaIncidentService $service, array $data, User $user): ?BaIncident
+    {
+        try {
+            return $service->saveDraft($data, $user, $this->baIncidentId);
+        } catch (DomainException $exception) {
+            session()->flash('status', $exception->getMessage());
+            $this->redirect(route('ba.show', $this->baIncidentId), navigate: true);
+
+            return null;
+        }
+    }
+
+    /**
+     * Setelah draf tersimpan: ID masuk ke URL (muat ulang halaman membuka draf yang sama dari database)
+     * dan browser diberi tahu supaya salinan lokal isian pindah ke kunci draf ini.
+     */
+    protected function rememberSavedDraft(BaIncident $incident): void
+    {
+        $this->baIncidentId = $incident->id;
+        $this->incidentId = $incident->id;
+        $this->nomorBaPreview = $incident->nomor_ba;
+
+        $this->dispatch('capa-draft-saved', id: $incident->id);
+    }
+
+    /**
+     * Pulihkan isian Langkah 1 yang disimpan browser (localStorage) sebelum halaman dimuat ulang,
+     * mis. karena jaringan terputus. Hanya field form CAPA yang diterima; validasi tetap berjalan
+     * saat draf disimpan atau dilanjutkan ke Langkah 2.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public function restoreLocalDraft(array $values): void
+    {
+        if ($this->step !== 1) {
+            return;
+        }
+
+        foreach (array_intersect_key($values, array_flip(self::LOCAL_DRAFT_FIELDS)) as $field => $value) {
+            $this->{$field} = match (true) {
+                is_bool($this->{$field}) => (bool) $value,
+                $field === 'divisionId' => is_numeric($value) ? (int) $value : null,
+                default => is_scalar($value) ? mb_substr((string) $value, 0, 5000) : '',
+            };
+        }
     }
 
     /**
@@ -272,14 +353,14 @@ class Create extends Component
     }
 
     /**
-     * Submit Final: Validasi Langkah 2 (Video wajib file/link), ubah status draft -> submitted.
+     * Submit Final: Validasi Langkah 2 (Video wajib file/link), kirim ke antrean Supervisor (pending_supervisor).
      */
     public function submit(BaIncidentService $service)
     {
         $hasFile = ! empty($this->videoFile);
         $hasLink = ! empty(trim($this->videoExternalLink));
 
-        if (! $hasFile && ! $hasLink) {
+        if (! $hasFile && ! $hasLink && ! $this->hasExistingDriveVideo) {
             $this->addError('videoRequired', 'Salah satu dari berkas file video atau tautan link eksternal WAJIB diisi.');
 
             return;
@@ -312,7 +393,18 @@ class Create extends Component
             'video_external_link' => $this->videoExternalLink,
         ];
 
-        $service->submitWithVideo($incident, $user, $videoData);
+        try {
+            $service->submitWithVideo($incident, $user, $videoData);
+        } catch (DomainException $exception) {
+            // Unggahan Drive gagal: laporan tidak dikirim ke Supervisor,
+            // draf tetap utuh, dan pengguna melihat alasannya.
+            $this->addError('videoRequired', $exception->getMessage());
+
+            return;
+        }
+
+        // Salinan isian di perangkat (localStorage) tidak diperlukan lagi setelah laporan terkirim.
+        $this->dispatch('capa-draft-submitted');
 
         session()->flash('success', "Laporan Berita Acara {$incident->nomor_ba} beserta video penanganan berhasil dikirimkan dan menunggu peninjauan supervisor/admin.");
 
@@ -321,12 +413,16 @@ class Create extends Component
 
     public function render()
     {
-        $divisions = Division::orderBy('id')->get();
+        $divisions = Division::reportable()->orderBy('id')->get();
 
         return view('livewire.ba.create', [
             'divisions' => $divisions,
             'sumberOptions' => BaIncident::SUMBER_OPTIONS,
             'capa' => $this->capaFormValues(),
+            // Video yang sudah dikirim sebelumnya (resubmit) ikut dipratinjau di Langkah 2.
+            'existingVideoIncident' => $this->hasExistingDriveVideo && $this->baIncidentId
+                ? BaIncident::with('video')->find($this->baIncidentId)
+                : null,
         ]);
     }
 
