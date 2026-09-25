@@ -31,8 +31,6 @@
                         </span>
                     </div>
                     <div class="flex items-center gap-2 text-xs text-neutral-700 mt-0.5">
-                        <span class="font-mono text-neutral-800 font-medium">{{ $currentUser->employee_id }}</span>
-                        <span>•</span>
                         <span class="font-medium">{{ $currentUser->division?->name ?? 'Lintas Divisi' }}</span>
                         <span>•</span>
                         <span>{{ $currentUser->jabatan ?: 'Pegawai' }}</span>
@@ -49,10 +47,6 @@
                     <span class="text-[11px] uppercase tracking-wider text-brand-dark/75 font-semibold font-sans block">Total XP</span>
                     <span class="text-2xl sm:text-3xl font-extrabold font-mono text-brand-dark">{{ number_format((int) ($currentUser->xp ?? 0)) }}</span>
                 </div>
-                <div class="pl-4 sm:pl-6 text-left md:text-right">
-                    <span class="text-[11px] uppercase tracking-wider text-brand-dark/75 font-semibold font-sans block">Level</span>
-                    <span class="text-2xl sm:text-3xl font-extrabold font-sans text-brand-dark">Lv.{{ $currentUser->level ?? 1 }}</span>
-                </div>
             </div>
         </div>
     @endif
@@ -67,16 +61,16 @@
                 </span>
                 <input type="text"
                        wire:model.live.debounce.300ms="search"
-                       placeholder="Cari nama pegawai atau ID pegawai (CPS-XXXXX)..."
+                       placeholder="Cari nama pegawai..."
                        class="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-neutral-200 rounded-md focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand text-neutral-900 placeholder:text-neutral-500 transition" />
             </div>
 
             {{-- Filter Controls --}}
             <div class="flex flex-wrap items-center gap-2">
-                {{-- Filter Divisi (13 Divisi Tetap) --}}
+                {{-- Filter Divisi --}}
                 <select wire:model.live="selectedDivision"
                         class="text-xs py-1.5 px-2.5 bg-white border border-neutral-200 rounded-md text-neutral-800 font-medium focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand">
-                    <option value="all">Semua Divisi (13 Divisi)</option>
+                    <option value="all">Semua Divisi ({{ $divisions->count() }} Divisi)</option>
                     @foreach ($divisions as $div)
                         <option value="{{ $div->id }}">{{ $div->name }}</option>
                     @endforeach
@@ -101,7 +95,6 @@
                     <th scope="col" class="py-3 px-4">Nama Pegawai</th>
                     <th scope="col" class="py-3 px-4">Divisi</th>
                     <th scope="col" class="py-3 px-4 text-right">Points</th>
-                    <th scope="col" class="py-3 px-4 text-center w-28">Level</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-neutral-200">
@@ -164,9 +157,6 @@
                                             </span>
                                         @endif
                                     </div>
-                                    <div class="text-xs text-neutral-600 font-mono">
-                                        {{ $user->employee_id }}
-                                    </div>
                                 </div>
                             </div>
                         </td>
@@ -183,17 +173,10 @@
                             </span>
                             <span class="text-xs text-neutral-500 font-sans ml-1">XP</span>
                         </td>
-
-                        {{-- Kolom 5: Level --}}
-                        <td class="py-3.5 px-4 text-center">
-                            <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-[2px] border {{ $isMe ? 'border-brand text-brand-dark bg-white' : 'border-neutral-200 text-neutral-700 bg-neutral-50' }}">
-                                Level {{ $user->level }}
-                            </span>
-                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="py-10 px-4 text-center text-xs text-neutral-500">
+                        <td colspan="4" class="py-10 px-4 text-center text-xs text-neutral-500">
                             Tidak ada data pegawai yang sesuai dengan filter pencarian.
                         </td>
                     </tr>
@@ -216,7 +199,7 @@
             <div wire:key="mobile-card-{{ $user->id }}"
                  class="rounded-lg p-4 border transition space-y-3 {{ $isMe ? 'bg-brand-tint border-brand/50' : ($rank === 1 ? 'bg-amber-50/20 border-amber-300/80 shadow-2xs' : 'bg-white border-neutral-200') }}">
                 
-                {{-- Baris Atas Card: Rank & Level --}}
+                {{-- Baris Atas Card: Rank --}}
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         @if ($rank === 1)
@@ -248,13 +231,9 @@
                             </span>
                         @endif
                     </div>
-
-                    <span class="text-xs font-medium px-2 py-0.5 rounded-[2px] border {{ $isMe ? 'border-brand text-brand-dark bg-white' : ($rank === 1 ? 'border-amber-300 text-amber-900 bg-amber-50/70' : 'border-neutral-200 text-neutral-700 bg-neutral-50') }}">
-                        Level {{ $user->level }}
-                    </span>
                 </div>
 
-                {{-- Baris Tengah Card: Avatar, Nama, ID, Divisi --}}
+                {{-- Baris Tengah Card: Avatar, Nama, Divisi --}}
                 <div class="flex items-center gap-3 pt-1">
                     @if ($user->avatar_url)
                         <img src="{{ asset($user->avatar_url) }}"
@@ -269,10 +248,8 @@
                         <div class="text-sm font-semibold {{ $isMe ? 'text-brand-dark' : 'text-neutral-900' }}">
                             {{ $user->name }}
                         </div>
-                        <div class="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
-                            <span class="font-mono">{{ $user->employee_id }}</span>
-                            <span>•</span>
-                            <span>{{ $user->division?->name ?? 'Lintas Divisi' }}</span>
+                        <div class="text-xs text-neutral-500 mt-0.5">
+                            {{ $user->division?->name ?? 'Lintas Divisi' }}
                         </div>
                     </div>
                 </div>

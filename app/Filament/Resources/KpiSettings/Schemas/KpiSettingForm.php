@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\KpiSettings\Schemas;
 
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -12,31 +12,24 @@ class KpiSettingForm
     {
         return $schema
             ->components([
-                TextInput::make('target_video_count')
-                    ->label('Target Minimal Video Selesai')
+                DatePicker::make('period_start')
+                    ->label('Tanggal Mulai Periode')
+                    ->required(),
+
+                DatePicker::make('period_end')
+                    ->label('Tanggal Akhir Periode')
+                    ->required()
+                    ->afterOrEqual('period_start')
+                    ->helperText('Inklusif sampai pukul 23:59:59 WIB. Progres KPI dihitung ulang dari 0 di setiap periode.'),
+
+                TextInput::make('target_materials')
+                    ->label('Target Materi Lulus 100%')
                     ->numeric()
+                    ->integer()
                     ->minValue(1)
-                    ->default(10)
+                    ->default(5)
                     ->required()
-                    ->helperText('Target minimal video yang kuis post-test-nya harus lulus per periode.'),
-
-                Select::make('period_type')
-                    ->label('Jenis Periode')
-                    ->options([
-                        'monthly' => 'Bulanan (Monthly)',
-                        'quarterly' => 'Kuartalan (Quarterly)',
-                        'all_time' => 'Sepanjang Waktu (All Time)',
-                    ])
-                    ->default('monthly')
-                    ->required()
-                    ->helperText('Rentang periode perhitungan target KPI video'),
-
-                TextInput::make('points_reward')
-                    ->label('Poin Bonus Saat KPI 100%')
-                    ->numeric()
-                    ->minValue(0)
-                    ->default(50)
-                    ->helperText('Poin bonus tambahan bagi karyawan yang berhasil memenuhi 100% target'),
+                    ->helperText('Jumlah materi Learning berbeda yang post-test-nya harus lulus dengan skor 100% di periode ini.'),
             ]);
     }
 }

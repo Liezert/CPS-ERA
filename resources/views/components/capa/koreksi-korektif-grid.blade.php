@@ -27,10 +27,6 @@
                         Tindakan Koreksi (Sementara)
                     </h4>
                 </div>
-                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-medium text-amber-900 bg-amber-100 border border-amber-300 rounded-badge"
-                      style="display: inline-flex; align-items: center; padding: 2px 6px; font-size: 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: #78350f; background-color: #fef3c7; border: 1px solid #fcd34d; border-radius: 2px;">
-                    Containment &middot; Mandat Operator/SPV
-                </span>
             </div>
 
             {{-- Deskripsi Tindakan Koreksi --}}
@@ -63,10 +59,6 @@
                         Tindakan Korektif (Akar Masalah)
                     </h4>
                 </div>
-                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge"
-                      style="display: inline-flex; align-items: center; padding: 2px 6px; font-size: 10px; font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: #085C30; background-color: #E8F5EC; border: 1px solid rgba(11, 120, 64, 0.3); border-radius: 2px;">
-                    Corrective &middot; Mandat Engineering/QC
-                </span>
             </div>
 
             {{-- Deskripsi Tindakan Korektif --}}

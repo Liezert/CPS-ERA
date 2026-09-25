@@ -10,15 +10,31 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class BaIncidentForm
 {
+    /**
+     * Helper text + ikon info bertooltip dari BaIncident::FIELD_GUIDES (sumber yang sama dengan form employee).
+     */
+    private static function guided(Textarea $field): Textarea
+    {
+        $guide = BaIncident::FIELD_GUIDES[$field->getName()];
+
+        return $field
+            ->helperText($guide['helper'])
+            ->hintIcon(Heroicon::OutlinedInformationCircle, tooltip: collect($guide['guide'])
+                ->map(fn (string $text, string $label): string => "{$label}: {$text}")
+                ->values()
+                ->map(fn (string $line, int $i): string => ($i + 1).'. '.$line)
+                ->implode(' '));
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
                 Section::make('Informasi Dokumen & Kejadian')
-                    ->description('Rincian identitas laporan ketidaksesuaian.')
                     ->schema([
                         Select::make('division_id')
                             ->label('Divisi Terkait')
@@ -46,19 +62,17 @@ class BaIncidentForm
                             ->required(),
                         TextInput::make('lokasi')
                             ->label('Lokasi / Tempat Kejadian')
-                            ->placeholder('Contoh: Lini Injeksi Mesin 02')
                             ->required(),
-                        Textarea::make('deskripsi_masalah')
+                        static::guided(Textarea::make('deskripsi_masalah'))
                             ->label('Uraian Masalah / Ketidaksesuaian')
-                            ->rows(3)
+                            ->rows(4)
                             ->required()
                             ->columnSpanFull(),
                     ])->columns(2),
 
                 Section::make('Analisis Akar Masalah (5 Whys)')
-                    ->description('Penelusuran kausalitas hingga menemukan akar penyebab utama.')
                     ->schema([
-                        Textarea::make('why_1')
+                        static::guided(Textarea::make('why_1'))
                             ->label('1. Mengapa hal itu terjadi? (Why 1)')
                             ->required()
                             ->rows(2)
@@ -79,19 +93,17 @@ class BaIncidentForm
                             ->label('5. Mengapa? (Why 5 - Opsional)')
                             ->rows(2)
                             ->columnSpanFull(),
-                        Textarea::make('kesimpulan_akar_masalah')
+                        static::guided(Textarea::make('kesimpulan_akar_masalah'))
                             ->label('Kesimpulan Akar Masalah')
                             ->required()
-                            ->rows(2)
+                            ->rows(3)
                             ->columnSpanFull(),
                     ]),
 
                 Section::make('Tindakan Koreksi & Korektif')
-                    ->description('Rencana penanganan sementara dan perbaikan permanen.')
                     ->schema([
-                        Textarea::make('koreksi_deskripsi')
+                        static::guided(Textarea::make('koreksi_deskripsi'))
                             ->label('Tindakan Koreksi (Sementara)')
-                            ->placeholder('Tindakan cepat di lokasi...')
                             ->required()
                             ->rows(2)
                             ->columnSpanFull(),
@@ -99,9 +111,8 @@ class BaIncidentForm
                             ->label('PIC Koreksi'),
                         TextInput::make('koreksi_waktu')
                             ->label('Waktu Pelaksanaan Koreksi'),
-                        Textarea::make('korektif_deskripsi')
+                        static::guided(Textarea::make('korektif_deskripsi'))
                             ->label('Tindakan Korektif (Akar Masalah)')
-                            ->placeholder('Solusi permanen jangka panjang...')
                             ->required()
                             ->rows(2)
                             ->columnSpanFull(),

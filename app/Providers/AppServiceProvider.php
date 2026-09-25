@@ -55,6 +55,12 @@ class AppServiceProvider extends ServiceProvider
 
         // Implicitly grant "admin" role all permissions and gate checks
         Gate::before(function (User $user, string $ability): ?bool {
+            // Approve/reject per tahap selalu diputuskan policy: status laporan dan tahapnya
+            // tetap berlaku untuk admin (admin tidak boleh approve draf atau melompati tahap).
+            if (in_array($ability, BaIncidentPolicy::STAGE_REVIEW_ABILITIES, true)) {
+                return null;
+            }
+
             return $user->hasRole('admin') ? true : null;
         });
 

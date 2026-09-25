@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\KnowledgeDocuments\Schemas;
 
-use App\Models\KnowledgeDocument;
 use App\Models\KnowledgeTopic;
 use App\Models\User;
 use Filament\Forms\Components\FileUpload;
@@ -60,15 +59,10 @@ class KnowledgeDocumentForm
                         'presentasi' => 'Presentasi',
                         'sop' => 'SOP',
                         'link' => 'Link',
-                        'lesson_learned' => 'Lesson Learned (Otomatis dari BA)',
                     ])
                     ->default('dokumen')
                     ->required()
-                    ->disableOptionWhen(fn (string $value): bool => $value === 'lesson_learned')
-                    ->disabled(fn (?KnowledgeDocument $record): bool => $record?->type === 'lesson_learned')
-                    ->helperText(fn (?KnowledgeDocument $record): string => $record?->type === 'lesson_learned'
-                        ? 'Tipe Lesson Learned dibuat secara otomatis oleh sistem saat BA ditinjau dan tidak dapat diubah secara manual.'
-                        : 'Pilih jenis materi pengetahuan manual (Dokumen, Video, Presentasi, SOP, Link).'),
+                    ->helperText('Pilih jenis materi pengetahuan manual (Dokumen, Video, Presentasi, SOP, Link).'),
                 Select::make('status')
                     ->label('Status Publikasi')
                     ->options([
@@ -96,7 +90,9 @@ class KnowledgeDocumentForm
                         'application/vnd.ms-powerpoint',
                         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                         'video/mp4',
-                        'image/*',
+                        // Bukan image/*: itu mencakup image/svg+xml yang bisa memuat skrip.
+                        'image/jpeg',
+                        'image/png',
                     ])
                     ->maxSize(20480)
                     ->columnSpanFull()

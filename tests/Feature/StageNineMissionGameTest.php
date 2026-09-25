@@ -55,8 +55,7 @@ class StageNineMissionGameTest extends TestCase
             'division_id' => $this->division->id,
             'employee_id' => 'CPS-00888',
             'name' => 'Doni Operator Injeksi',
-            'total_points' => 0,
-            'level' => 1,
+            'xp' => 0,
         ]);
         $this->employee->assignRole('employee');
 
@@ -158,7 +157,7 @@ class StageNineMissionGameTest extends TestCase
      */
     public function test_points_are_recorded_via_point_transactions_ledger(): void
     {
-        $this->assertEquals(0, $this->employee->total_points);
+        $this->assertEquals(0, $this->employee->xp);
 
         // Kerjakan kuis dengan jawaban benar dan submit
         Livewire::actingAs($this->employee)
@@ -187,9 +186,9 @@ class StageNineMissionGameTest extends TestCase
             'points_earned' => 40,
         ]);
 
-        // Verifikasi PointTransactionObserver menyinkronkan total_points user
+        // Verifikasi PointTransactionObserver menyinkronkan xp user
         $this->employee->refresh();
-        $this->assertEquals(40, $this->employee->total_points);
+        $this->assertEquals(40, $this->employee->xp);
     }
 
     /**

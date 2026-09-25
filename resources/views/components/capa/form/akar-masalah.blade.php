@@ -9,13 +9,7 @@
                         <h3 id="section-5whys" class="text-sm font-bold text-neutral-900 font-sans tracking-tight">
                             4. Analisis Akar Masalah (5 Whys Causality Ladder)
                         </h3>
-                        <p class="text-xs text-neutral-600 mt-0.5">
-                            Metode bertahap menggali akar penyebab. Why 1 wajib diisi, tambahkan tingkatan berikutnya sesuai kedalaman investigasi.
-                        </p>
                     </div>
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono font-medium text-neutral-800 bg-white border border-neutral-300 rounded-badge uppercase tracking-wider shadow-2xs shrink-0 self-start sm:self-center">
-                        Kaizen RCA
-                    </span>
                 </div>
 
                 {{-- Tangga Kausalitas Vertikal (Progressive Reveal Flow dengan Alignment Presisi) --}}
@@ -25,16 +19,17 @@
                     <div class="relative">
                         <span class="absolute -left-7 sm:-left-8 top-3 w-4 h-4 rounded-full bg-brand border-2 border-white ring-2 ring-brand/30 shadow-2xs"></span>
                         <div class="bg-white p-3.5 sm:p-4 rounded-md border border-brand/40 shadow-2xs space-y-1.5 transition-all duration-150">
-                            <div class="flex items-center justify-between flex-wrap gap-1">
+                            <div class="flex items-center gap-1.5">
                                 <label for="why_1" class="block text-xs font-bold text-neutral-900 font-sans">
                                     Why 1 <span class="text-red-500" title="Wajib diisi">*</span>
                                 </label>
+                                <x-capa.field-hint field="why_1" />
                             </div>
                             <input type="text"
                                    id="why_1"
                                    @if ($readonly) value="{{ $values['why1'] }}" readonly @else wire:model.live="why1" @endif
-                                   placeholder="Contoh: Temperatur nozzle cetak naik melampaui batas aman toleransi 240°C"
                                    class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
+                            <x-capa.field-helper field="why_1" />
                             @error('why1')
                                 <span class="text-xs text-red-600 mt-1 block font-sans">{{ $message }}</span>
                             @enderror
@@ -54,7 +49,6 @@
                                 <input type="text"
                                        id="why_2"
                                        @if ($readonly) value="{{ $values['why2'] }}" readonly @else wire:model.live="why2" @endif
-                                       placeholder="Contoh: Pendingin oli sirkulasi tidak mengalirkan fluida ke blok cetakan"
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -73,7 +67,6 @@
                                 <input type="text"
                                        id="why_3"
                                        @if ($readonly) value="{{ $values['why3'] }}" readonly @else wire:model.live="why3" @endif
-                                       placeholder="Contoh: Katup solenoid otomatis tersumbat endapan kerak oli yang mengering"
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -92,7 +85,6 @@
                                 <input type="text"
                                        id="why_4"
                                        @if ($readonly) value="{{ $values['why4'] }}" readonly @else wire:model.live="why4" @endif
-                                       placeholder="Contoh: Jadwal pembersihan berkala saringan oli terlewat saat rotasi teknisi shift malam"
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -111,7 +103,6 @@
                                 <input type="text"
                                        id="why_5"
                                        @if ($readonly) value="{{ $values['why5'] }}" readonly @else wire:model.live="why5" @endif
-                                       placeholder="Contoh: Lembar logbook serah terima shift belum mewajibkan verifikasi checklist sirkulasi pendingin"
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -143,30 +134,21 @@
                         </button>
                     </div>
                     @endunless
-
-                    <p class="text-[11px] text-neutral-500 font-sans italic">
-                        Tip Kaizen: Gali hingga akar terdalam yang dapat dicegah agar masalah tidak berulang.
-                    </p>
                 </div>
 
                 {{-- Kesimpulan Akar Masalah (Root Cause Synthesis) --}}
                 <div class="pt-3 border-t border-neutral-200 bg-white p-4 sm:p-5 rounded-md border border-neutral-200 shadow-2xs space-y-2">
-                    <div class="flex items-center justify-between flex-wrap gap-1">
+                    <div class="flex items-center gap-1.5">
                         <label for="kesimpulan_akar_masalah" class="block text-xs font-bold text-neutral-900 font-sans">
                             Kesimpulan Akar Masalah (Root Cause) <span class="text-red-500" title="Wajib diisi">*</span>
                         </label>
-                        <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-brand-dark bg-brand-tint border border-brand/30 rounded-badge uppercase">
-                            Fokus Perbaikan Utama
-                        </span>
+                        <x-capa.field-hint field="kesimpulan_akar_masalah" />
                     </div>
-                    <p class="text-xs text-neutral-600 leading-normal">
-                        Tuliskan sintesis inti penyebab paling mendasar dari hasil penelusuran kausalitas 5 Whys di atas yang harus diselesaikan oleh tindakan korektif.
-                    </p>
                     <textarea id="kesimpulan_akar_masalah"
                               @if ($readonly) readonly @else wire:model.live="kesimpulanAkarMasalah" @endif
-                              rows="2"
-                              placeholder="Contoh: Ketiadaan instruksi kerja terintegrasi dalam logbook shift untuk pembersihan berkala saringan solenoid oli pendingin..."
+                              rows="3"
                               class="w-full px-3 py-2.5 bg-neutral-50/50 border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 leading-relaxed">{{ $readonly ? $values['kesimpulanAkarMasalah'] : '' }}</textarea>
+                    <x-capa.field-helper field="kesimpulan_akar_masalah" />
                     @error('kesimpulanAkarMasalah')
                         <span class="text-xs text-red-600 mt-1 block font-sans">{{ $message }}</span>
                     @enderror

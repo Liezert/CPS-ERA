@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Filament\Resources\Users\Actions\ResetPasswordAction;
 use App\Models\PointTransaction;
 use App\Models\User;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -37,11 +39,11 @@ class UsersTable
                     ->label('Divisi')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('level')
-                    ->label('Level')
+                TextColumn::make('must_change_password')
+                    ->label('Kata Sandi')
                     ->badge()
-                    ->color('success')
-                    ->sortable(),
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Sementara' : 'Pribadi')
+                    ->color(fn (bool $state): string => $state ? 'warning' : 'gray'),
                 TextColumn::make('xp')
                     ->label('XP Saat Ini')
                     ->numeric()
@@ -53,17 +55,10 @@ class UsersTable
                 SelectFilter::make('division_id')
                     ->label('Divisi')
                     ->relationship('division', 'name'),
-                SelectFilter::make('level')
-                    ->label('Level')
-                    ->options([
-                        1 => 'Level 1',
-                        2 => 'Level 2',
-                        3 => 'Level 3',
-                        4 => 'Level 4',
-                        5 => 'Level 5',
-                    ]),
             ])
             ->recordActions([
+                EditAction::make(),
+                ResetPasswordAction::make(),
                 Action::make('adjustXp')
                     ->label('Koreksi XP')
                     ->icon(Heroicon::OutlinedAdjustmentsVertical)

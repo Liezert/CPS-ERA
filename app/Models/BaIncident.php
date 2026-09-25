@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BaIncidentStatus;
 use Database\Factories\BaIncidentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -46,6 +47,10 @@ use Spatie\MediaLibrary\InteractsWithMedia;
     'created_by',
     'reviewed_by',
     'reviewed_at',
+    'supervisor_reviewed_by',
+    'supervisor_reviewed_at',
+    'points_awarded_at',
+    'published_at',
     'closed_at',
 ])]
 class BaIncident extends Model implements HasMedia
@@ -62,6 +67,56 @@ class BaIncident extends Model implements HasMedia
         'laporan_ketidaksesuaian' => 'Laporan Ketidaksesuaian',
         'pencapaian_sasaran_program' => 'Pencapaian Sasaran Program',
         'lain_lain' => 'Lain-lain',
+    ];
+
+    /**
+     * Panduan pengisian field CAPA: helper text singkat + kerangka struktur isian untuk tooltip.
+     * Dipakai form Blade (components/capa/form/*) dan form Filament admin, jadi cukup diubah di sini.
+     * Sengaja berupa kerangka, bukan contoh kalimat, supaya tidak memancing copy-paste.
+     *
+     * @var array<string, array{helper: string, guide: array<string, string>}>
+     */
+    public const FIELD_GUIDES = [
+        'deskripsi_masalah' => [
+            'helper' => 'Sebutkan objek, nilai penyimpangan dari standar, dan dampak langsungnya.',
+            'guide' => [
+                'Objek/Proses' => 'Komponen atau lini yang bermasalah.',
+                'Deviasi' => 'Nilai/kondisi aktual vs standar spesifikasi.',
+                'Dampak' => 'Akibat langsung terhadap operasional/kualitas.',
+            ],
+        ],
+        'why_1' => [
+            'helper' => 'Tulis penyebab langsung yang memicu masalah di atas.',
+            'guide' => [
+                'Penyebab langsung' => 'Kondisi yang secara langsung memicu masalah.',
+                'Berbasis fakta' => 'Hal yang teramati atau terukur, bukan dugaan.',
+                'Why berikutnya' => 'Tanyakan "mengapa" lagi pada jawaban ini sampai akar masalah ditemukan.',
+            ],
+        ],
+        'kesimpulan_akar_masalah' => [
+            'helper' => 'Penyebab paling dasar dari rantai Why yang akan diselesaikan tindakan korektif.',
+            'guide' => [
+                'Akar masalah' => 'Penyebab terdalam dari rantai Why di atas.',
+                'Dapat dikendalikan' => 'Bisa diperbaiki lewat perubahan proses, SOP, atau sistem.',
+                'Uji balik' => 'Jika penyebab ini dihilangkan, masalah tidak terulang.',
+            ],
+        ],
+        'koreksi_deskripsi' => [
+            'helper' => 'Langkah darurat untuk menahan dampak, bukan perbaikan permanen.',
+            'guide' => [
+                'Tindakan' => 'Langkah segera yang dilakukan di lokasi.',
+                'Objek' => 'Mesin, batch produk, atau area yang diamankan.',
+                'Status' => 'Kondisi setelah tindakan dilakukan.',
+            ],
+        ],
+        'korektif_deskripsi' => [
+            'helper' => 'Perbaikan permanen yang menghilangkan akar masalah.',
+            'guide' => [
+                'Perubahan' => 'Proses, SOP, atau peralatan yang diubah.',
+                'Sasaran' => 'Akar masalah pada Bagian 4 yang dihilangkan.',
+                'Verifikasi' => 'Cara memastikan masalah tidak terulang.',
+            ],
+        ],
     ];
 
     /**
@@ -114,16 +169,6 @@ class BaIncident extends Model implements HasMedia
     }
 
     /**
-     * Get all videos linked to this BA.
-     *
-     * @return HasMany<Video, $this>
-     */
-    public function videos(): HasMany
-    {
-        return $this->hasMany(Video::class, 'ba_incident_id');
-    }
-
-    /**
      * Get all activity logs for the incident.
      *
      * @return HasMany<BaActivityLog, $this>
@@ -134,54 +179,38 @@ class BaIncident extends Model implements HasMedia
     }
 
     /**
-     * Get the lesson learned knowledge document generated from this incident.
+     * Materi Learning hasil laporan ini (dibuat saat approval HR, terbit setelah post-test dibuat).
      *
-     * @return HasOne<KnowledgeDocument, $this>
+     * @return HasOne<LearningMaterial, $this>
      */
-    public function lessonLearned(): HasOne
+    public function learningMaterial(): HasOne
     {
-        return $this->hasOne(KnowledgeDocument::class, 'source_ba_id');
+        return $this->hasOne(LearningMaterial::class, 'source_ba_id');
     }
 
     /**
-     * Status helper methods.
+     * Isi laporan hanya boleh diubah saat masih draf atau sedang diminta revisi.
+     * Laporan yang sedang di-review atau sudah final tidak boleh ditarik kembali ke draf.
      */
-    public function isDraft(): bool
+    public function isEditable(): bool
     {
-        return $this->status === 'draft';
+        return in_array($this->status, [
+            BaIncidentStatus::Draft->value,
+            BaIncidentStatus::RevisionRequested->value,
+        ], true);
     }
 
-    public function isSubmitted(): bool
+    public function isRevisionRequested(): bool
     {
-        return $this->status === 'submitted';
+        return $this->status === BaIncidentStatus::RevisionRequested->value;
     }
 
-    public function isApproved(): bool
-    {
-        return $this->status === 'approved';
-    }
-
+    /**
+     * Ditolak permanen oleh HR (final, tanpa jalur revisi).
+     */
     public function isRejected(): bool
     {
-        return $this->status === 'rejected';
-    }
-
-    /**
-     * Backward-compatibility status checks.
-     */
-    public function isCreated(): bool
-    {
-        return in_array($this->status, ['draft', 'created', 'submitted'], true);
-    }
-
-    public function isReviewed(): bool
-    {
-        return in_array($this->status, ['reviewed', 'approved'], true);
-    }
-
-    public function isClosed(): bool
-    {
-        return in_array($this->status, ['closed', 'approved'], true);
+        return $this->status === BaIncidentStatus::Rejected->value;
     }
 
     /**
@@ -244,6 +273,9 @@ class BaIncident extends Model implements HasMedia
             'is_potensi_risiko' => 'boolean',
             'is_potensi_peluang' => 'boolean',
             'reviewed_at' => 'datetime',
+            'supervisor_reviewed_at' => 'datetime',
+            'points_awarded_at' => 'datetime',
+            'published_at' => 'datetime',
             'closed_at' => 'datetime',
         ];
     }

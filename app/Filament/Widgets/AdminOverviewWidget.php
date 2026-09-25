@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\BaIncidentStatus;
 use App\Models\BaIncident;
 use App\Models\KnowledgeDocument;
 use App\Models\LearningMaterial;
@@ -27,7 +28,7 @@ class AdminOverviewWidget extends BaseWidget
         $quizCount = Quiz::count();
         $docCount = KnowledgeDocument::count();
         $baCount = BaIncident::count();
-        $pendingBaCount = BaIncident::whereIn('status', ['draft', 'submitted', 'Created'])->count();
+        $pendingBaCount = BaIncident::whereIn('status', [BaIncidentStatus::PendingSupervisor->value, BaIncidentStatus::PendingHr->value])->count();
 
         return [
             Stat::make('Materi Pembelajaran', (string) $learningCount)

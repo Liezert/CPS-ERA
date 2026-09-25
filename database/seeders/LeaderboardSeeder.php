@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Division;
 use App\Models\User;
-use App\Services\LevelCalculator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -15,8 +14,6 @@ class LeaderboardSeeder extends Seeder
      */
     public function run(): void
     {
-        $calculator = new LevelCalculator;
-
         $divisions = Division::all()->keyBy('name');
 
         $employeesData = [
@@ -64,7 +61,7 @@ class LeaderboardSeeder extends Seeder
                 'name' => 'Hendra Gunawan',
                 'email' => 'hendra.gunawan@cps.test',
                 'employee_id' => 'CPS-00106',
-                'division' => 'Repair',
+                'division' => 'RM Warehouse',
                 'jabatan' => 'Dies Repair Specialist',
                 'points' => 1120,
             ],
@@ -72,7 +69,7 @@ class LeaderboardSeeder extends Seeder
                 'name' => 'Fajar Sidik',
                 'email' => 'fajar.sidik@cps.test',
                 'employee_id' => 'CPS-00107',
-                'division' => 'Gudang RM',
+                'division' => 'RM Warehouse',
                 'jabatan' => 'Material Handling Lead',
                 'points' => 870,
             ],
@@ -104,7 +101,7 @@ class LeaderboardSeeder extends Seeder
                 'name' => 'Doni Kusuma',
                 'email' => 'doni.kusuma@cps.test',
                 'employee_id' => 'CPS-00111',
-                'division' => 'IT',
+                'division' => 'Marketing & Sales',
                 'jabatan' => 'System Support Specialist',
                 'points' => 190,
             ],
@@ -112,7 +109,7 @@ class LeaderboardSeeder extends Seeder
                 'name' => 'Yudi Pratama',
                 'email' => 'yudi.pratama@cps.test',
                 'employee_id' => 'CPS-00112',
-                'division' => 'Keamanan',
+                'division' => 'Engineering',
                 'jabatan' => 'Security Patrol Officer',
                 'points' => 110,
             ],
@@ -120,7 +117,6 @@ class LeaderboardSeeder extends Seeder
 
         foreach ($employeesData as $emp) {
             $division = $divisions->get($emp['division']);
-            $level = $calculator->calculate($emp['points']);
 
             $user = User::updateOrCreate(
                 ['email' => $emp['email']],
@@ -130,8 +126,7 @@ class LeaderboardSeeder extends Seeder
                     'employee_id' => $emp['employee_id'],
                     'division_id' => $division?->id,
                     'jabatan' => $emp['jabatan'],
-                    'total_points' => $emp['points'],
-                    'level' => $level,
+                    'xp' => $emp['points'],
                     'email_verified_at' => now(),
                 ]
             );

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GoogleDriveService;
 use Database\Factories\KnowledgeDocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -112,36 +113,17 @@ class KnowledgeDocument extends Model
     }
 
     /**
-     * Check if the document is bookmarked by a specific user.
-     */
-    public function isBookmarkedBy(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        if ($this->relationLoaded('bookmarks')) {
-            return $this->bookmarks->contains('user_id', $user->id);
-        }
-
-        return $this->bookmarks()->where('user_id', $user->id)->exists();
-    }
-
-    /**
-     * Check if this document is a lesson learned.
-     */
-    public function isLessonLearned(): bool
-    {
-        return $this->type === 'lesson_learned';
-    }
-
-    /**
      * Get the full downloadable URL for the attached file.
      */
     public function getDownloadUrlAttribute(): ?string
     {
         if (empty($this->file_url)) {
             return null;
+        }
+
+        // Berkas yang diunggah aplikasi tersimpan di Drive: kolom berisi file ID.
+        if (GoogleDriveService::isDriveFileId($this->file_url)) {
+            return app(GoogleDriveService::class)->getViewUrl($this->file_url);
         }
 
         if (str_starts_with($this->file_url, 'http://') || str_starts_with($this->file_url, 'https://')) {
@@ -153,6 +135,19 @@ class KnowledgeDocument extends Model
         }
 
         return Storage::disk('public')->url($this->file_url);
+    }
+
+    /**
+     * URL sematan Drive untuk pratinjau dokumen di dalam halaman (iframe).
+     * Null bila berkas bukan berkas Drive (mis. berkas lokal warisan).
+     */
+    public function getPreviewUrlAttribute(): ?string
+    {
+        if (! GoogleDriveService::isDriveFileId($this->file_url)) {
+            return null;
+        }
+
+        return app(GoogleDriveService::class)->getPreviewUrl($this->file_url);
     }
 
     /**

@@ -25,11 +25,11 @@ class KpiSettingResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    protected static ?string $navigationLabel = 'Target KPI Video';
+    protected static ?string $navigationLabel = 'Target KPI Materi';
 
-    protected static ?string $modelLabel = 'Target KPI Video';
+    protected static ?string $modelLabel = 'Target KPI Materi';
 
-    protected static ?string $pluralModelLabel = 'Target KPI Video';
+    protected static ?string $pluralModelLabel = 'Target KPI Materi';
 
     /**
      * Hanya role Admin yang boleh mengelola konfigurasi Target KPI.

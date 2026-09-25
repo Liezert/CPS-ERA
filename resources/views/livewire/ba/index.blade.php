@@ -69,7 +69,7 @@
             <div class="md:col-span-3">
                 <select wire:model.live="selectedDivisionId"
                         class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors">
-                    <option value="">Semua Divisi (13 Divisi)</option>
+                    <option value="">Semua Divisi ({{ $divisions->count() }} Divisi)</option>
                     @foreach($divisions as $div)
                         <option value="{{ $div->id }}">{{ $div->name }}</option>
                     @endforeach

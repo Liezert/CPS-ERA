@@ -3,30 +3,30 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | KPI Contribution & Video Contribution Configuration
+    | KPI Contribution Configuration
     |--------------------------------------------------------------------------
     |
-    | Pengaturan default ini digunakan oleh KpiContributionCalculator dan
-    | VideoApprovalService.
-    |
-    | CATATAN PRD §5.3 & Client Review:
-    | Parameter di bawah adalah PLACEHOLDER dan wajib disesuaikan begitu
-    | keputusan resmi client telah difinalkan.
+    | KPI Contribution (keputusan owner): progres = jumlah materi Learning berbeda yang
+    | post-test-nya lulus dengan skor tepat 100% di dalam periode KPI Settings. Dipakai oleh
+    | KpiContributionCalculator, KpiContributionService, dan KpiSetting.
+    | Blok 'points' milik VideoApprovalService (kontribusi video, tidak dipakai KPI).
     |
     */
 
     /**
-     * Target minimal video yang kuis post-test-nya harus lulus per periode (placeholder).
+     * Zona waktu batas hari periode KPI. app.timezone tetap UTC: awal periode = period_start
+     * 00:00:00 di zona ini dan akhir = period_end 23:59:59 di zona ini, dikonversi ke UTC saat query.
      */
-    'default_target_video_count' => 10,
+    'timezone' => 'Asia/Jakarta',
 
     /**
-     * Tipe periode default untuk penghitungan KPI ('monthly', 'quarterly', 'all_time').
+     * Target default jumlah materi berbeda per periode.
      */
-    'default_period_type' => 'monthly',
+    'default_target_materials' => 5,
 
     /**
-     * Capping maksimal persentase KPI Contribution (100%).
+     * Capping persentase KPI Contribution. DIPUTUSKAN owner: persentase selalu dibatasi
+     * maksimal 100% (progres dibatasi pada target). Sebelumnya: menunggu keputusan PRD §5.3.
      */
     'cap_at_100_percent' => true,
 

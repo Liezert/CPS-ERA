@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GoogleDriveService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -92,37 +93,30 @@ class LearningMaterial extends Model
     }
 
     /**
-     * Get the authenticated user's progress for this material.
-     *
-     * @return HasOne<UserLearningProgress, $this>
-     */
-    public function currentUserProgress(): HasOne
-    {
-        return $this->hasOne(UserLearningProgress::class, 'learning_material_id')
-            ->where('user_id', auth()->id());
-    }
-
-    /**
-     * Get the user's progress for this material.
-     */
-    public function getProgressForUser(?User $user): ?UserLearningProgress
-    {
-        if (! $user) {
-            return null;
-        }
-
-        if ($this->relationLoaded('progresses')) {
-            return $this->progresses->firstWhere('user_id', $user->id);
-        }
-
-        return $this->progresses()->where('user_id', $user->id)->first();
-    }
-
-    /**
      * Scope query to only published materials.
      */
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', 'published');
+    }
+
+    /**
+     * URL sematan Drive (iframe) bila konten materi berupa berkas Google Drive, selain itu null.
+     */
+    public function getDrivePreviewUrlAttribute(): ?string
+    {
+        $fileId = GoogleDriveService::fileIdFrom($this->content_url);
+
+        return $fileId ? app(GoogleDriveService::class)->getPreviewUrl($fileId) : null;
+    }
+
+    /**
+     * URL untuk membuka berkas di Google Drive, pasangan dari drive_preview_url.
+     */
+    public function getDriveViewUrlAttribute(): ?string
+    {
+        $fileId = GoogleDriveService::fileIdFrom($this->content_url);
+
+        return $fileId ? app(GoogleDriveService::class)->getViewUrl($fileId) : null;
     }
 }
