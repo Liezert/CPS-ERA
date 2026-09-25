@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Resources\Users\Concerns\ShowsTemporaryPassword;
 use App\Filament\Resources\Users\UserResource;
 use App\Services\EmployeeAccountService;
 use Filament\Actions\Action;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListUsers extends ListRecords
 {
+    use ShowsTemporaryPassword;
+
     protected static string $resource = UserResource::class;
 
     protected function getHeaderActions(): array
@@ -33,7 +36,7 @@ class ListUsers extends ListRecords
                 ->label('Import Karyawan via CSV')
                 ->icon(Heroicon::OutlinedArrowUpTray)
                 ->modalHeading('Import Karyawan via CSV')
-                ->modalDescription('Kolom wajib: Nama, Email, NIK, Nama Divisi, Jabatan, Role (employee / supervisor / quality / admin). Kalau ada satu baris tidak valid, tidak ada akun yang dibuat. Semua akun baru memakai kata sandi sementara '.EmployeeAccountService::TEMPORARY_PASSWORD.' dan wajib diganti saat login pertama.')
+                ->modalDescription('Kolom wajib: Nama, Email, NIK, Nama Divisi, Jabatan, Role (employee / supervisor / quality / admin). Kalau ada satu baris tidak valid, tidak ada akun yang dibuat. Setiap akun baru mendapat kata sandi sementara acak yang wajib diganti saat login pertama; setelah import, berkas berisi kata sandi tiap akun otomatis diunduh.')
                 ->schema([
                     FileUpload::make('file')
                         ->label('File CSV')
@@ -42,7 +45,7 @@ class ListUsers extends ListRecords
                         ->acceptedFileTypes(['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'])
                         ->required(),
                 ])
-                ->action(function (array $data, Action $action): void {
+                ->action(function (array $data, Action $action): StreamedResponse {
                     $disk = Storage::disk('local');
 
                     try {
@@ -66,9 +69,22 @@ class ListUsers extends ListRecords
 
                     Notification::make()
                         ->title("{$result['created']} akun karyawan berhasil dibuat")
-                        ->body('Kata sandi sementara: '.EmployeeAccountService::TEMPORARY_PASSWORD)
+                        ->body('Berkas berisi kata sandi sementara tiap akun sedang diunduh. Serahkan ke masing-masing karyawan, lalu hapus berkasnya.')
                         ->success()
+                        ->persistent()
                         ->send();
+
+                    // Plaintext hanya ada di respons unduhan ini: tidak disimpan di disk, DB, log, atau notifikasi.
+                    return response()->streamDownload(function () use ($result): void {
+                        $output = fopen('php://output', 'w');
+                        fputcsv($output, ['Nama', 'Email', 'NIK', 'Kata Sandi Sementara'], ',', '"', '');
+
+                        foreach ($result['credentials'] as $credential) {
+                            fputcsv($output, [$credential['name'], $credential['email'], $credential['employee_id'], $credential['password']], ',', '"', '');
+                        }
+
+                        fclose($output);
+                    }, 'kata-sandi-sementara-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
                 }),
 
             CreateAction::make()->label('Tambah Karyawan'),

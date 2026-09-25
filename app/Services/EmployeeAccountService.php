@@ -6,19 +6,15 @@ use App\Models\Division;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
  * Pembuatan akun karyawan oleh admin (form panel maupun import CSV). Tidak ada registrasi mandiri:
- * setiap akun baru memakai kata sandi sementara dan wajib diganti saat login pertama.
+ * setiap akun baru memakai kata sandi sementara acak per akun dan wajib diganti saat login pertama.
  */
 class EmployeeAccountService
 {
-    // ponytail: satu kata sandi sementara untuk semua akun baru. Siapa pun yang tahu email karyawan
-    // bisa masuk sebelum karyawan itu login pertama kali; ganti ke kata sandi acak per akun yang
-    // dibagikan langsung ke karyawan bila risiko itu tidak bisa diterima.
-    public const TEMPORARY_PASSWORD = 'SandiLamaDihapus2026';
-
     public const ROLES = [
         'employee' => 'Employee',
         'supervisor' => 'Supervisor',
@@ -56,18 +52,31 @@ class EmployeeAccountService
     }
 
     /**
-     * @param  array{name: string, email: string, employee_id: string, division_id: int, jabatan?: ?string, role: string}  $data
+     * Kata sandi sementara acak per akun. Plaintext hanya dikembalikan ke pemanggil untuk
+     * ditampilkan sekali ke admin; jangan disimpan, di-log, atau dimasukkan ke notifikasi/session.
      */
-    public function create(array $data): User
+    public static function generateTemporaryPassword(): string
     {
-        return DB::transaction(function () use ($data): User {
+        return Str::password(12, symbols: false);
+    }
+
+    /**
+     * @param  array{name: string, email: string, employee_id: string, division_id: int, jabatan?: ?string, role: string}  $data
+     * @param  string|null  $password  Kata sandi awal; default kata sandi sementara acak.
+     * @return array{user: User, password: string}
+     */
+    public function create(array $data, ?string $password = null): array
+    {
+        $password ??= self::generateTemporaryPassword();
+
+        $user = DB::transaction(function () use ($data, $password): User {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'employee_id' => $data['employee_id'],
                 'division_id' => $data['division_id'],
                 'jabatan' => $data['jabatan'] ?? null,
-                'password' => self::TEMPORARY_PASSWORD,
+                'password' => $password,
                 'must_change_password' => true,
             ]);
 
@@ -77,31 +86,39 @@ class EmployeeAccountService
 
             return $user;
         });
+
+        return ['user' => $user, 'password' => $password];
     }
 
     /**
-     * Kembalikan akun ke kata sandi sementara; karyawan wajib membuat kata sandi baru saat login.
+     * Ganti ke kata sandi sementara acak yang baru; karyawan wajib membuat kata sandi baru saat login.
+     *
+     * @return string Kata sandi sementara (plaintext) untuk ditampilkan sekali ke admin.
      */
-    public function resetTemporaryPassword(User $user): void
+    public function resetTemporaryPassword(User $user): string
     {
+        $password = self::generateTemporaryPassword();
+
         $user->update([
-            'password' => self::TEMPORARY_PASSWORD,
+            'password' => $password,
             'must_change_password' => true,
         ]);
+
+        return $password;
     }
 
     /**
      * Import semua baris sekaligus: kalau ada satu baris pun yang tidak valid, tidak ada akun yang
      * dibuat, supaya admin cukup memperbaiki file lalu mengunggah ulang tanpa duplikat.
      *
-     * @return array{created: int, errors: list<string>}
+     * @return array{created: int, errors: list<string>, credentials: list<array{name: string, email: string, employee_id: string, password: string}>}
      */
     public function importCsv(string $path): array
     {
         [$rows, $errors] = $this->readCsv($path);
 
         if ($errors !== []) {
-            return ['created' => 0, 'errors' => $errors];
+            return ['created' => 0, 'errors' => $errors, 'credentials' => []];
         }
 
         $divisionIds = Division::pluck('id', 'name')
@@ -136,16 +153,25 @@ class EmployeeAccountService
         }
 
         if ($errors !== []) {
-            return ['created' => 0, 'errors' => $errors];
+            return ['created' => 0, 'errors' => $errors, 'credentials' => []];
         }
 
-        DB::transaction(function () use ($valid): void {
+        $credentials = DB::transaction(function () use ($valid): array {
+            $credentials = [];
+
             foreach ($valid as $row) {
-                $this->create($row);
+                $credentials[] = [
+                    'name' => $row['name'],
+                    'email' => $row['email'],
+                    'employee_id' => $row['employee_id'],
+                    'password' => $this->create($row)['password'],
+                ];
             }
+
+            return $credentials;
         });
 
-        return ['created' => count($valid), 'errors' => []];
+        return ['created' => count($credentials), 'errors' => [], 'credentials' => $credentials];
     }
 
     /**

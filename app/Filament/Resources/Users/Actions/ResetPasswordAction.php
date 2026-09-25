@@ -5,12 +5,13 @@ namespace App\Filament\Resources\Users\Actions;
 use App\Models\User;
 use App\Services\EmployeeAccountService;
 use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
+use Livewire\Component;
 
 /**
- * Kembalikan akun karyawan ke kata sandi sementara (mis. karyawan lupa kata sandinya).
- * Dipakai di halaman Edit User dan di baris tabel daftar karyawan.
+ * Ganti kata sandi karyawan dengan kata sandi sementara acak (mis. karyawan lupa kata sandinya).
+ * Dipakai di halaman Edit User dan di baris tabel daftar karyawan; halaman pemakainya wajib
+ * memakai trait ShowsTemporaryPassword untuk modal hasilnya.
  */
 class ResetPasswordAction
 {
@@ -22,17 +23,17 @@ class ResetPasswordAction
             ->color('warning')
             ->requiresConfirmation()
             ->modalHeading('Reset Kata Sandi Karyawan')
-            ->modalDescription(fn (User $record): string => "Kata sandi {$record->name} dikembalikan ke kata sandi sementara "
-                .EmployeeAccountService::TEMPORARY_PASSWORD.', dan karyawan wajib membuat kata sandi baru saat login berikutnya.')
+            ->modalDescription(fn (User $record): string => "Kata sandi {$record->name} diganti dengan kata sandi sementara acak yang baru. "
+                .'Kata sandi ditampilkan sekali setelah reset, dan karyawan wajib membuat kata sandi baru saat login berikutnya.')
             ->modalSubmitActionLabel('Reset Sekarang')
-            ->action(function (User $record): void {
-                app(EmployeeAccountService::class)->resetTemporaryPassword($record);
+            ->action(function (User $record, Component $livewire): void {
+                $password = app(EmployeeAccountService::class)->resetTemporaryPassword($record);
 
-                Notification::make()
-                    ->title("Kata sandi {$record->name} direset")
-                    ->body('Kata sandi sementara: '.EmployeeAccountService::TEMPORARY_PASSWORD)
-                    ->success()
-                    ->send();
+                // Modal, bukan Notification: isi notifikasi Filament tersimpan di session (DB).
+                $livewire->replaceMountedAction('temporaryPassword', [
+                    'name' => $record->name,
+                    'password' => $password,
+                ]);
             });
     }
 }

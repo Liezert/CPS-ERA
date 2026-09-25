@@ -14,12 +14,13 @@ use RuntimeException;
  *   php artisan db:seed --class=CustomProductionUserSeeder
  *
  * Sengaja TIDAK didaftarkan di DatabaseSeeder. Setiap akun dibuat lewat EmployeeAccountService,
- * jadi otomatis memakai kata sandi sementara (EmployeeAccountService::TEMPORARY_PASSWORD) dan wajib
- * diganti saat login pertama. Email yang sudah terdaftar dilewati, jadi aman dijalankan ulang.
+ * jadi mendapat kata sandi sementara acak per akun yang wajib diganti saat login pertama. Kata sandi
+ * hanya dicetak sekali ke terminal di akhir proses (tidak disimpan/di-log): catat dan serahkan
+ * langsung ke tiap karyawan. Email yang sudah terdaftar dilewati, jadi aman dijalankan ulang.
  *
  * Divisi ditulis dengan NAMA, bukan ID: ID divisi bisa berbeda antara lokal dan production.
- * Pakai salah satu dari 12 divisi resmi: Produksi, PPIC, Warehouse & Delivery, RM Warehouse,
- * Engineering, Quality Control, Jahit, Finance Accounting Tax, Purchasing, Marketing, Sales,
+ * Pakai salah satu dari 11 divisi pelapor resmi: Produksi, PPIC, Warehouse & Delivery, RM Warehouse,
+ * Engineering, Quality Control, Jahit, Finance Accounting Tax, Purchasing, Marketing & Sales,
  * Plant Balben & Krian.
  *
  * Role: employee | supervisor | quality | admin.
@@ -44,6 +45,7 @@ class CustomProductionUserSeeder extends Seeder
     public function run(): void
     {
         $service = app(EmployeeAccountService::class);
+        $credentials = [];
 
         foreach ($this->employees as $employee) {
             if (User::where('email', $employee['email'])->exists()) {
@@ -55,7 +57,7 @@ class CustomProductionUserSeeder extends Seeder
             $divisionId = Division::reportable()->where('name', $employee['divisi'])->value('id')
                 ?? throw new RuntimeException("Divisi tidak dikenal untuk {$employee['email']}: {$employee['divisi']}");
 
-            $service->create([
+            $account = $service->create([
                 'name' => $employee['name'],
                 'email' => $employee['email'],
                 'employee_id' => $employee['employee_id'],
@@ -64,7 +66,13 @@ class CustomProductionUserSeeder extends Seeder
                 'role' => $employee['role'],
             ]);
 
+            $credentials[] = [$employee['email'], $account['password']];
             $this->command?->info("Dibuat: {$employee['email']}");
+        }
+
+        if ($credentials !== []) {
+            $this->command?->warn('Kata sandi sementara (hanya ditampilkan sekali, tidak disimpan):');
+            $this->command?->table(['Email', 'Kata Sandi Sementara'], $credentials);
         }
     }
 }

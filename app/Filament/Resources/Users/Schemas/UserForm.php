@@ -17,7 +17,7 @@ class UserForm
         return $schema
             ->components([
                 Section::make('Data Karyawan')
-                    ->description('Akun baru memakai kata sandi sementara '.EmployeeAccountService::TEMPORARY_PASSWORD.' dan wajib diganti karyawan saat login pertama.')
+                    ->description('Akun baru mendapat kata sandi sementara acak (ditampilkan sekali setelah disimpan) dan wajib diganti karyawan saat login pertama.')
                     ->columns(2)
                     ->schema([
                         TextInput::make('name')
