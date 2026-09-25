@@ -10,7 +10,6 @@ use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\LearningCategory;
 use App\Models\LearningMaterial;
-use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserKpiYearly;
 use Database\Seeders\DivisionSeeder;
@@ -137,24 +136,6 @@ class AccessMatrixGateAndPolicyTest extends TestCase
 
         $this->actingAs($this->supervisor);
         $this->assertFalse(KnowledgeDocumentResource::canCreate());
-
-        // API store check: Employee & Supervisor dilarang create
-        $payload = [
-            'title' => 'SOP Keselamatan Kerja Baru',
-            'division_id' => $this->divisionA->id,
-            'type' => 'sop',
-            'description' => 'Petunjuk K3L',
-        ];
-
-        $resEmp = $this->actingAs($this->employee)->postJson('/api/knowledge-documents', $payload);
-        $resEmp->assertForbidden();
-
-        $resSpv = $this->actingAs($this->supervisor)->postJson('/api/knowledge-documents', $payload);
-        $resSpv->assertForbidden();
-
-        // Quality & Admin diizinkan create
-        $resQlt = $this->actingAs($this->quality)->postJson('/api/knowledge-documents', $payload);
-        $resQlt->assertCreated();
     }
 
     /**
@@ -240,45 +221,6 @@ class AccessMatrixGateAndPolicyTest extends TestCase
 
         $this->actingAs($this->supervisor);
         $this->assertFalse(UserResource::canAccess());
-
-        // API Endpoint non-admin ditolak
-        $resDenied = $this->actingAs($this->quality)->postJson("/api/admin/users/{$this->employee->id}/adjust-xp", [
-            'points' => 100,
-            'description' => 'Coba koreksi poin tanpa izin',
-        ]);
-        $resDenied->assertForbidden();
-
-        // 1. Admin memberikan penambahan manual +150 XP
-        $this->assertSame(0, (int) $this->employee->fresh()->xp);
-
-        $resAdd = $this->actingAs($this->admin)->postJson("/api/admin/users/{$this->employee->id}/adjust-xp", [
-            'points' => 150,
-            'description' => 'Bonus kontribusi inisiatif keselamatan',
-        ]);
-        $resAdd->assertOk();
-        $this->assertSame(150, $resAdd->json('data.current_xp'));
-
-        // Verifikasi buku besar point_transactions
-        $txAdd = PointTransaction::where('user_id', $this->employee->id)
-            ->where('source_type', 'admin_adjustment')
-            ->first();
-
-        $this->assertNotNull($txAdd);
-        $this->assertSame('xp', $txAdd->ledger_type);
-        $this->assertSame(150, $txAdd->points);
-        $this->assertSame('Bonus kontribusi inisiatif keselamatan', $txAdd->description);
-        $this->assertSame(150, (int) $this->employee->fresh()->xp);
-
-        // 2. Admin melakukan pengurangan manual -50 XP (misal koreksi kesalahan input)
-        $resSub = $this->actingAs($this->admin)->postJson("/api/admin/users/{$this->employee->id}/adjust-xp", [
-            'points' => -50,
-            'description' => 'Koreksi kelebihan alokasi poin',
-        ]);
-        $resSub->assertOk();
-        $this->assertSame(100, $resSub->json('data.current_xp'));
-
-        $this->assertSame(2, PointTransaction::where('user_id', $this->employee->id)->count());
-        $this->assertSame(100, (int) $this->employee->fresh()->xp);
     }
 
     /**

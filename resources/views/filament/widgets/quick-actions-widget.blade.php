@@ -232,7 +232,7 @@
                     <div>
                         <h4 class="fi-qa-alert-title">Perlu Tindakan Admin</h4>
                         <p class="fi-qa-alert-desc">
-                            Terdapat <strong style="font-weight: 700;">{{ $pendingDraftCount }} Laporan CAPA</strong> berstatus Draft yang menunggu peninjauan atau verifikasi.
+                            Terdapat <strong style="font-weight: 700;">{{ $pendingDraftCount }} Laporan CAPA</strong> yang menunggu review Supervisor atau HR.
                         </p>
                     </div>
                 </div>

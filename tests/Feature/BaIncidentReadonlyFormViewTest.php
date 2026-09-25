@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\BaIncidents\Pages\ViewBaIncident;
 use App\Livewire\Ba\Create as BaCreate;
 use App\Livewire\Ba\Show as BaShow;
 use App\Models\BaIncident;
@@ -68,7 +69,7 @@ class BaIncidentReadonlyFormViewTest extends TestCase
             'korektif_waktu' => 'Maks 3 Hari',
             'is_potensi_risiko' => true,
             'is_potensi_peluang' => false,
-            'status' => 'submitted',
+            'status' => 'pending_hr', // menunggu review final HR (admin termasuk tim HR)
             'created_by' => $this->employee->id,
         ], $overrides));
     }
@@ -184,7 +185,7 @@ class BaIncidentReadonlyFormViewTest extends TestCase
         $incident = $this->submittedIncident();
 
         Livewire::actingAs($this->admin)
-            ->test(\App\Filament\Resources\BaIncidents\Pages\ViewBaIncident::class, ['record' => $incident->getRouteKey()])
+            ->test(ViewBaIncident::class, ['record' => $incident->getRouteKey()])
             ->callAction('approve', ['status_verifikasi' => 'efektif', 'bukti_objektif' => 'Suhu stabil 230C selama 3 shift'])
             ->assertHasNoActionErrors();
 
