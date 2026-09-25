@@ -64,6 +64,8 @@
                                 @break
 
                             @case('ba_review')
+                            @case('ba_ditolak_hr')
+                            @case('ba_revisi')
                                 @include('components.layout.nav-icon', ['name' => 'shield-alert', 'class' => 'w-4 h-4 text-neutral-600'])
                                 @break
 

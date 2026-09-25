@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\BaIncidentStatus;
 use App\Models\BaIncident;
 use Filament\Widgets\Widget;
 
@@ -19,7 +20,7 @@ class QuickActionsWidget extends Widget
     protected function getViewData(): array
     {
         return [
-            'pendingDraftCount' => BaIncident::whereIn('status', ['draft', 'submitted', 'Created'])->count(),
+            'pendingDraftCount' => BaIncident::whereIn('status', [BaIncidentStatus::PendingSupervisor->value, BaIncidentStatus::PendingHr->value])->count(),
         ];
     }
 }
