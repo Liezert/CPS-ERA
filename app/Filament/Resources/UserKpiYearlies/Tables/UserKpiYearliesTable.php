@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\UserKpiYearlies\Tables;
 
 use App\Models\UserKpiYearly;
+use App\Services\KpiContributionCalculator;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -53,14 +54,15 @@ class UserKpiYearliesTable
                     ->color('purple')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                ViewColumn::make('materials_completed_count')
-                    ->label('Progress Bundle (Jalur B)')
-                    ->view('filament.tables.columns.progress-bar')
-                    ->viewData([
-                        'max' => 5,
-                        'unit' => 'materi',
-                    ])
-                    ->sortable()
+                // Progres dihitung dari attempt periode KPI aktif (counter materials_completed_count tidak dipakai lagi).
+                // ponytail: 1 query per baris; cukup untuk tabel berpaginasi, pindah ke subquery bila lambat.
+                TextColumn::make('kpi_progress')
+                    ->label('Progres Materi (Periode Aktif)')
+                    ->state(function (UserKpiYearly $record): string {
+                        $kpi = app(KpiContributionCalculator::class)->calculate($record->user);
+
+                        return "{$kpi['summary']} ({$kpi['percentage']}%)";
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
