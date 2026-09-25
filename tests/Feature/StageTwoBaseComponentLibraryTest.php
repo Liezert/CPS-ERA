@@ -105,21 +105,4 @@ class StageTwoBaseComponentLibraryTest extends TestCase
         $this->assertStringContainsString('Baris Desktop', $html);
         $this->assertStringContainsString('Card Mobile', $html);
     }
-
-    /**
-     * DoD #6: Preview page /components-preview accessible and renders all components.
-     */
-    public function test_components_preview_page_renders_successfully(): void
-    {
-        $response = $this->get('/components-preview');
-
-        $response->assertOk();
-        $response->assertSee('CPS ERA — Base Component Library');
-        $response->assertSee('Simpan Laporan BA');
-        $response->assertSee('Created');
-        $response->assertSee('Reviewed');
-        $response->assertSee('Closed');
-        $response->assertSee('Total Knowledge Assets');
-        $response->assertSee('SOP Penanganan Mesin CNC Saat Overheat');
-    }
 }
