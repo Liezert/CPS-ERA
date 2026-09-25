@@ -12,20 +12,21 @@ class DivisionSeeder extends Seeder
      */
     public function run(): void
     {
+        // 11 divisi final dari client (Marketing & Sales digabung, keputusan owner 2026-09-24) + HRGA. HRGA bukan divisi pelapor CAPA
+        // (lihat Division::HRGA), tetapi tetap ada untuk divisi di profil user HRGA.
         $divisions = [
             'Engineering',
             'Finance Accounting Tax',
-            'Gudang RM',
             'HRGA',
-            'Keamanan',
+            'Jahit',
+            'Marketing & Sales',
             'PPIC',
+            'Plant Balben & Krian',
             'Produksi',
             'Purchasing',
             'Quality Control',
-            'Repair',
-            'Sales & Marketing',
+            'RM Warehouse',
             'Warehouse & Delivery',
-            'IT',
         ];
 
         foreach ($divisions as $name) {
