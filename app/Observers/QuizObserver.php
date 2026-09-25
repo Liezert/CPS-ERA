@@ -2,9 +2,12 @@
 
 namespace App\Observers;
 
+use App\Enums\QuizRelatedType;
+use App\Models\LearningMaterial;
 use App\Models\Notification;
 use App\Models\Quiz;
 use App\Models\User;
+use BackedEnum;
 use Illuminate\Support\Str;
 
 class QuizObserver
@@ -18,6 +21,28 @@ class QuizObserver
         if (str_starts_with($quiz->type, 'mission_')) {
             $this->notifyUsers($quiz);
         }
+
+        $this->publishBaLearningMaterial($quiz);
+    }
+
+    /**
+     * Materi Learning hasil laporan CAPA menunggu post-test (status `candidate`); begitu HRGA
+     * membuat post-test-nya, materi langsung terbit di Learning. Satu titik untuk semua jalur
+     * pembuatan post-test (tombol "Buat Post-Test" di review CAPA maupun form materi Learning).
+     */
+    protected function publishBaLearningMaterial(Quiz $quiz): void
+    {
+        // Form Filament bisa mengisi related_type sebagai instance enum (kolom tidak di-cast).
+        $relatedType = $quiz->related_type instanceof BackedEnum ? $quiz->related_type->value : $quiz->related_type;
+
+        if ($quiz->type !== 'post_test' || $relatedType !== QuizRelatedType::LearningMaterial->value) {
+            return;
+        }
+
+        LearningMaterial::whereKey($quiz->related_id)
+            ->whereNotNull('source_ba_id')
+            ->where('status', 'candidate')
+            ->update(['status' => 'published']);
     }
 
     /**

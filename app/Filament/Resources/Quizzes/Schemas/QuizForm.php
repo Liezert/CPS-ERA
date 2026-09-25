@@ -31,7 +31,7 @@ class QuizForm
                         'mission_quiz' => 'Mission: Quiz',
                         'post_test' => 'Post-Test (Learning)',
                     ])
-                    ->default(fn () => request()->query('related_type') === 'ba_incident' ? 'post_test' : 'mission_quiz')
+                    ->default(fn () => request()->filled('related_type') ? 'post_test' : 'mission_quiz')
                     ->required(),
                 TextInput::make('points_reward')
                     ->label('Reward Poin')
@@ -41,6 +41,9 @@ class QuizForm
                 Select::make('related_type')
                     ->label('Terkait Dengan')
                     ->options(QuizRelatedType::class)
+                    // Post-test hasil CAPA ditempel ke materi Learning-nya (tombol Buat Post-Test di review CAPA);
+                    // kuis yang ditempel langsung ke laporan BA tidak punya halaman pengerjaan bagi karyawan.
+                    ->disableOptionWhen(fn (string $value): bool => $value === QuizRelatedType::BaIncident->value)
                     ->default(fn () => request()->query('related_type') ?? QuizRelatedType::None->value)
                     ->live(),
                 Select::make('related_id')
