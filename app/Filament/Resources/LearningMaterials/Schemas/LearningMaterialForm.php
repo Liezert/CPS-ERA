@@ -70,6 +70,18 @@ class LearningMaterialForm
                     ->label('File Materi (Opsional)')
                     ->disk('public')
                     ->directory('learning-materials/files')
+                    // Disk publik dilayani dari origin aplikasi: tolak HTML/SVG dan tipe lain di luar materi.
+                    ->acceptedFileTypes([
+                        'application/pdf',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'video/mp4',
+                        'video/quicktime',
+                        'video/webm',
+                        'image/jpeg',
+                        'image/png',
+                    ])
                     ->maxSize(20480)
                     ->columnSpanFull(),
                 Textarea::make('description')
@@ -94,7 +106,8 @@ class LearningMaterialForm
                             ->visible(fn ($get) => (bool) $get('has_post_test'))
                             ->columnSpanFull(),
                         TextInput::make('post_test_points')
-                            ->label('Reward Poin KPI')
+                            ->label('Nilai Poin Post-Test')
+                            ->helperText('Tidak menambah KPI. KPI dihitung dari jumlah materi yang lulus 100% per periode.')
                             ->numeric()
                             ->default(20)
                             ->required(fn ($get) => (bool) $get('has_post_test'))

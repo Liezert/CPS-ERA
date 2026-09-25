@@ -11,9 +11,11 @@ use App\Models\UserLearningProgress;
 use App\Services\KpiContributionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Throwable;
 
 #[Layout('layouts.app')]
 #[Title('Evaluasi Post-Test - CPS ERA')]
@@ -55,6 +57,9 @@ class PostTest extends Component
         } else {
             $this->material = $material->loadMissing(['category', 'creator', 'postTest.questions.options']);
         }
+
+        // Materi belum terbit (draft/candidate) hanya untuk pengelolanya.
+        abort_unless($this->material->status === 'published' || (Auth::user()?->can('update', $this->material) ?? false), 404);
 
         $userId = Auth::id();
         if (! $userId) {
@@ -196,8 +201,10 @@ class PostTest extends Component
             }
         }
 
-        $this->score = (int) round(($correctCount / $totalQuestions) * 100);
-        $this->passed = ($this->score === 100);
+        // Lulus hanya bila SEMUA soal benar; skor tampilan dibulatkan ke bawah sehingga
+        // 100 tidak pernah muncul dari pembulatan (mis. 200/201 = 99,5 -> 99, bukan 100).
+        $this->passed = $correctCount === $totalQuestions;
+        $this->score = $this->passed ? 100 : (int) floor(($correctCount / $totalQuestions) * 100);
 
         // Catat riwayat percobaan di quiz_attempts tanpa batas attempt
         $this->latestAttempt = QuizAttempt::create([
@@ -209,16 +216,27 @@ class PostTest extends Component
             'attempted_at' => now(),
         ]);
 
-        // Jika lulus 100%, trigger KPI Contribution service (Jalur B)
+        // Jika lulus 100%, trigger KPI Contribution service (Jalur B). Attempt sudah tersimpan dan
+        // progres KPI dihitung dari attempt, jadi kegagalan pencatatan poin tidak boleh menghapus hasil tes.
         if ($this->passed) {
             /** @var User $user */
             $user = Auth::user();
-            app(KpiContributionService::class)->recordMaterialCompletion(
-                $user,
-                $this->material,
-                $this->score,
-                $this->latestAttempt
-            );
+
+            try {
+                app(KpiContributionService::class)->recordMaterialCompletion(
+                    $user,
+                    $this->material,
+                    $this->score,
+                    $this->latestAttempt
+                );
+            } catch (Throwable $e) {
+                Log::error('Gagal mencatat KPI materi setelah post-test', [
+                    'user_id' => $userId,
+                    'material_id' => $this->material->id,
+                    'attempt_id' => $this->latestAttempt->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $this->isSubmitted = true;

@@ -15,6 +15,7 @@ use App\Models\QuizOption;
 use App\Models\QuizQuestion;
 use App\Models\User;
 use App\Models\UserLearningProgress;
+use App\Services\KpiContributionCalculator;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -221,9 +222,13 @@ class LearningPostTestFeatureTest extends TestCase
             'passed' => true,
         ]);
 
-        // Verifikasi kredit KPI di user_kpi_yearly
-        $kpi = $this->employee->getKpiYearly();
-        $this->assertSame(1, $kpi->fresh()->materials_completed_count);
+        // Verifikasi kredit KPI: progres periode dihitung dari attempt
+        $this->assertSame(1, $this->kpiCompleted());
+    }
+
+    private function kpiCompleted(): int
+    {
+        return app(KpiContributionCalculator::class)->calculate($this->employee)['completed'];
     }
 
     /**
@@ -256,9 +261,8 @@ class LearningPostTestFeatureTest extends TestCase
             'passed' => false,
         ]);
 
-        // Verifikasi tidak ada penambahan progress di user_kpi_yearly
-        $kpi = $this->employee->getKpiYearly();
-        $this->assertSame(0, $kpi->fresh()->materials_completed_count);
+        // Verifikasi tidak ada penambahan progres KPI
+        $this->assertSame(0, $this->kpiCompleted());
     }
 
     /**
@@ -283,8 +287,7 @@ class LearningPostTestFeatureTest extends TestCase
             ->assertSet('score', 100)
             ->assertSet('passed', true);
 
-        $kpi = $this->employee->getKpiYearly();
-        $this->assertSame(1, $kpi->fresh()->materials_completed_count);
+        $this->assertSame(1, $this->kpiCompleted());
 
         // Percobaan kedua (Lulus lagi)
         Livewire::actingAs($this->employee)
@@ -295,8 +298,8 @@ class LearningPostTestFeatureTest extends TestCase
             ->assertSet('score', 100)
             ->assertSet('passed', true);
 
-        // Counter tetap 1, tidak menjadi 2
-        $this->assertSame(1, $kpi->fresh()->materials_completed_count);
+        // Progres tetap 1 (materi yang sama dihitung sekali), tidak menjadi 2
+        $this->assertSame(1, $this->kpiCompleted());
     }
 
     /**
