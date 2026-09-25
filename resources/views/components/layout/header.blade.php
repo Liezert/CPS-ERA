@@ -148,7 +148,7 @@
                     @endif
 
                     @if ($isQuality || $isAdmin)
-                        <a href="{{ route('management.learning-categories') }}"
+                        <a href="{{ route('filament.admin.resources.learning-categories.index') }}"
                            class="flex items-center gap-2.5 px-4 py-2 font-sans text-xs text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition-colors">
                             @include('components.layout.nav-icon', ['name' => 'folder-cog', 'class' => 'w-4 h-4 text-neutral-400'])
                             <span>Kategori Learning</span>

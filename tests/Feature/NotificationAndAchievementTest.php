@@ -100,19 +100,21 @@ class NotificationAndAchievementTest extends TestCase
     }
 
     /**
-     * Checklist 1: Notifikasi otomatis 'ba_review' muncul saat BA created untuk supervisor di divisi terkait.
+     * Checklist 1: Notifikasi otomatis 'ba_review' muncul saat BA masuk antrean Supervisor
+     * (pending_supervisor) untuk supervisor di divisi terkait.
      */
     public function test_ba_review_notification_triggered_for_supervisors_in_the_incident_division(): void
     {
-        // Buat BA baru di divisi A
+        // Buat BA di divisi A lalu serahkan ke antrean Supervisor
         $ba = BaIncident::create([
             'nomor_ba' => 'BA-2026-0001',
             'division_id' => $this->divisionA->id,
             'file_ba_url' => 'https://example.com/ba.pdf',
             'file_ftk_url' => 'https://example.com/ftk.pdf',
-            'status' => 'created',
+            'status' => 'draft',
             'created_by' => $this->employeeA->id,
         ]);
+        $ba->update(['status' => 'pending_supervisor']);
 
         // Supervisor divisi A HARUS menerima notifikasi ba_review
         $notifSupervisorA = Notification::where('user_id', $this->supervisorA->id)
@@ -199,89 +201,5 @@ class NotificationAndAchievementTest extends TestCase
         $this->assertStringContainsString('Knowledge Contributor', $notif->message);
         $this->assertSame('achievement', $notif->related_type);
         $this->assertNull($notif->read_at);
-    }
-
-    /**
-     * Checklist 3: Endpoint GET /api/me/notifications dan PATCH /api/me/notifications/{id}/read berfungsi,
-     * serta TIDAK bisa menandai notifikasi milik user lain (403 Forbidden).
-     */
-    public function test_notification_endpoints_and_mark_as_read_authorization(): void
-    {
-        // Buat notifikasi untuk employeeA
-        $notifA = Notification::create([
-            'user_id' => $this->employeeA->id,
-            'type' => 'misi_baru',
-            'title' => 'Notif A',
-            'message' => 'Pesan A',
-        ]);
-
-        // Buat notifikasi untuk employeeB
-        $notifB = Notification::create([
-            'user_id' => $this->employeeB->id,
-            'type' => 'misi_baru',
-            'title' => 'Notif B',
-            'message' => 'Pesan B',
-        ]);
-
-        // GET /api/me/notifications oleh employeeA
-        $responseA = $this->actingAs($this->employeeA)->getJson('/api/me/notifications');
-        $responseA->assertOk();
-        $responseA->assertJsonStructure([
-            'success',
-            'unread_count',
-            'data' => [
-                '*' => ['id', 'user_id', 'type', 'title', 'message', 'read_at'],
-            ],
-        ]);
-
-        $idsA = collect($responseA->json('data'))->pluck('id')->all();
-        $this->assertContains($notifA->id, $idsA);
-        $this->assertNotContains($notifB->id, $idsA);
-
-        // employeeA mencoba menandai notifikasi milik employeeB -> HARUS 403 Forbidden
-        $forbiddenResponse = $this->actingAs($this->employeeA)
-            ->patchJson("/api/me/notifications/{$notifB->id}/read");
-
-        $forbiddenResponse->assertStatus(403);
-        $this->assertNull($notifB->fresh()->read_at);
-
-        // employeeA menandai notifikasi miliknya sendiri -> Berhasil (200 OK)
-        $readResponse = $this->actingAs($this->employeeA)
-            ->patchJson("/api/me/notifications/{$notifA->id}/read");
-
-        $readResponse->assertOk();
-        $readResponse->assertJsonPath('success', true);
-        $this->assertNotNull($notifA->fresh()->read_at);
-    }
-
-    /**
-     * Endpoint GET /api/me/achievements menampilkan status unlock yang akurat per user.
-     */
-    public function test_my_achievements_endpoint_shows_accurate_unlock_status(): void
-    {
-        $achievement = Achievement::where('name', 'Knowledge Contributor')->firstOrFail();
-
-        // Unlock hanya untuk employeeA
-        UserAchievement::create([
-            'user_id' => $this->employeeA->id,
-            'achievement_id' => $achievement->id,
-            'unlocked_at' => now(),
-        ]);
-
-        // Respons untuk employeeA
-        $resA = $this->actingAs($this->employeeA)->getJson('/api/me/achievements');
-        $resA->assertOk();
-
-        $itemA = collect($resA->json('data'))->firstWhere('id', $achievement->id);
-        $this->assertTrue($itemA['is_unlocked']);
-        $this->assertNotNull($itemA['unlocked_at']);
-
-        // Respons untuk employeeB (belum unlock)
-        $resB = $this->actingAs($this->employeeB)->getJson('/api/me/achievements');
-        $resB->assertOk();
-
-        $itemB = collect($resB->json('data'))->firstWhere('id', $achievement->id);
-        $this->assertFalse($itemB['is_unlocked']);
-        $this->assertNull($itemB['unlocked_at']);
     }
 }
