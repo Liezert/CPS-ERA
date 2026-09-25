@@ -30,6 +30,9 @@ class Show extends Component
             $this->material = $material->loadMissing(['category', 'creator', 'postTest']);
         }
 
+        // Materi belum terbit (draft/candidate) hanya untuk pengelolanya.
+        abort_unless($this->material->status === 'published' || (Auth::user()?->can('update', $this->material) ?? false), 404);
+
         $userId = Auth::id();
         if ($userId) {
             // Ambil atau inisialisasi record progress belajar pengguna (DoD #1)

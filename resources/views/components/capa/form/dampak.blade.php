@@ -8,9 +8,6 @@
                     <h3 id="section-dampak" class="text-sm font-bold text-neutral-900 font-sans tracking-tight">
                         6. Identifikasi Dampak Lanjutan &amp; Potensi
                     </h3>
-                    <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-neutral-600 bg-neutral-100 border border-neutral-200 rounded-badge">
-                        Manajemen Risiko
-                    </span>
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -28,9 +25,6 @@
                                     Potensi Risiko Signifikan
                                 </span>
                             </div>
-                            <p class="text-xs text-neutral-600 leading-relaxed">
-                                Insiden ini berpotensi memicu bahaya keselamatan kerja (K3), komplain kualitas pelanggan fatal, atau kerugian biaya mesin besar jika dibiarkan.
-                            </p>
                         </div>
                     </label>
 
@@ -48,9 +42,6 @@
                                     Potensi Peluang Improvement
                                 </span>
                             </div>
-                            <p class="text-xs text-neutral-600 leading-relaxed">
-                                Temuan ini memberikan dasar berharga untuk Kaizen, standardisasi SOP baru antar-divisi, atau efisiensi pemeliharaan preventif masa depan.
-                            </p>
                         </div>
                     </label>
                 </div>

@@ -90,20 +90,4 @@ class Quiz extends Model
     {
         return $this->type === 'mission_case_study';
     }
-
-    /**
-     * Periksa apakah misi bertipe Quiz Cepat.
-     */
-    public function isQuiz(): bool
-    {
-        return $this->type === 'mission_quiz';
-    }
-
-    /**
-     * Periksa apakah bertipe Post-Test.
-     */
-    public function isPostTest(): bool
-    {
-        return $this->type === 'post_test';
-    }
 }
