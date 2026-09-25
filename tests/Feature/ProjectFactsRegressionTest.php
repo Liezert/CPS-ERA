@@ -30,31 +30,30 @@ class ProjectFactsRegressionTest extends TestCase
     }
 
     /**
-     * PRD v2.0 §1.4 & §2.1: Exactly 13 Divisions Fact Lock.
-     * Division::count() must be exactly 13, and Division names must match the official list.
+     * PRD v2.0 §1.4 & §2.1: Exactly 12 Divisions Fact Lock (Marketing & Sales digabung, keputusan owner 2026-09-24).
+     * Division::count() must be exactly 12, and Division names must match the official list.
      */
-    public function test_divisions_count_is_exactly_thirteen_and_names_match_official_prd_v2_list(): void
+    public function test_divisions_count_is_exactly_twelve_and_names_match_official_prd_v2_list(): void
     {
         $this->seed(DivisionSeeder::class);
 
-        // 1. Exactly 13 divisions
-        $this->assertSame(13, Division::count());
+        // 1. Exactly 12 divisions
+        $this->assertSame(12, Division::count());
 
-        // 2. Official 13 names per PRD v2.0 §1.4
+        // 2. 11 divisi pelapor final + HRGA
         $expectedDivisions = collect([
             'Engineering',
             'Finance Accounting Tax',
-            'Gudang RM',
             'HRGA',
-            'Keamanan',
+            'Jahit',
+            'Marketing & Sales',
             'PPIC',
+            'Plant Balben & Krian',
             'Produksi',
             'Purchasing',
             'Quality Control',
-            'Repair',
-            'Sales & Marketing',
+            'RM Warehouse',
             'Warehouse & Delivery',
-            'IT',
         ])->sort()->values()->all();
 
         $actualDivisions = Division::pluck('name')->sort()->values()->all();
