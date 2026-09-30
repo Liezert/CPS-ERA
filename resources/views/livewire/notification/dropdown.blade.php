@@ -10,7 +10,7 @@
 
         {{-- Notification Indicator Badge (Sharp corners per DS §5) --}}
         @if ($unreadCount > 0)
-            <span class="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-brand text-white font-mono text-[10px] font-bold rounded-badge leading-none">
+            <span class="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-brand text-white font-mono text-xs font-bold rounded-badge leading-none">
                 {{ $unreadCount }}
             </span>
         @endif
@@ -32,7 +32,7 @@
             <div class="flex items-center gap-2">
                 <span class="font-sans font-semibold text-sm text-neutral-900">Notifikasi</span>
                 @if ($unreadCount > 0)
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-badge text-[10px] font-bold font-mono bg-brand text-white">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-badge text-xs font-bold font-mono bg-brand text-white">
                         {{ $unreadCount }} Baru
                     </span>
                 @endif
@@ -66,7 +66,13 @@
                             @case('ba_review')
                             @case('ba_ditolak_hr')
                             @case('ba_revisi')
+                            @case('ba_disetujui')
                                 @include('components.layout.nav-icon', ['name' => 'shield-alert', 'class' => 'w-4 h-4 text-neutral-600'])
+                                @break
+
+                            @case('video_disetujui')
+                            @case('video_ditolak')
+                                @include('components.layout.nav-icon', ['name' => 'video', 'class' => 'w-4 h-4 text-neutral-600'])
                                 @break
 
                             @case('achievement_baru')
@@ -88,10 +94,10 @@
                                 <span class="w-2 h-2 rounded-full bg-brand shrink-0 mt-1" title="Belum dibaca" aria-label="Belum dibaca"></span>
                             @endif
                         </div>
-                        <p class="font-sans text-[11px] text-neutral-600 mt-0.5 line-clamp-2 leading-relaxed">
+                        <p class="font-sans text-xs text-neutral-600 mt-0.5 line-clamp-2 leading-relaxed">
                             {{ $item->message }}
                         </p>
-                        <span class="font-mono text-[10px] text-neutral-500 font-medium mt-1 block">
+                        <span class="font-mono text-xs text-neutral-500 font-medium mt-1 block">
                             {{ $item->created_at->diffForHumans() }}
                         </span>
                     </div>
@@ -102,17 +108,10 @@
                         @include('components.layout.nav-icon', ['name' => 'bell', 'class' => 'w-5 h-5'])
                     </div>
                     <p class="font-sans text-xs font-medium text-neutral-700">Tidak ada notifikasi</p>
-                    <p class="font-sans text-[11px] text-neutral-500 mt-0.5">Semua pembaruan aktivitas pabrik akan muncul di sini.</p>
+                    <p class="font-sans text-xs text-neutral-500 mt-0.5">Semua pembaruan aktivitas pabrik akan muncul di sini.</p>
                 </div>
             @endforelse
         </div>
-
-        {{-- Footer Notifikasi --}}
-        <div class="p-2.5 border-t border-neutral-200 bg-neutral-50 text-center">
-            <a href="{{ route('achievements.index') }}" 
-               class="font-sans text-xs font-medium text-neutral-700 hover:text-brand transition-colors block">
-                Lihat Semua Notifikasi
-            </a>
-        </div>
+        {{-- Tanpa footer "Lihat Semua Notifikasi": belum ada halaman daftar notifikasi (dulu tautannya salah ke Achievement). --}}
     </div>
 </div>

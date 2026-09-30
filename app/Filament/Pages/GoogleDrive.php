@@ -17,7 +17,7 @@ class GoogleDrive extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCloudArrowUp;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Pengaturan & Master Data';
+    protected static UnitEnum|string|null $navigationGroup = 'Advance';
 
     protected static ?string $navigationLabel = 'Google Drive';
 

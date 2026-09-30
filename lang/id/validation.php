@@ -1,0 +1,43 @@
+<?php
+
+// Hanya aturan yang dipakai aplikasi; aturan lain jatuh ke pesan bawaan (fallback_locale = en).
+return [
+    'accepted' => ':attribute harus disetujui.',
+    'after' => ':attribute harus tanggal setelah :date.',
+    'after_or_equal' => ':attribute harus tanggal :date atau setelahnya.',
+    'before' => ':attribute harus tanggal sebelum :date.',
+    'before_or_equal' => ':attribute harus tanggal :date atau sebelumnya.',
+    'confirmed' => 'Konfirmasi :attribute tidak sama.',
+    'current_password' => 'Kata sandi salah.',
+    'date' => ':attribute harus berupa tanggal yang valid.',
+    'different' => ':attribute harus berbeda dari :other.',
+    'email' => ':attribute harus berupa alamat email yang valid.',
+    'exists' => ':attribute yang dipilih tidak valid.',
+    'file' => ':attribute harus berupa berkas.',
+    'image' => ':attribute harus berupa gambar.',
+    'in' => ':attribute yang dipilih tidak valid.',
+    'integer' => ':attribute harus berupa bilangan bulat.',
+    'max' => [
+        'array' => ':attribute tidak boleh lebih dari :max item.',
+        'file' => ':attribute tidak boleh lebih dari :max kilobyte.',
+        'numeric' => ':attribute tidak boleh lebih dari :max.',
+        'string' => ':attribute tidak boleh lebih dari :max karakter.',
+    ],
+    'mimes' => ':attribute harus berupa berkas berjenis: :values.',
+    'mimetypes' => ':attribute harus berupa berkas berjenis: :values.',
+    'min' => [
+        'array' => ':attribute minimal :min item.',
+        'file' => ':attribute minimal :min kilobyte.',
+        'numeric' => ':attribute minimal :min.',
+        'string' => ':attribute minimal :min karakter.',
+    ],
+    'numeric' => ':attribute harus berupa angka.',
+    'regex' => 'Format :attribute tidak valid.',
+    'required' => ':attribute wajib diisi.',
+    'required_if' => ':attribute wajib diisi bila :other adalah :value.',
+    'same' => ':attribute harus sama dengan :other.',
+    'string' => ':attribute harus berupa teks.',
+    'unique' => ':attribute sudah dipakai.',
+    'uploaded' => ':attribute gagal diunggah.',
+    'url' => ':attribute harus berupa URL yang valid.',
+];

@@ -83,7 +83,7 @@
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1" style="min-width: 0; flex: 1;">
-                    <span class="text-[11px] text-neutral-500 font-sans block" style="font-size: 11px; color: #71717a; display: block;">Tautan Video Eksternal:</span>
+                    <span class="text-xs text-neutral-500 font-sans block" style="font-size: 11px; color: #71717a; display: block;">Tautan Video Eksternal:</span>
                     <a href="{{ $video->video_external_link }}" target="_blank"
                        class="text-xs font-mono text-brand truncate block hover:underline"
                        style="font-size: 0.75rem; font-family: monospace; color: #0B7840; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;">

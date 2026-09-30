@@ -3,6 +3,7 @@
 namespace App\Livewire\Learning;
 
 use App\Models\LearningMaterial;
+use App\Models\PointTransaction;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\QuizOption;
@@ -21,6 +22,9 @@ use Throwable;
 #[Title('Evaluasi Post-Test - CPS ERA')]
 class PostTest extends Component
 {
+    /** source_type XP kelulusan post-test di point_transactions. */
+    public const XP_SOURCE = 'post_test_passed';
+
     public LearningMaterial $material;
 
     public ?Quiz $quiz = null;
@@ -222,6 +226,8 @@ class PostTest extends Component
             /** @var User $user */
             $user = Auth::user();
 
+            $this->awardPassXp($userId);
+
             try {
                 app(KpiContributionService::class)->recordMaterialCompletion(
                     $user,
@@ -240,6 +246,35 @@ class PostTest extends Component
         }
 
         $this->isSubmitted = true;
+    }
+
+    /**
+     * XP "untuk yang lulus" (points_reward yang diatur admin) masuk ledger XP, sekali per post-test
+     * seperti misi. Terpisah dari KPI/Poin CPS ERA.
+     */
+    private function awardPassXp(int $userId): void
+    {
+        $points = (int) $this->quiz->points_reward;
+        $alreadyAwarded = PointTransaction::where('user_id', $userId)
+            ->where('source_type', self::XP_SOURCE)
+            ->where('source_id', $this->quiz->id)
+            ->exists();
+
+        if ($points <= 0 || $alreadyAwarded) {
+            return;
+        }
+
+        PointTransaction::create([
+            'user_id' => $userId,
+            'ledger_type' => PointTransaction::LEDGER_XP,
+            'points' => $points,
+            'source_type' => self::XP_SOURCE,
+            'source_id' => $this->quiz->id,
+            'description' => "Lulus Post-Test: {$this->quiz->title}",
+            'created_at' => now(),
+        ]);
+
+        $this->latestAttempt->update(['points_earned' => $points]);
     }
 
     /**

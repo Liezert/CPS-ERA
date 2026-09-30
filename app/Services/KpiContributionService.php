@@ -2,17 +2,19 @@
 
 namespace App\Services;
 
-use App\Models\BaIncident;
 use App\Models\KpiSetting;
 use App\Models\LearningMaterial;
 use App\Models\PointTransaction;
 use App\Models\QuizAttempt;
 use App\Models\User;
 use App\Models\UserKpiYearly;
+use App\Models\Video;
 use Illuminate\Support\Facades\DB;
 
 class KpiContributionService
 {
+    public const SOURCE_VIDEO_CONTRIBUTION = 'video_contribution_approved';
+
     /**
      * Dapatkan atau inisialisasi record tahunan KPI untuk seorang user (lazy initialization).
      */
@@ -135,34 +137,31 @@ class KpiContributionService
     }
 
     /**
-     * Catat persetujuan BA & video penanganan (Jalur A KPI Contribution).
-     * Memberikan +1 Poin CPS ERA ke pembuat BA selama cap tahunan (3 poin) belum tercapai.
-     *
-     * @param  User  $user  Pembuat BA (incident->creator)
-     * @param  BaIncident  $incident  BA yang disetujui
+     * Catat persetujuan video kontribusi oleh HR (Jalur A, keputusan owner 2026-09-27: menggantikan
+     * poin dari laporan CAPA). Memberikan +1 Poin CPS ERA ke pengunggah video selama cap tahunan
+     * gabungan (3 poin) belum tercapai. Kolom poin_from_ba tetap dipakai sebagai penghitung Jalur A.
      */
-    public function recordBaVideoApproved(User $user, BaIncident $incident): UserKpiYearly
+    public function recordVideoContributionApproved(User $user, Video $video): UserKpiYearly
     {
         $year = (int) now()->year;
 
-        return DB::transaction(function () use ($user, $incident, $year): UserKpiYearly {
+        return DB::transaction(function () use ($user, $video, $year): UserKpiYearly {
             // Ensure row exists, then re-fetch with pessimistic lock to prevent race conditions.
             // Tanpa lockForUpdate, 2 approval concurrent bisa sama-sama baca poin_cps_era_earned=2,
             // lalu keduanya increment ke 3 — dobel-count atau bypass cap.
             $kpiYearly = $this->lockYearlyRecord($user, $year);
 
-            // Idempotensi: satu BA hanya boleh menghasilkan satu Poin CPS ERA. Dibaca dengan
+            // Idempotensi: satu video hanya boleh menghasilkan satu Poin CPS ERA. Dibaca dengan
             // sharedLock (locking read) agar melihat versi ter-commit terbaru, bukan snapshot
             // REPEATABLE READ yang mungkin dibuat sebelum approval lain commit.
             $alreadyAwarded = PointTransaction::query()
                 ->where('user_id', $user->id)
                 ->where('ledger_type', PointTransaction::LEDGER_POIN_CPS_ERA)
-                ->where('source_type', 'ba_video_approved')
-                ->where('source_id', $incident->id)
+                ->where('source_type', self::SOURCE_VIDEO_CONTRIBUTION)
+                ->where('source_id', $video->id)
                 ->sharedLock()
                 ->exists();
 
-            // Cek cap tahunan 3 Poin CPS ERA
             if (! $alreadyAwarded && $kpiYearly->poin_cps_era_earned < 3) {
                 $kpiYearly->poin_cps_era_earned += 1;
                 $kpiYearly->poin_from_ba += 1;
@@ -172,9 +171,9 @@ class KpiContributionService
                     'user_id' => $user->id,
                     'ledger_type' => PointTransaction::LEDGER_POIN_CPS_ERA,
                     'points' => 1,
-                    'source_type' => 'ba_video_approved',
-                    'source_id' => $incident->id,
-                    'description' => "Poin CPS ERA: BA & Video Penanganan Disetujui ({$incident->nomor_ba})",
+                    'source_type' => self::SOURCE_VIDEO_CONTRIBUTION,
+                    'source_id' => $video->id,
+                    'description' => "Poin CPS ERA: Video kontribusi disetujui HR ({$video->title})",
                     'created_at' => now(),
                 ]);
             }

@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\Dashboard;
 use App\Filament\Resources\LearningMaterials\Pages\CreateLearningMaterial;
 use App\Filament\Resources\LearningMaterials\Pages\EditLearningMaterial;
-use App\Filament\Widgets\AdminOverviewWidget;
 use App\Livewire\Learning\PostTest;
 use App\Livewire\Learning\Show as LearningShow;
 use App\Models\Division;
@@ -386,11 +386,16 @@ class LearningPostTestFeatureTest extends TestCase
     }
 
     /**
-     * Test 9: Admin Panel Dashboard memuat branding CPS ERA dan navigasi resource.
+     * Test 9: Beranda panel /admin meneruskan ke dashboard utama CPS ERA (keputusan owner 2026-09-27),
+     * sedangkan halaman kelola data di panel tetap memuat branding dan navigasi resource.
      */
-    public function test_admin_dashboard_renders_with_brand(): void
+    public function test_admin_panel_home_redirects_to_main_dashboard_and_resources_keep_brand(): void
     {
-        $response = $this->actingAs($this->admin)->get('/admin');
+        Livewire::actingAs($this->admin)
+            ->test(Dashboard::class)
+            ->assertRedirect(route('dashboard'));
+
+        $response = $this->actingAs($this->admin)->get(route('filament.admin.resources.learning-materials.index'));
 
         $response->assertOk();
         $response->assertSee('CPS ERA Admin');
@@ -399,15 +404,21 @@ class LearningPostTestFeatureTest extends TestCase
     }
 
     /**
-     * Test 10: Admin Overview Widget memuat seluruh ringkasan metrik statistik operasional.
+     * Test 10: Ringkasan & pintasan kelola data admin kini ada di dashboard utama (pengganti widget panel).
      */
-    public function test_admin_overview_widget_renders_stats(): void
+    public function test_admin_shortcuts_render_on_main_dashboard(): void
     {
-        Livewire::actingAs($this->admin)
-            ->test(AdminOverviewWidget::class)
-            ->assertSee('Materi Pembelajaran')
-            ->assertSee('Quiz & Post-Test')
-            ->assertSee('Knowledge Repository')
-            ->assertSee('Laporan CAPA');
+        $this->actingAs($this->admin)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Kelola Data (Admin)')
+            ->assertSee('Tambah Materi')
+            ->assertSee('Buat Quiz & Misi')
+            ->assertSee('Tambah Dokumen')
+            ->assertSee('Semua Laporan CAPA')
+            ->assertSee(route('filament.admin.resources.learning-materials.create'), false);
+
+        $this->actingAs($this->employee)->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('Kelola Data (Admin)');
     }
 }

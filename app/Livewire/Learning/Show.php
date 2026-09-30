@@ -14,6 +14,9 @@ use Livewire\Component;
 #[Title('Detail Pembelajaran - CPS ERA')]
 class Show extends Component
 {
+    /** Progres saat materi pertama kali dibuka (status "Sedang Dipelajari"). */
+    public const STARTED_PERCENT = 50;
+
     public LearningMaterial $material;
 
     public ?UserLearningProgress $progress = null;
@@ -35,7 +38,8 @@ class Show extends Component
 
         $userId = Auth::id();
         if ($userId) {
-            // Ambil atau inisialisasi record progress belajar pengguna (DoD #1)
+            // Membuka materi = mulai belajar: progres otomatis "Sedang Dipelajari" (50%).
+            // Hanya "selesai" yang dikonfirmasi pengguna, karena itu membuka post-test.
             $this->progress = UserLearningProgress::firstOrCreate(
                 [
                     'user_id' => $userId,
@@ -43,10 +47,14 @@ class Show extends Component
                 ],
                 [
                     'id' => (string) Str::uuid(),
-                    'progress_percent' => 0,
+                    'progress_percent' => self::STARTED_PERCENT,
                     'completed_at' => null,
                 ]
             );
+
+            if ((int) $this->progress->progress_percent === 0) {
+                $this->progress->update(['progress_percent' => self::STARTED_PERCENT]);
+            }
 
             $this->progressPercent = (int) $this->progress->progress_percent;
         }

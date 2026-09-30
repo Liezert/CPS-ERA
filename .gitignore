@@ -96,3 +96,9 @@ AGENTS.md
 /.claude/
 /.agents/
 boost.json
+
+# Arsip hasil build untuk diunggah manual ke hosting (mis. public/build.zip)
+*.zip
+
+# Tangkapan layar pengembangan (lokal saja)
+/filescreenshot/

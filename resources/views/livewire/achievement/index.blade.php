@@ -18,15 +18,15 @@
         {{-- Ringkasan Metrik Sederhana (Sharp, Minimalist) --}}
         <div class="flex items-center gap-3">
             <div class="px-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-center min-w-[96px] shadow-xs">
-                <div class="font-mono text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">Total</div>
+                <div class="font-mono text-xs font-semibold text-neutral-600 uppercase tracking-wider">Total</div>
                 <div class="font-mono font-extrabold text-2xl text-neutral-900 tabular-nums leading-tight mt-0.5">{{ $totalCount }}</div>
             </div>
             <div class="px-4 py-2.5 bg-brand-tint/30 border border-brand/30 rounded-lg text-center min-w-[96px] shadow-xs">
-                <div class="font-mono text-[10px] font-semibold text-brand-dark uppercase tracking-wider">Unlocked</div>
+                <div class="font-mono text-xs font-semibold text-brand-dark uppercase tracking-wider">Unlocked</div>
                 <div class="font-mono font-extrabold text-2xl text-brand tabular-nums leading-tight mt-0.5">{{ $unlockedCount }}</div>
             </div>
             <div class="px-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-center min-w-[96px] shadow-xs">
-                <div class="font-mono text-[10px] font-semibold text-neutral-600 uppercase tracking-wider">Locked</div>
+                <div class="font-mono text-xs font-semibold text-neutral-600 uppercase tracking-wider">Locked</div>
                 <div class="font-mono font-extrabold text-2xl text-neutral-700 tabular-nums leading-tight mt-0.5">{{ $lockedCount }}</div>
             </div>
         </div>
@@ -95,12 +95,12 @@
 
                 {{-- Status Pill Badge Langsung di Bawah Ikon --}}
                 @if ($item->is_unlocked)
-                    <span class="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-brand-dark bg-brand-tint border border-brand/40 px-2.5 py-0.5 rounded-badge shadow-2xs">
+                    <span class="mt-2.5 inline-flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-brand-dark bg-brand-tint border border-brand/40 px-2.5 py-0.5 rounded-badge shadow-2xs">
                         <x-layout.nav-icon name="check" class="w-3.5 h-3.5 text-brand" />
                         <span>Terbuka</span>
                     </span>
                 @else
-                    <span class="mt-2.5 inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 rounded-badge">
+                    <span class="mt-2.5 inline-flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-neutral-600 bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 rounded-badge">
                         <x-layout.nav-icon name="lock" class="w-3.5 h-3.5 text-neutral-500" />
                         <span>Terkunci</span>
                     </span>
@@ -115,14 +115,14 @@
                 </p>
 
                 {{-- Status Footnote (Clean, Non-decorative) --}}
-                <div class="mt-4 pt-3 border-t {{ $item->is_unlocked ? 'border-neutral-100' : 'border-neutral-200/60' }} w-full flex items-center justify-between text-[11px] font-mono">
+                <div class="mt-4 pt-3 border-t {{ $item->is_unlocked ? 'border-neutral-100' : 'border-neutral-200/60' }} w-full flex items-center justify-between text-xs font-mono">
                     <span class="text-neutral-500 font-medium">Verifikasi:</span>
                     @if ($item->is_unlocked)
                         <span class="text-brand font-bold bg-brand-tint/40 px-2 py-0.5 rounded-badge border border-brand/20">
-                            {{ $item->unlocked_at ? $item->unlocked_at->format('d M Y') : 'Aktif' }}
+                            {{ $item->unlocked_at ? $item->unlocked_at->wib()->format('d M Y') : 'Aktif' }}
                         </span>
                     @else
-                        <span class="text-neutral-500 font-sans italic text-[11px]">
+                        <span class="text-neutral-500 font-sans italic text-xs">
                             Syarat belum tercapai
                         </span>
                     @endif

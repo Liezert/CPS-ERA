@@ -92,7 +92,8 @@ class UserSeeder extends Seeder
             'Jahit' => 'jahit',
             'Finance Accounting Tax' => 'fat',
             'Purchasing' => 'purchasing',
-            'Marketing & Sales' => 'marketing',
+            'Marketing' => 'marketing',
+            'Sales' => 'sales',
             'Plant Balben & Krian' => 'plant',
         ];
 

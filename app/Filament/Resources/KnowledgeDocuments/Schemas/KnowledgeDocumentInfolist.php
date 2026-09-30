@@ -54,6 +54,13 @@ class KnowledgeDocumentInfolist
                         TextEntry::make('created_at')
                             ->label('Waktu Dibuat')
                             ->dateTime('d M Y H:i'),
+                        TextEntry::make('download_url')
+                            ->label('Berkas Dokumen')
+                            ->formatStateUsing(fn (): string => 'Buka / unduh berkas')
+                            ->url(fn ($record) => $record->download_url, shouldOpenInNewTab: true)
+                            ->color('primary')
+                            ->placeholder('Tidak ada berkas')
+                            ->columnSpanFull(),
                         TextEntry::make('external_link')
                             ->label('Tautan Eksternal (URL)')
                             ->url(fn ($record) => $record->external_link, shouldOpenInNewTab: true)

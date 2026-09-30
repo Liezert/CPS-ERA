@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GoogleDriveService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'video_file_url',
     'video_external_link',
     'division_id',
+    'learning_category_id',
     'created_by',
     'creation_reason',
     'ba_incident_id',
@@ -68,7 +70,27 @@ class Video extends Model
     }
 
     /**
-     * Laporan BA insiden yang menjadi dasar video wajib (Jalur A).
+     * Kategori Learning yang dipilih pengunggah video kontribusi.
+     *
+     * @return BelongsTo<LearningCategory, $this>
+     */
+    public function learningCategory(): BelongsTo
+    {
+        return $this->belongsTo(LearningCategory::class);
+    }
+
+    /**
+     * Materi Learning yang terbit dari video kontribusi ini setelah disetujui HR.
+     *
+     * @return HasOne<LearningMaterial, $this>
+     */
+    public function learningMaterial(): HasOne
+    {
+        return $this->hasOne(LearningMaterial::class, 'source_video_id');
+    }
+
+    /**
+     * Laporan BA insiden yang menjadi dasar video wajib (data lama, sebelum CAPA dipisah dari video).
      *
      * @return BelongsTo<BaIncident, $this>
      */
@@ -175,6 +197,16 @@ class Video extends Model
     public function isRejected(): bool
     {
         return $this->status === 'rejected';
+    }
+
+    /**
+     * URL sematan Drive (iframe) bila video berupa berkas/tautan Google Drive, selain itu null.
+     */
+    public function getDrivePreviewUrlAttribute(): ?string
+    {
+        $fileId = GoogleDriveService::fileIdFrom($this->video_file_url ?: $this->video_url);
+
+        return $fileId ? app(GoogleDriveService::class)->getPreviewUrl($fileId) : null;
     }
 
     /**

@@ -71,7 +71,7 @@ class UploadFileTypeRestrictionTest extends TestCase
                 'title' => 'Materi '.$file->getClientOriginalName(),
                 'type' => 'dokumen',
                 'status' => 'published',
-                'content_url' => $file,
+                'content_file' => $file,
             ])
             ->call('create');
     }
@@ -93,7 +93,7 @@ class UploadFileTypeRestrictionTest extends TestCase
     public function test_learning_material_upload_rejects_html_and_svg(): void
     {
         foreach ($this->maliciousFiles() as $type => $file) {
-            $this->createLearningMaterial($file)->assertHasFormErrors(['content_url']);
+            $this->createLearningMaterial($file)->assertHasFormErrors(['content_file']);
             $this->assertSame(0, LearningMaterial::count(), "Berkas {$type} tidak boleh tersimpan.");
         }
 
@@ -105,6 +105,8 @@ class UploadFileTypeRestrictionTest extends TestCase
         $this->createLearningMaterial($this->pdf())->assertHasNoFormErrors();
 
         $this->assertSame(1, LearningMaterial::count());
+        // File unggahan menjadi tautan konten materi (field unggah terpisah dari isian URL).
+        $this->assertStringContainsString('/storage/learning-materials/files/', LearningMaterial::first()->content_url);
     }
 
     public function test_knowledge_document_upload_rejects_html_and_svg(): void

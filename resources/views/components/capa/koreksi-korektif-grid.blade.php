@@ -37,7 +37,7 @@
         </div>
 
         {{-- Footer: PIC & Waktu --}}
-        <div class="pt-2.5 border-t border-amber-200/80 flex items-center justify-between text-[11px] text-neutral-600 flex-wrap gap-2 mt-2"
+        <div class="pt-2.5 border-t border-amber-200/80 flex items-center justify-between text-xs text-neutral-600 flex-wrap gap-2 mt-2"
              style="padding-top: 0.625rem; border-top: 1px solid rgba(253, 230, 138, 0.8); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #52525b; margin-top: 0.5rem;">
             <span>PIC Pelaksana (Operator/SPV): <strong class="text-neutral-800" style="color: #27272a; font-weight: 600;">{{ $ba->koreksi_pic ?: '-' }}</strong></span>
             <span>Batas Waktu Pelaksanaan: <strong class="text-neutral-800" style="color: #27272a; font-weight: 600;">{{ $ba->koreksi_waktu ?: '-' }}</strong></span>
@@ -69,7 +69,7 @@
         </div>
 
         {{-- Footer: PIC & Waktu --}}
-        <div class="pt-2.5 border-t border-brand/25 flex items-center justify-between text-[11px] text-neutral-600 flex-wrap gap-2 mt-2"
+        <div class="pt-2.5 border-t border-brand/25 flex items-center justify-between text-xs text-neutral-600 flex-wrap gap-2 mt-2"
              style="padding-top: 0.625rem; border-top: 1px solid rgba(11, 120, 64, 0.25); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #52525b; margin-top: 0.5rem;">
             <span>PIC Penanggung Jawab: <strong class="text-neutral-800" style="color: #27272a; font-weight: 600;">{{ $ba->korektif_pic ?: '-' }}</strong></span>
             <span>Target Tanggal Selesai: <strong class="text-neutral-800" style="color: #27272a; font-weight: 600;">{{ $ba->korektif_waktu ?: '-' }}</strong></span>

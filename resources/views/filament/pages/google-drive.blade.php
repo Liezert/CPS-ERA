@@ -33,7 +33,7 @@
                     </div>
                     <div>
                         <dt class="text-gray-500">Waktu</dt>
-                        <dd>{{ $connection->connected_at?->format('d M Y H:i') ?? '-' }}</dd>
+                        <dd>{{ $connection->connected_at?->wib()->format('d M Y H:i') ?? '-' }}</dd>
                     </div>
                     <div>
                         <dt class="text-gray-500">Izin diminta</dt>

@@ -131,8 +131,9 @@ class BaIncidentInfolist
                             ->falseColor('gray'),
                     ])->columns(2),
 
-                // ── Section 7: Video Penanganan & Bukti (Shared Component) ───
+                // ── Section 7: Video Penanganan (hanya laporan lama yang masih melampirkan video) ───
                 Section::make(static::sectionHeader('7. Video Penanganan & Bukti', 'Dokumentasi Visual'))
+                    ->visible(fn ($record): bool => $record?->video !== null)
                     ->columnSpanFull()
                     ->schema([
                         ViewEntry::make('video_penanganan')

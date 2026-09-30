@@ -21,7 +21,7 @@ class LearningCategoryResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Repository & Pembelajaran';
+    protected static UnitEnum|string|null $navigationGroup = 'Learning & Pengembangan';
 
     protected static ?int $navigationSort = 3;
 

@@ -43,7 +43,7 @@
                                     <x-capa.field-hint field="koreksi_deskripsi" />
                                 </div>
                                 <textarea id="koreksi_deskripsi"
-                                          @if ($readonly) readonly @else wire:model.live="koreksiDeskripsi" @endif
+                                          @if ($readonly) readonly @else wire:model="koreksiDeskripsi" @endif
                                           rows="3"
                                           class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-150 leading-relaxed">{{ $readonly ? $values['koreksiDeskripsi'] : '' }}</textarea>
                                 <x-capa.field-helper field="koreksi_deskripsi" />
@@ -55,7 +55,7 @@
 
                         {{-- Blok PIC & Target Waktu Pelaksanaan --}}
                         <div class="bg-white/80 border border-amber-200/80 rounded-md p-3 space-y-2.5">
-                            <span class="text-[11px] font-bold text-amber-900 block uppercase tracking-wider font-mono">
+                            <span class="text-xs font-bold text-amber-900 block uppercase tracking-wider font-mono">
                                 Penanggung Jawab &amp; Target Darurat:
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -65,7 +65,7 @@
                                     </label>
                                     <input type="text"
                                            id="koreksi_pic"
-                                           @if ($readonly) value="{{ $values['koreksiPic'] }}" readonly @else wire:model.live="koreksiPic" @endif
+                                           @if ($readonly) value="{{ $values['koreksiPic'] }}" readonly @else wire:model="koreksiPic" @endif
                                            placeholder="Nama PIC"
                                            class="w-full h-9 px-2.5 py-1.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-150" />
                                 </div>
@@ -75,7 +75,9 @@
                                     </label>
                                     <input type="text"
                                            id="koreksi_waktu"
-                                           @if ($readonly) value="{{ $values['koreksiWaktu'] }}" readonly @else wire:model.live="koreksiWaktu" @endif
+                                           @if ($readonly) value="{{ $values['koreksiWaktu'] }}" readonly @else wire:model="koreksiWaktu" @endif
+                                           {{-- Tindakan darurat sering diukur dalam jam, jadi tetap teks bebas (bukan pemilih tanggal). --}}
+                                           placeholder="mis. Maks 2 jam"
                                            class="w-full h-9 px-2.5 py-1.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-150" />
                                 </div>
                             </div>
@@ -102,7 +104,7 @@
                                     <x-capa.field-hint field="korektif_deskripsi" />
                                 </div>
                                 <textarea id="korektif_deskripsi"
-                                          @if ($readonly) readonly @else wire:model.live="korektifDeskripsi" @endif
+                                          @if ($readonly) readonly @else wire:model="korektifDeskripsi" @endif
                                           rows="3"
                                           class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 leading-relaxed">{{ $readonly ? $values['korektifDeskripsi'] : '' }}</textarea>
                                 <x-capa.field-helper field="korektif_deskripsi" />
@@ -114,7 +116,7 @@
 
                         {{-- Blok PIC & Target Waktu Pelaksanaan --}}
                         <div class="bg-white/80 border border-brand/25 rounded-md p-3 space-y-2.5">
-                            <span class="text-[11px] font-bold text-brand-dark block uppercase tracking-wider font-mono">
+                            <span class="text-xs font-bold text-brand-dark block uppercase tracking-wider font-mono">
                                 Penanggung Jawab &amp; Target Perbaikan:
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -124,7 +126,7 @@
                                     </label>
                                     <input type="text"
                                            id="korektif_pic"
-                                           @if ($readonly) value="{{ $values['korektifPic'] }}" readonly @else wire:model.live="korektifPic" @endif
+                                           @if ($readonly) value="{{ $values['korektifPic'] }}" readonly @else wire:model="korektifPic" @endif
                                            placeholder="Nama PIC (QC/Eng)"
                                            class="w-full h-9 px-2.5 py-1.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                                 </div>
@@ -132,10 +134,14 @@
                                     <label for="korektif_waktu" class="block text-xs font-medium text-neutral-700 font-sans mb-1 truncate">
                                         Target Tanggal Selesai
                                     </label>
-                                    <input type="text"
+                                    {{-- Mode baca tetap teks: data lama bisa berisi teks bebas (mis. "Maks 3 Hari"). --}}
+                                    <input type="{{ $readonly ? 'text' : 'date' }}"
                                            id="korektif_waktu"
-                                           @if ($readonly) value="{{ $values['korektifWaktu'] }}" readonly @else wire:model.live="korektifWaktu" @endif
+                                           @if ($readonly) value="{{ $values['korektifWaktu'] }}" readonly @else wire:model="korektifWaktu" @endif
                                            class="w-full h-9 px-2.5 py-1.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
+                                    @error('korektifWaktu')
+                                        <span class="text-xs text-red-600 mt-1 block font-sans">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             </div>
                         </div>

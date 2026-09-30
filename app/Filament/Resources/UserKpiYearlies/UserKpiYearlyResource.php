@@ -18,9 +18,9 @@ class UserKpiYearlyResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBarSquare;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Evaluasi & Kinerja';
+    protected static UnitEnum|string|null $navigationGroup = 'SDM & Laporan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Rekap Poin CPS ERA';
 

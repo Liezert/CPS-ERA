@@ -16,7 +16,7 @@
             <p class="font-sans text-xs text-neutral-600 mt-1">
                 Pustaka pengetahuan formal perusahaan (SOP, instruksi kerja, peraturan perusahaan, dan kebijakan mutu).
             </p>
-            <div class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-neutral-100 border border-neutral-200 rounded-badge text-[11px] font-sans text-neutral-600">
+            <div class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-neutral-100 border border-neutral-200 rounded-badge text-xs font-sans text-neutral-600">
                 <x-layout.nav-icon name="information-circle" class="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                 <span>Referensi resmi korporat. Akses materi bersifat pasif (tidak memberikan poin KPI/XP).</span>
             </div>
@@ -35,7 +35,7 @@
                 @endif
                 <span>Tersimpan</span>
                 @if($totalBookmarksCount > 0)
-                    <span class="ml-0.5 font-mono text-[10px] px-1 py-0.2 bg-white/70 border border-neutral-200 rounded-badge">
+                    <span class="ml-0.5 font-mono text-xs px-1 py-0.2 bg-white/70 border border-neutral-200 rounded-badge">
                         {{ $totalBookmarksCount }}
                     </span>
                 @endif
@@ -128,10 +128,10 @@
         @if(!empty($search) || !empty($selectedTopicId) || !empty($selectedDivisionId) || !empty($selectedType) || $onlyBookmarks)
             <div class="mt-3 pt-3 border-t border-neutral-100 flex items-center justify-between flex-wrap gap-2 text-xs">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-neutral-500 font-sans text-[11px]">Filter aktif:</span>
+                    <span class="text-neutral-500 font-sans text-xs">Filter aktif:</span>
 
                     @if(!empty($search))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-xs">
                             <span>Pencarian: "{{ $search }}"</span>
                             <button type="button" wire:click="$set('search', '')" class="hover:text-neutral-900">
                                 <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -144,7 +144,7 @@
                             $activeTopic = $topics->firstWhere('id', $selectedTopicId);
                         @endphp
                         @if($activeTopic)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-tint border border-brand/30 rounded-badge text-brand-dark text-[11px]">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-tint border border-brand/30 rounded-badge text-brand-dark text-xs">
                                 <span>Topik: {{ $activeTopic->name }}</span>
                                 <button type="button" wire:click="$set('selectedTopicId', null)" class="hover:text-neutral-900">
                                     <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -158,7 +158,7 @@
                             $activeDiv = $divisions->firstWhere('id', $selectedDivisionId);
                         @endphp
                         @if($activeDiv)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-[11px]">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-xs">
                                 <span>Divisi: {{ $activeDiv->name }}</span>
                                 <button type="button" wire:click="$set('selectedDivisionId', null)" class="hover:text-neutral-900">
                                     <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -168,7 +168,7 @@
                     @endif
 
                     @if(!empty($selectedType))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-xs">
                             <span>Tipe: {{ $types[$selectedType] ?? $selectedType }}</span>
                             <button type="button" wire:click="$set('selectedType', null)" class="hover:text-neutral-900">
                                 <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -177,7 +177,7 @@
                     @endif
 
                     @if($onlyBookmarks)
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-tint border border-brand/30 rounded-badge text-brand-dark text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-tint border border-brand/30 rounded-badge text-brand-dark text-xs">
                             <span>Hanya Bookmark</span>
                             <button type="button" wire:click="$set('onlyBookmarks', false)" class="hover:text-neutral-900">
                                 <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -243,20 +243,20 @@
                                 <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
                                     {{-- Tag Topik Resmi (PRD v2.0 §3.2) --}}
                                     @if($doc->topic)
-                                        <span class="truncate px-2 py-0.5 border border-brand/20 rounded-badge text-brand-dark bg-brand-tint font-sans text-[11px] font-semibold" title="{{ $doc->topic->name }}">
+                                        <span class="truncate px-2 py-0.5 border border-brand/20 rounded-badge text-brand-dark bg-brand-tint font-sans text-xs font-semibold" title="{{ $doc->topic->name }}">
                                             {{ $doc->topic->name }}
                                         </span>
                                     @endif
 
                                     {{-- Tag Divisi --}}
                                     @if($doc->division)
-                                        <span class="truncate px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[11px] font-medium" title="{{ $doc->division->name }}">
+                                        <span class="truncate px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-xs font-medium" title="{{ $doc->division->name }}">
                                             {{ $doc->division->name }}
                                         </span>
                                     @endif
 
                                     {{-- Tipe Materi: Ikon Outline Netral + Teks Tanpa Warna-Warni --}}
-                                    <div class="inline-flex items-center gap-1.5 text-neutral-600 text-[11px] font-sans shrink-0 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-badge">
+                                    <div class="inline-flex items-center gap-1.5 text-neutral-600 text-xs font-sans shrink-0 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-badge">
                                         <x-layout.nav-icon :name="$doc->type" class="w-3.5 h-3.5 text-neutral-500" />
                                         <span class="capitalize font-medium">{{ $types[$doc->type] ?? ucfirst($doc->type) }}</span>
                                     </div>
@@ -290,7 +290,7 @@
                         </div>
 
                         {{-- Footer Kartu: Pembuat, Tanggal, & Link Aksi --}}
-                        <div class="pt-3 mt-3 border-t border-neutral-100 flex items-center justify-between text-[11px] font-sans text-neutral-600 flex-wrap gap-2">
+                        <div class="pt-3 mt-3 border-t border-neutral-100 flex items-center justify-between text-xs font-sans text-neutral-600 flex-wrap gap-2">
                             <span class="truncate max-w-[120px] text-neutral-700 font-medium">
                                 {{ $doc->creator?->name ?? 'Tim Internal' }}
                             </span>
@@ -358,24 +358,24 @@
                                     </h2>
 
                                     @if($doc->topic)
-                                        <span class="px-2 py-0.5 border border-brand/20 rounded-badge text-brand-dark bg-brand-tint font-sans text-[10px] font-semibold">
+                                        <span class="px-2 py-0.5 border border-brand/20 rounded-badge text-brand-dark bg-brand-tint font-sans text-xs font-semibold">
                                             {{ $doc->topic->name }}
                                         </span>
                                     @endif
 
                                     @if($doc->division)
-                                        <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[10px] font-medium">
+                                        <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-xs font-medium">
                                             {{ $doc->division->name }}
                                         </span>
                                     @endif
 
-                                    <span class="font-sans text-[10px] text-neutral-600 bg-neutral-50 border border-neutral-200 px-1.5 py-0.5 rounded-badge capitalize">
+                                    <span class="font-sans text-xs text-neutral-600 bg-neutral-50 border border-neutral-200 px-1.5 py-0.5 rounded-badge capitalize">
                                         {{ $types[$doc->type] ?? ucfirst($doc->type) }}
                                     </span>
 
                                     @if($doc->source_ba_id)
                                         <a href="{{ route('ba.show', $doc->source_ba_id) }}"
-                                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-[10px] text-brand hover:underline font-mono">
+                                           class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-xs text-brand hover:underline font-mono">
                                             <x-layout.nav-icon name="document-text" class="w-3 h-3 text-brand" />
                                             <span>BA #{{ $doc->sourceBa?->nomor_ba ?? 'Terkait' }}</span>
                                         </a>
@@ -388,10 +388,10 @@
                                     </p>
                                 @endif
 
-                                <div class="flex items-center gap-2 mt-1 text-[11px] font-sans text-neutral-600">
+                                <div class="flex items-center gap-2 mt-1 text-xs font-sans text-neutral-600">
                                     <span>Oleh {{ $doc->creator?->name ?? 'Tim Internal' }}</span>
                                     <span>&middot;</span>
-                                    <span class="font-mono text-neutral-500">{{ $doc->created_at->format('d M Y') }}</span>
+                                    <span class="font-mono text-neutral-500">{{ $doc->created_at->wib()->format('d M Y') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -510,7 +510,7 @@
                             </div>
                             <div>
                                 <span>Tanggal Terbit:</span>
-                                <span class="font-mono text-neutral-700">{{ $viewingDocument->created_at->format('d F Y H:i') }}</span>
+                                <span class="font-mono text-neutral-700">{{ $viewingDocument->created_at->wib()->format('d F Y H:i') }}</span>
                             </div>
                         </div>
 
@@ -551,7 +551,7 @@
                                             title="Pratinjau {{ $viewingDocument->title }}"
                                             loading="lazy"></iframe>
                                 </div>
-                                <p class="text-[11px] text-neutral-500 font-sans">
+                                <p class="text-xs text-neutral-500 font-sans">
                                     Pratinjau disediakan Google Drive. Gunakan tombol di bawah bila berkas tidak tampil.
                                 </p>
                             </div>

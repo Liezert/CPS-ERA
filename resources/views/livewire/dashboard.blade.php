@@ -36,13 +36,150 @@
         </div>
 
         {{-- Kanan: Satu Tombol Aksi Utama (Tanpa Panah per Anti-AI-Slop §6 & DoD) --}}
+        @if (auth()->user()->canFileCapa())
         <div class="shrink-0">
-            <x-ui.button href="{{ route('ba.create') }}" variant="primary">
+            {{-- Reviewer (Supervisor/HR): tombol Review di antrean yang jadi aksi utama, jadi ini sekunder. --}}
+            <x-ui.button href="{{ route('ba.create') }}" :variant="$hrView || $reviewQueue ? 'secondary' : 'primary'">
                 Buat Laporan CAPA
             </x-ui.button>
         </div>
+        @endif
     </div>
 
+    {{-- =========================================================================
+         1b. PANEL KERJA SESUAI PERAN
+         - Supervisor/HR: antrean review, dipisah Laporan CAPA & Video Kontribusi (format item sama)
+         - Admin: status Google Drive + pintasan kelola data per kategori, pengaturan jarang dipakai di "Advance"
+         ========================================================================= --}}
+    @if ($reviewQueue !== null || $adminShortcuts !== [])
+        @php
+            $queues = array_filter([
+                ['key' => 'capa', 'title' => 'Laporan CAPA', 'empty' => 'Tidak ada laporan yang menunggu review Anda.', 'data' => $reviewQueue['capa'] ?? null],
+                ['key' => 'video', 'title' => 'Video Kontribusi', 'empty' => 'Tidak ada video yang menunggu review.', 'data' => $reviewQueue['video'] ?? null],
+            ], fn ($queue) => $queue['data'] !== null);
+            $shortcutGroups = collect($adminShortcuts)->groupBy('group');
+            $advance = $shortcutGroups->pull('Advance', collect());
+        @endphp
+
+        <div class="grid grid-cols-1 {{ $reviewQueue !== null && $adminShortcuts !== [] ? 'lg:grid-cols-2' : '' }} gap-4 mb-6 items-start">
+            @if ($reviewQueue !== null)
+                <section class="bg-white border border-neutral-200 rounded-md p-5 space-y-5" aria-labelledby="review-queue-title">
+                    <div>
+                        <h2 id="review-queue-title" class="font-sans font-semibold text-sm text-neutral-900">Menunggu Review Anda</h2>
+                        <p class="text-xs text-neutral-600 mt-0.5">Laporan dan video yang perlu Anda setujui atau tolak.</p>
+                    </div>
+
+                    @foreach ($queues as $queue)
+                        <div data-queue="{{ $queue['key'] }}">
+                            <div class="flex items-center justify-between pb-2 border-b border-neutral-200">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-700">{{ $queue['title'] }}</h3>
+                                <span class="inline-flex items-center justify-center min-w-7 h-6 px-2 rounded-md font-mono text-xs font-bold {{ $queue['data']['count'] > 0 ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-neutral-50 text-neutral-500 border border-neutral-200' }}">
+                                    {{ $queue['data']['count'] }}
+                                </span>
+                            </div>
+
+                            @forelse ($queue['data']['items'] as $item)
+                                @php
+                                    $isCapa = $queue['key'] === 'capa';
+                                    $url = $isCapa ? route('ba.show', $item).'#panel-review' : route('videos.show', $item).'#panel-review';
+                                    $statusLabel = $isCapa ? \App\Enums\BaIncidentStatus::from($item->status)->getLabel() : 'Menunggu Review HR';
+                                @endphp
+                                <div wire:key="{{ $queue['key'] }}-{{ $item->id }}" class="flex items-center justify-between gap-3 py-3 border-b border-neutral-100 last:border-b-0">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 text-xs flex-wrap">
+                                            @if ($isCapa)
+                                                <span class="font-mono font-semibold text-neutral-900">{{ $item->nomor_ba }}</span>
+                                            @endif
+                                            <span class="inline-flex items-center px-1.5 py-0.5 text-xs font-mono font-medium border border-amber-400 text-amber-900 bg-amber-50 rounded-badge">{{ $statusLabel }}</span>
+                                        </div>
+                                        <p class="text-xs text-neutral-800 truncate mt-1">{{ $item->title }}</p>
+                                        <p class="text-xs text-neutral-500 mt-0.5">
+                                            {{ $item->creator?->name ?? 'Pegawai' }} &middot; {{ $item->division?->name ?? '-' }} &middot; {{ ($isCapa ? $item->updated_at : $item->created_at)->diffForHumans() }}
+                                        </p>
+                                    </div>
+                                    <a href="{{ $url }}"
+                                       class="shrink-0 inline-flex items-center px-3.5 py-2 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-semibold transition-colors">
+                                        Review
+                                    </a>
+                                </div>
+                            @empty
+                                <p class="py-4 text-center text-xs text-neutral-500">{{ $queue['empty'] }}</p>
+                            @endforelse
+
+                            @if ($queue['data']['count'] > $queue['data']['items']->count())
+                                <a href="{{ $queue['key'] === 'capa' ? route('ba.index') : route('videos.index') }}" class="block pt-2 text-xs font-semibold text-brand hover:underline">
+                                    Lihat semua {{ $queue['data']['count'] }} &rarr;
+                                </a>
+                            @endif
+                        </div>
+                    @endforeach
+                </section>
+            @endif
+
+            @if ($adminShortcuts !== [])
+                <section class="bg-white border border-neutral-200 rounded-md p-5 space-y-4" aria-labelledby="admin-shortcuts-title">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h2 id="admin-shortcuts-title" class="font-sans font-semibold text-sm text-neutral-900">Kelola Data (Admin)</h2>
+                            <p class="text-xs text-neutral-600 mt-0.5">Pintasan ke halaman pengelolaan, dikelompokkan per kategori.</p>
+                        </div>
+                        {{-- Status integrasi: unggahan video & dokumen gagal bila Drive tidak terhubung --}}
+                        <a href="{{ route('filament.admin.pages.google-drive') }}"
+                           class="shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-badge border text-xs font-medium {{ $driveConnection ? 'border-brand/40 text-brand-dark bg-brand-tint/40' : 'border-red-300 text-red-800 bg-red-50' }}"
+                           title="{{ $driveConnection ? 'Terhubung sebagai '.$driveConnection->connected_email : 'Unggahan video & dokumen akan gagal sampai Drive dihubungkan.' }}">
+                            <span class="w-1.5 h-1.5 rounded-full {{ $driveConnection ? 'bg-brand' : 'bg-red-600' }}"></span>
+                            Google Drive: {{ $driveConnection ? 'Terhubung' : 'Belum terhubung' }}
+                        </a>
+                    </div>
+
+                    @foreach ($shortcutGroups as $groupName => $shortcuts)
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">{{ $groupName }}</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                @foreach ($shortcuts as $shortcut)
+                                    <a href="{{ $shortcut['url'] }}"
+                                       class="flex items-center gap-3 p-2.5 rounded-md border border-neutral-200 bg-neutral-50/40 hover:border-brand/40 hover:bg-brand-tint/20 transition-colors">
+                                        <span class="w-8 h-8 shrink-0 rounded-md bg-brand-tint text-brand-dark flex items-center justify-center">
+                                            @include('components.layout.nav-icon', ['name' => $shortcut['icon'], 'class' => 'w-4 h-4'])
+                                        </span>
+                                        <span class="min-w-0">
+                                            <span class="block text-xs font-semibold text-neutral-900 truncate">{{ $shortcut['label'] }}</span>
+                                            <span class="block text-xs text-neutral-500 truncate">{{ $shortcut['description'] }}</span>
+                                        </span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+
+                    {{-- Advance: pengaturan yang jarang diubah (sekali setel), berdampak ke seluruh karyawan --}}
+                    <details class="border-t border-neutral-200 pt-3 group">
+                        <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-neutral-700 hover:text-neutral-900">
+                            <span>Advance <span class="font-normal text-neutral-500">&middot; pengaturan yang jarang diubah</span></span>
+                            <span class="text-neutral-400 group-open:rotate-180 transition-transform">&#9662;</span>
+                        </summary>
+                        <div class="space-y-2 pt-3">
+                            @foreach ($advance as $shortcut)
+                                <a href="{{ $shortcut['url'] }}"
+                                   class="flex items-start gap-3 p-2.5 rounded-md border border-dashed border-neutral-300 bg-white hover:border-brand/40 hover:bg-brand-tint/20 transition-colors">
+                                    <span class="w-8 h-8 shrink-0 rounded-md bg-neutral-100 text-neutral-600 flex items-center justify-center">
+                                        @include('components.layout.nav-icon', ['name' => $shortcut['icon'], 'class' => 'w-4 h-4'])
+                                    </span>
+                                    <span class="min-w-0">
+                                        <span class="block text-xs font-semibold text-neutral-900">{{ $shortcut['label'] }}</span>
+                                        <span class="block text-xs text-neutral-600 leading-relaxed">{{ $shortcut['description'] }}</span>
+                                    </span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </details>
+                </section>
+            @endif
+        </div>
+    @endif
+
+    {{-- Kartu belajar/misi/poin & daftar terbaru hanya untuk karyawan & supervisor; HR fokus review & kelola data --}}
+    @unless ($hrView)
     {{-- =========================================================================
          2. GRID METRIC CARD (4 Kolom Desktop, 2 Tablet, 1 Mobile)
          Total XP (sumber peringkat Leaderboard), Learning Progress, KPI Contribution, Poin CPS ERA Tahun Ini
@@ -51,7 +188,7 @@
         {{-- Metric 1: Total XP (nilai yang sama dengan peringkat Leaderboard) --}}
         <x-ui.metric-card label="Total XP" value="{{ number_format($xp) }}" unit="XP">
             <a href="{{ route('leaderboard.index') }}"
-               class="flex items-center justify-between w-full text-[11px] font-sans text-neutral-600 hover:text-brand-dark transition">
+               class="flex items-center justify-between w-full text-xs font-sans text-neutral-600 hover:text-brand-dark transition">
                 <span class="font-medium text-neutral-700">Peringkat Leaderboard</span>
                 <span class="font-mono font-medium">#{{ $leaderboardRank }}</span>
             </a>
@@ -60,7 +197,7 @@
         {{-- Metric 2: Learning Progress % --}}
         <x-ui.metric-card label="Learning Progress" value="{{ $learningProgress }}%">
             <div class="space-y-1.5 w-full">
-                <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans">
+                <div class="flex items-center justify-between text-xs text-neutral-600 font-sans">
                     <span class="font-medium text-neutral-700">Rata-rata modul selesai</span>
                     <span class="font-mono font-medium">{{ $learningProgress }}%</span>
                 </div>
@@ -78,7 +215,7 @@
         {{-- Metric 3: KPI Contribution ("X dari N materi" periode aktif) --}}
         <x-ui.metric-card label="KPI Contribution" value="{{ $kpi['summary'] }}">
             <div class="space-y-1.5 w-full">
-                <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans">
+                <div class="flex items-center justify-between text-xs text-neutral-600 font-sans">
                     <span class="font-medium text-neutral-700">{{ $kpi['is_complete'] ? 'Target periode tercapai' : 'Post-test 100%' }}</span>
                     <span class="font-mono font-medium">{{ $kpi['percentage'] }}%</span>
                 </div>
@@ -90,18 +227,18 @@
                      aria-label="Progres KPI {{ $kpi['summary'] }}">
                     <div class="bg-brand h-1.5 rounded-full transition-all duration-300" style="width: {{ $kpi['percentage'] }}%"></div>
                 </div>
-                <p class="text-[10px] text-neutral-500 font-mono">Periode {{ $kpi['period_label'] }}</p>
+                <p class="text-xs text-neutral-500 font-mono">Periode {{ $kpi['period_label'] }}</p>
             </div>
         </x-ui.metric-card>
 
         {{-- Metric 4: Poin CPS ERA Tahun Ini ("X / 3" + Breakdown) --}}
         <x-ui.metric-card label="Poin CPS ERA (Tahun Ini)" value="{{ $kpiYearly->poin_cps_era_earned ?? 0 }} / 3">
-            <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans w-full flex-wrap gap-1">
-                <span>BA: <strong class="text-neutral-800 font-semibold font-mono">{{ $kpiYearly->poin_from_ba ?? 0 }}</strong></span>
+            <div class="flex items-center justify-between text-xs text-neutral-600 font-sans w-full flex-wrap gap-1">
+                <span>Video: <strong class="text-neutral-800 font-semibold font-mono">{{ $kpiYearly->poin_from_ba ?? 0 }}</strong></span>
                 <span>&middot;</span>
                 <span>Materi: <strong class="text-neutral-800 font-semibold font-mono">{{ $kpiYearly->poin_from_materi ?? 0 }}</strong></span>
                 <span>&middot;</span>
-                <span class="text-neutral-500 font-mono text-[10px]">Cap 3/thn</span>
+                <span class="text-neutral-500 font-mono text-xs">Cap 3/thn</span>
             </div>
         </x-ui.metric-card>
     </div>
@@ -125,15 +262,15 @@
                         {{-- Badge kategori/divisi & Progres % --}}
                         <div class="flex items-center justify-between gap-2 mb-3">
                             @if ($continueLearning->material->category)
-                                <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[11px] font-medium truncate max-w-[200px]" title="{{ $continueLearning->material->category->name }}">
+                                <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-xs font-medium truncate max-w-[200px]" title="{{ $continueLearning->material->category->name }}">
                                     {{ $continueLearning->material->category->name }}
                                 </span>
                             @elseif ($continueLearning->material->division)
-                                <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[11px] font-medium truncate max-w-[200px]">
+                                <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-xs font-medium truncate max-w-[200px]">
                                     Divisi {{ $continueLearning->material->division->name }}
                                 </span>
                             @else
-                                <span class="px-2 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-[11px] font-medium">
+                                <span class="px-2 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-xs font-medium">
                                     Modul Pelatihan
                                 </span>
                             @endif
@@ -205,7 +342,7 @@
                         {{-- Badge Poin Reward & Meta Info --}}
                         <div class="flex items-center justify-between gap-2 mb-3">
                             <span class="inline-flex items-center gap-1 font-mono text-xs font-semibold text-brand-dark bg-brand-tint border border-brand/30 px-2 py-0.5 rounded-badge">
-                                +{{ $pendingMission->points_reward }} Points
+                                +{{ $pendingMission->points_reward }} XP
                             </span>
 
                             <span class="text-xs font-sans text-neutral-500 font-medium">
@@ -290,7 +427,7 @@
                 <p class="font-sans font-medium text-xs text-neutral-800">
                     Belum Ada Dokumen Tersedia
                 </p>
-                <p class="font-sans text-[11px] text-neutral-500 mt-1 max-w-xs leading-relaxed">
+                <p class="font-sans text-xs text-neutral-500 mt-1 max-w-xs leading-relaxed">
                     Belum ada dokumen knowledge yang dipublikasikan.
                 </p>
             </div>
@@ -304,20 +441,20 @@
                                 <div class="flex items-center gap-1.5 min-w-0">
                                     <x-layout.nav-icon :name="$doc->type" class="w-4 h-4 text-neutral-500 shrink-0" />
                                     @if ($doc->topic)
-                                        <span class="truncate px-1.5 py-0.5 border border-brand/20 rounded-badge text-brand-dark bg-brand-tint font-sans text-[11px] font-medium" title="{{ $doc->topic->name }}">
+                                        <span class="truncate px-1.5 py-0.5 border border-brand/20 rounded-badge text-brand-dark bg-brand-tint font-sans text-xs font-medium" title="{{ $doc->topic->name }}">
                                             {{ $doc->topic->name }}
                                         </span>
                                     @elseif ($doc->division)
-                                        <span class="truncate px-1.5 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-[11px] font-medium" title="{{ $doc->division->name }}">
+                                        <span class="truncate px-1.5 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-xs font-medium" title="{{ $doc->division->name }}">
                                             {{ $doc->division->name }}
                                         </span>
                                     @else
-                                        <span class="px-1.5 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-[11px] font-medium">
+                                        <span class="px-1.5 py-0.5 border border-neutral-200 rounded-badge text-neutral-700 bg-neutral-50 font-sans text-xs font-medium">
                                             Umum
                                         </span>
                                     @endif
                                 </div>
-                                <span class="text-[10px] font-mono text-neutral-500 uppercase tracking-tight shrink-0">
+                                <span class="text-xs font-mono text-neutral-500 uppercase tracking-tight shrink-0">
                                     {{ $doc->type ?? 'Dokumen' }}
                                 </span>
                             </div>
@@ -380,7 +517,7 @@
                                 {{ $ba->nomor_ba }}
                             </span>
                             @if ($ba->division)
-                                <span class="text-[11px] font-sans text-neutral-600 truncate font-medium">
+                                <span class="text-xs font-sans text-neutral-600 truncate font-medium">
                                     Divisi {{ $ba->division->name }}
                                 </span>
                             @endif
@@ -391,7 +528,7 @@
                             {{ $ba->title ?? 'Laporan Insiden Berita Acara' }}
                         </a>
 
-                        <div class="flex items-center gap-2 mt-1 text-[11px] font-sans text-neutral-600">
+                        <div class="flex items-center gap-2 mt-1 text-xs font-sans text-neutral-600">
                             <span>Oleh {{ $ba->creator?->name ?? 'Pelapor' }}</span>
                             <span>&middot;</span>
                             <span>{{ $ba->created_at->diffForHumans() }}</span>
@@ -413,11 +550,12 @@
                     <p class="font-sans font-medium text-xs text-neutral-800">
                         Belum Ada Berita Acara
                     </p>
-                    <p class="font-sans text-[11px] text-neutral-500 mt-1 max-w-xs leading-relaxed">
+                    <p class="font-sans text-xs text-neutral-500 mt-1 max-w-xs leading-relaxed">
                         Belum ada Berita Acara yang dilaporkan.
                     </p>
                 </div>
             @endforelse
         </div>
     </div>
+    @endunless
 </div>

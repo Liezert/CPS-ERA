@@ -2,70 +2,95 @@
 
 namespace App\Services;
 
-use App\Models\KnowledgeDocument;
-use App\Models\PointTransaction;
-use App\Models\Quiz;
+use App\Models\LearningCategory;
+use App\Models\LearningMaterial;
+use App\Models\Notification;
 use App\Models\User;
 use App\Models\Video;
 use DomainException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
+/**
+ * Video kontribusi (keputusan owner 2026-09-27), terpisah dari laporan CAPA:
+ * unggah (karyawan/supervisor) -> review HR saja -> terbit di Learning + 1 Poin CPS ERA.
+ */
 class VideoApprovalService
 {
+    public const CREATION_REASON = 'voluntary_improvement';
+
     /**
-     * Setujui video pada tahap 1: Supervisor Divisi.
-     * Mengubah status dari 'pending_supervisor' menjadi 'pending_hr'.
+     * Kirim video kontribusi ke antrean review HR. Berkas diunggah ke Drive, atau cukup tautan eksternal.
+     *
+     * @param  array{title: string, description?: ?string, learning_category_id?: ?int, video_file?: ?UploadedFile, video_external_link?: ?string}  $data
      *
      * @throws DomainException
      */
-    public function approveSupervisor(Video $video, User $actor, ?string $note = null): Video
+    public function submit(User $actor, array $data): Video
     {
-        if (! $video->isPendingSupervisor()) {
-            throw new DomainException("Transisi status tidak valid: hanya video berstatus 'pending_supervisor' yang dapat disetujui atasan (status saat ini: {$video->status}).");
+        Gate::forUser($actor)->authorize('create', Video::class);
+
+        if (! $actor->division_id) {
+            throw new DomainException('Akun Anda belum terhubung ke divisi. Hubungi admin sebelum mengunggah video.');
         }
 
-        $isAuthorized = $actor->hasRole('admin') ||
-            ($actor->hasRole('supervisor') && (int) $actor->division_id === (int) $video->division_id);
+        $file = $data['video_file'] ?? null;
+        $link = trim((string) ($data['video_external_link'] ?? ''));
 
-        if (! $isAuthorized) {
-            throw new DomainException('Hanya Supervisor dari divisi yang sama atau Admin yang berhak menyetujui video pada tahap ini.');
+        if (! $file instanceof UploadedFile && $link === '') {
+            throw new DomainException('Unggah berkas video atau cantumkan tautan video eksternal.');
         }
 
-        return DB::transaction(function () use ($video, $actor, $note): Video {
-            $video->update([
+        // Unggahan ke Drive dilakukan SEBELUM transaksi: video 100MB memakan puluhan detik.
+        $driveFileId = $file instanceof UploadedFile ? $this->uploadVideoToDrive($file, $data['title']) : null;
+
+        try {
+            return Video::create([
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'video_url' => $driveFileId ? app(GoogleDriveService::class)->getPreviewUrl($driveFileId) : $link,
+                // Kolom ini menyimpan file ID Drive (bukan path lokal).
+                'video_file_url' => $driveFileId,
+                'video_external_link' => $driveFileId ? null : $link,
+                'division_id' => $actor->division_id,
+                'learning_category_id' => $data['learning_category_id'] ?? null,
+                'created_by' => $actor->id,
+                'creation_reason' => self::CREATION_REASON,
                 'status' => 'pending_hr',
-                'supervisor_reviewed_by' => $actor->id,
-                'supervisor_reviewed_at' => now(),
-                'supervisor_notes' => $note,
             ]);
+        } catch (Throwable $exception) {
+            // Penyimpanan gagal: berkas yang terlanjur naik tidak boleh jadi sampah di Drive.
+            if ($driveFileId !== null) {
+                $this->discardDriveFile($driveFileId);
+            }
 
-            return $video->fresh();
-        });
+            throw $exception;
+        }
     }
 
     /**
-     * Setujui video pada tahap 2: HR / Quality.
-     * Mengubah status dari 'pending_hr' menjadi 'published'.
-     * TIDAK BOLEH melompat langsung dari 'pending_supervisor'.
-     *
-     * Efek samping otomatis:
-     * 1. Terbitkan entri knowledge_documents (type='video', status='published').
-     * 2. Insert point_transactions untuk PEMBUAT video.
-     * 3. Otomatis buat kuis post_test kosong (related_type='video', related_id=video.id).
+     * HR menyetujui video: terbit sebagai materi Learning dan pengunggah mendapat 1 Poin CPS ERA
+     * (selama cap tahunan 3 poin belum tercapai).
      *
      * @throws DomainException
      */
-    public function approveHr(Video $video, User $actor, ?string $note = null): Video
+    public function approve(Video $video, User $actor, ?string $note = null): Video
     {
-        if (! $video->isPendingHr()) {
-            throw new DomainException("Transisi status tidak valid: video harus berstatus 'pending_hr' sebelum disetujui HR/Quality. Tidak boleh melompati tahap supervisor (status saat ini: {$video->status}).");
+        $this->authorizeReview($video, $actor);
+
+        $creator = $video->creator ?: User::find($video->created_by);
+        if ($creator) {
+            // Siapkan baris KPI tahunan di luar transaksi (lihat KpiContributionService::ensureYearlyRecord).
+            app(KpiContributionService::class)->ensureYearlyRecord($creator);
         }
 
-        if (! $actor->hasAnyRole(['quality', 'admin'])) {
-            throw new DomainException('Hanya tim Quality/HR atau Admin yang berhak menyetujui video pada tahap akhir.');
-        }
+        return DB::transaction(function () use ($video, $actor, $note, $creator): Video {
+            $this->lockPendingHr($video);
 
-        return DB::transaction(function () use ($video, $actor, $note): Video {
             $video->update([
                 'status' => 'published',
                 'hr_reviewed_by' => $actor->id,
@@ -73,98 +98,147 @@ class VideoApprovalService
                 'hr_notes' => $note,
             ]);
 
-            // a. Insert ke knowledge_documents (type='video', status='published'), link balik ke video ini
-            KnowledgeDocument::create([
+            LearningMaterial::create([
+                'learning_category_id' => $video->learning_category_id ?? $this->defaultCategoryId($actor),
                 'title' => $video->title,
-                'division_id' => $video->division_id,
                 'type' => 'video',
-                'file_url' => $video->video_url,
-                'external_link' => str_starts_with($video->video_url, 'http') ? $video->video_url : null,
-                'description' => $video->description ?? "Video kontribusi: {$video->title}",
-                'source_ba_id' => $video->ba_incident_id,
+                'content_url' => $video->video_url,
+                'description' => $video->description,
                 'source_video_id' => $video->id,
-                'created_by' => $video->created_by,
                 'status' => 'published',
+                'created_by' => $video->created_by,
             ]);
 
-            // b. Insert point_transactions untuk PEMBUAT video
-            $pointAmount = $video->isMandatory()
-                ? (int) config('kpi.points.mandatory_video_published', 100)
-                : (int) config('kpi.points.voluntary_video_published', 100);
+            if ($creator) {
+                app(KpiContributionService::class)->recordVideoContributionApproved($creator, $video);
+            }
 
-            $sourceType = $video->isMandatory()
-                ? 'video_mandatory_published'
-                : 'video_voluntary_published';
-
-            PointTransaction::create([
-                'user_id' => $video->created_by,
-                'ledger_type' => PointTransaction::LEDGER_XP,
-                'points' => $pointAmount,
-                'source_type' => $sourceType,
-                'source_id' => $video->id,
-                'description' => "Poin publikasi video kontribusi: {$video->title}",
-                'created_at' => now(),
-            ]);
-
-            // c. Kuis post_test terkait video (related_type='video')
-            Quiz::firstOrCreate([
-                'related_type' => 'video',
-                'related_id' => $video->id,
-                'type' => 'post_test',
-            ], [
-                'title' => 'Post-Test: '.$video->title,
-                'description' => 'Evaluasi pemahaman untuk video: '.$video->title,
-                'points_reward' => (int) config('kpi.points.video_post_test_passed', 25),
-            ]);
+            $this->notifyUploader($video, 'video_disetujui', 'Video Disetujui: '.$video->title, "Video \"{$video->title}\" disetujui HR dan sudah tayang di Learning.");
 
             return $video->fresh();
-        });
+        }, attempts: 3);
+    }
+
+    private function notifyUploader(Video $video, string $type, string $title, string $message): void
+    {
+        Notification::create([
+            'user_id' => $video->created_by,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'related_type' => 'video',
+            'related_id' => (string) $video->id,
+            'read_at' => null,
+        ]);
     }
 
     /**
-     * Tolak video pada tahap aktif (supervisor atau hr).
+     * HR menolak video. Alasan wajib diisi dan ditampilkan ke pengunggah.
      *
      * @throws DomainException
      */
     public function reject(Video $video, User $actor, string $reason): Video
     {
-        if ($video->isPublished() || $video->isRejected()) {
-            throw new DomainException("Video dengan status '{$video->status}' tidak dapat ditolak.");
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new DomainException('Alasan penolakan wajib diisi.');
         }
 
-        // Cek wewenang penolakan sesuai tahap saat ini
-        if ($video->isPendingSupervisor()) {
-            $isAuthorized = $actor->hasRole('admin') ||
-                ($actor->hasRole('supervisor') && (int) $actor->division_id === (int) $video->division_id);
-
-            if (! $isAuthorized) {
-                throw new DomainException('Hanya Supervisor dari divisi yang sama atau Admin yang dapat menolak pada tahap ini.');
-            }
-        } elseif ($video->isPendingHr()) {
-            if (! $actor->hasAnyRole(['quality', 'admin'])) {
-                throw new DomainException('Hanya Quality/HR atau Admin yang dapat menolak pada tahap HR.');
-            }
-        }
+        $this->authorizeReview($video, $actor);
 
         return DB::transaction(function () use ($video, $actor, $reason): Video {
-            $updateData = [
+            $this->lockPendingHr($video);
+
+            $video->update([
                 'status' => 'rejected',
                 'rejection_reason' => $reason,
-            ];
+                'hr_reviewed_by' => $actor->id,
+                'hr_reviewed_at' => now(),
+                'hr_notes' => $reason,
+            ]);
 
-            if ($video->isPendingSupervisor()) {
-                $updateData['supervisor_reviewed_by'] = $actor->id;
-                $updateData['supervisor_reviewed_at'] = now();
-                $updateData['supervisor_notes'] = $reason;
-            } elseif ($video->isPendingHr()) {
-                $updateData['hr_reviewed_by'] = $actor->id;
-                $updateData['hr_reviewed_at'] = now();
-                $updateData['hr_notes'] = $reason;
-            }
-
-            $video->update($updateData);
+            $this->notifyUploader($video, 'video_ditolak', 'Video Ditolak: '.$video->title, "Video \"{$video->title}\" ditolak HR. Alasan: {$reason}");
 
             return $video->fresh();
         });
+    }
+
+    private function authorizeReview(Video $video, User $actor): void
+    {
+        if (Gate::forUser($actor)->denies('review', $video)) {
+            throw new DomainException('Video hanya bisa disetujui/ditolak tim HR selama menunggu review, dan tidak oleh pengunggahnya sendiri.');
+        }
+    }
+
+    /**
+     * Kunci baris video dan pastikan statusnya masih pending_hr: dua keputusan bersamaan
+     * tidak boleh sama-sama lolos (mis. HR klik ganda, atau dua anggota HR bersamaan).
+     */
+    private function lockPendingHr(Video $video): void
+    {
+        $status = Video::query()->whereKey($video->getKey())->lockForUpdate()->value('status');
+
+        if ($status !== 'pending_hr') {
+            throw new DomainException('Video ini sudah diputuskan sebelumnya. Muat ulang halaman untuk melihat status terbaru.');
+        }
+    }
+
+    private function defaultCategoryId(User $actor): int
+    {
+        return LearningCategory::query()->value('id')
+            ?? LearningCategory::create(['name' => 'Umum / Kaizen', 'created_by' => $actor->id])->id;
+    }
+
+    /**
+     * Unggah berkas video ke folder video di Drive dan buka aksesnya via tautan.
+     *
+     * @return string File ID Drive
+     */
+    private function uploadVideoToDrive(UploadedFile $file, string $title): string
+    {
+        // Folder yang sama dengan video CAPA lama, supaya konfigurasi production tidak berubah.
+        $folderId = config('services.google_drive.folder_id_ba');
+
+        if (blank($folderId)) {
+            throw new DomainException('Folder Google Drive untuk video belum dikonfigurasi (GOOGLE_DRIVE_FOLDER_ID_BA).');
+        }
+
+        $drive = app(GoogleDriveService::class);
+        $fileName = 'VIDEO-'.now()->format('Ymd-His').'-'.str($title)->slug()->limit(40, '').'.'.$file->getClientOriginalExtension();
+
+        try {
+            $fileId = $drive->uploadFileResumable(
+                $file->getRealPath(),
+                $folderId,
+                $fileName,
+                chunkBytes: null,
+                // MIME dari pengunggah, bukan tebakan atas isi berkas.
+                mimeType: $file->getMimeType(),
+            );
+
+            $drive->setPublicPermission($fileId);
+
+            return $fileId;
+        } catch (RuntimeException $exception) {
+            Log::error('Unggah video kontribusi ke Google Drive gagal', ['error' => $exception->getMessage()]);
+
+            throw new DomainException('Gagal mengunggah video ke Google Drive. Periksa koneksi lalu coba lagi.', previous: $exception);
+        }
+    }
+
+    /**
+     * Hapus berkas Drive yang terlanjur terunggah saat penyimpanan gagal.
+     */
+    private function discardDriveFile(string $fileId): void
+    {
+        try {
+            app(GoogleDriveService::class)->deleteFile($fileId);
+        } catch (Throwable $exception) {
+            // Kegagalan pembersihan tidak boleh menutupi galat aslinya.
+            Log::warning('Gagal membersihkan berkas Drive setelah penyimpanan gagal', [
+                'file_id' => $fileId,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

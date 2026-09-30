@@ -11,6 +11,7 @@ use App\Models\PointTransaction;
 use App\Models\Quiz;
 use App\Models\User;
 use App\Models\UserAchievement;
+use App\Models\Video;
 use App\Observers\BaIncidentObserver;
 use App\Observers\KnowledgeDocumentObserver;
 use App\Observers\PointTransactionObserver;
@@ -22,6 +23,10 @@ use App\Policies\KnowledgeTopicPolicy;
 use App\Policies\LearningCategoryPolicy;
 use App\Policies\LearningMaterialPolicy;
 use App\Policies\QuizPolicy;
+use App\Policies\VideoPolicy;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
+use Filament\Support\Facades\FilamentTimezone;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -46,18 +51,28 @@ class AppServiceProvider extends ServiceProvider
         BaIncident::observe(BaIncidentObserver::class);
         Quiz::observe(QuizObserver::class);
 
+        // Timestamp disimpan & dihitung dalam UTC (app.timezone sengaja tetap UTC agar data lama tidak
+        // bergeser); hanya tampilannya yang memakai WIB. Pemakaian: $model->created_at->wib()->format(...).
+        foreach ([Carbon::class, CarbonImmutable::class] as $carbon) {
+            $carbon::macro('wib', fn () => $this->copy()->setTimezone(config('kpi.timezone')));
+        }
+        FilamentTimezone::set(config('kpi.timezone'));
+
         Gate::policy(BaIncident::class, BaIncidentPolicy::class);
         Gate::policy(KnowledgeDocument::class, KnowledgeDocumentPolicy::class);
         Gate::policy(KnowledgeTopic::class, KnowledgeTopicPolicy::class);
         Gate::policy(LearningCategory::class, LearningCategoryPolicy::class);
         Gate::policy(LearningMaterial::class, LearningMaterialPolicy::class);
         Gate::policy(Quiz::class, QuizPolicy::class);
+        Gate::policy(Video::class, VideoPolicy::class);
 
         // Implicitly grant "admin" role all permissions and gate checks
         Gate::before(function (User $user, string $ability): ?bool {
             // Approve/reject per tahap selalu diputuskan policy: status laporan dan tahapnya
             // tetap berlaku untuk admin (admin tidak boleh approve draf atau melompati tahap).
-            if (in_array($ability, BaIncidentPolicy::STAGE_REVIEW_ABILITIES, true)) {
+            // Sama untuk review video (VideoPolicy::review): tanpa ini admin tetap melihat panel review
+            // setelah video tayang, dan bisa mereview unggahannya sendiri.
+            if (in_array($ability, [...BaIncidentPolicy::STAGE_REVIEW_ABILITIES, 'review'], true)) {
                 return null;
             }
 

@@ -38,7 +38,7 @@
 
             {{-- Reward Poin (Stempel 2px) --}}
             <span class="font-mono text-xs font-semibold text-brand-dark bg-brand-tint border border-brand/30 px-2.5 py-1 rounded-[2px]">
-                Reward: +{{ $quiz->points_reward }} Poin
+                Reward: +{{ $quiz->points_reward }} XP
             </span>
         </div>
 
@@ -54,11 +54,9 @@
             <span class="text-brand font-semibold">{{ $answeredCount }}/{{ $totalQuestions }} Terjawab</span>
         </div>
 
-        {{-- Kebijakan Retry PRD §5.3 --}}
-        <!-- TODO: Menunggu keputusan PRD §5.3 (Poin 4: Kebijakan retry kuis) -->
-        <div class="pt-2 border-t border-neutral-200/80 flex flex-wrap items-center justify-between text-[11px] text-neutral-600">
+        {{-- TODO: Menunggu keputusan PRD §5.3 (Poin 4: Kebijakan retry kuis). Penanda hanya untuk developer, tidak tampil di UI. --}}
+        <div class="pt-2 border-t border-neutral-200/80 flex flex-wrap items-center justify-between text-xs text-neutral-600">
             <span>Aturan Pengerjaan: Pilihan ganda dengan feedback evaluasi setelah selesai.</span>
-            <span class="font-mono text-[10px] text-neutral-600 bg-white px-2 py-0.5 border border-neutral-200 rounded-badge">[Menunggu Keputusan PRD §5.3: Kebijakan Retry Kuis]</span>
         </div>
     </div>
 
@@ -70,7 +68,7 @@
                     @include('components.layout.nav-icon', ['name' => 'document-text', 'class' => 'w-4 h-4 text-brand'])
                     <span>Skenario Studi Kasus Lapangan</span>
                 </div>
-                <span class="inline-flex items-center px-2 py-0.5 border border-neutral-200 rounded-badge text-[10px] font-mono text-neutral-600 bg-neutral-50">
+                <span class="inline-flex items-center px-2 py-0.5 border border-neutral-200 rounded-badge text-xs font-mono text-neutral-600 bg-neutral-50">
                     Analisis Pemecahan Masalah
                 </span>
             </div>
@@ -93,25 +91,25 @@
                 {{-- Header Soal --}}
                 <div class="flex items-start justify-between gap-3">
                     <div class="space-y-1">
-                        <span class="text-[11px] font-mono uppercase tracking-wider text-neutral-400 block">
+                        <span class="text-xs font-mono uppercase tracking-wider text-neutral-400 block">
                             Pertanyaan {{ $index + 1 }} dari {{ $totalQuestions }}
                         </span>
                         <h3 class="text-sm font-medium text-neutral-900 leading-snug">
-                            {{ $question->question_text }}
+                            {!! $question->question_html !!}
                         </h3>
                     </div>
 
                     {{-- Feedback Indikator Pojok Kanan Atas (DoD #1: Feedback Instan Tanpa Reload) --}}
                     @if ($evaluated)
                         @if ($evaluated['is_correct'])
-                            <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark bg-brand-tint border border-brand/40 px-2 py-0.5 rounded-[2px]">
+                            <span class="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-brand-dark bg-brand-tint border border-brand/40 px-2 py-0.5 rounded-[2px]">
                                 <svg class="w-3.5 h-3.5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
                                 Benar
                             </span>
                         @else
-                            <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[2px]">
+                            <span class="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[2px]">
                                 <svg class="w-3.5 h-3.5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -154,7 +152,7 @@
                             
                             <div class="flex items-center gap-3">
                                 {{-- Kotak Indikator Huruf --}}
-                                <div class="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-mono shrink-0
+                                <div class="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-mono shrink-0
                                     {{ $isSelected ? ($evaluated && $evaluated['is_correct'] ? 'border-brand bg-brand text-white' : ($evaluated ? 'border-red-500 bg-red-600 text-white' : 'border-neutral-400 bg-neutral-200 text-neutral-700')) : 'border-neutral-300 text-neutral-500' }}">
                                     @if ($evaluated && $isSelected)
                                         @if ($evaluated['is_correct'])
@@ -171,7 +169,7 @@
 
                             {{-- Penanda Solusi / Jawaban Benar Setelah Evaluasi --}}
                             @if ($evaluated)
-                                <div class="shrink-0 text-[10px]">
+                                <div class="shrink-0 text-xs">
                                     @if ($isSelected && $evaluated['is_correct'])
                                         <span class="text-brand-dark font-medium">Pilihan Tepat</span>
                                     @elseif ($isSelected && ! $evaluated['is_correct'])
@@ -220,14 +218,14 @@
                             <svg class="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span>Selamat! <strong>+{{ $pointsEarned }} Poin</strong> telah berhasil tercatat ke ledger point_transactions akun Anda.</span>
+                            <span>Selamat! <strong>+{{ $pointsEarned }} XP</strong> sudah masuk ke akun Anda.</span>
                         </div>
                     @else
                         <div class="p-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-700 flex items-center gap-2">
                             <svg class="w-4 h-4 text-neutral-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                             </svg>
-                            <span>Poin misi ini (+{{ $quiz->points_reward }} Poin) sudah pernah Anda klaim pada penyelesaian sebelumnya.</span>
+                            <span>XP misi ini (+{{ $quiz->points_reward }} XP) sudah pernah Anda klaim pada penyelesaian sebelumnya.</span>
                         </div>
                     @endif
                 @else
@@ -237,15 +235,10 @@
                 @endif
             </div>
 
-            {{-- DoD #3: Penandaan Kebijakan Retry PRD §5.3 --}}
-            <div class="p-3 bg-neutral-50 border border-neutral-200 rounded-md text-xs text-neutral-600">
-                <div class="font-semibold text-neutral-800 mb-1">
-                    [Menunggu Keputusan PRD §5.3: Kebijakan Retry Kuis]
-                </div>
-                <p class="leading-relaxed">
-                    Kebijakan retry misi saat ini belum disahkan secara final oleh manajemen. Sesuai aturan interim MVP, Anda diperbolehkan mengulang misi untuk sarana belajar, namun pencatatan poin ke buku besar <code>point_transactions</code> hanya diberikan 1x seumur hidup per misi.
-                </p>
-            </div>
+            {{-- Aturan interim retry (PRD §5.3 Poin 4 belum diputuskan): boleh diulang, poin sekali per misi. --}}
+            <p class="p-3 bg-neutral-50 border border-neutral-200 rounded-md text-xs text-neutral-600 leading-relaxed">
+                Misi boleh diulang untuk latihan. XP hanya diberikan sekali per misi.
+            </p>
 
             {{-- Tombol Aksi Bawah --}}
             <div class="pt-2 flex flex-wrap items-center justify-between gap-3">

@@ -67,9 +67,8 @@
         @endif
 
         {{-- Petunjuk Post-Test PRD v2.0 §3.3 --}}
-        <div class="pt-2 border-t border-neutral-100 flex flex-wrap items-center justify-between text-[11px] text-neutral-500 font-sans gap-2">
+        <div class="pt-2 border-t border-neutral-100 flex flex-wrap items-center justify-between text-xs text-neutral-500 font-sans gap-2">
             <span>Aturan: Percobaan tidak dibatasi (unlimited attempt). Evaluasi hanya diakui untuk KPI jika mendapat skor 100%.</span>
-            <span class="text-neutral-400 italic">Kunci jawaban disembunyikan demi integritas evaluasi</span>
         </div>
     </div>
 
@@ -86,22 +85,12 @@
                 {{-- Header Soal --}}
                 <div class="flex items-start justify-between gap-3">
                     <div class="space-y-1">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[11px] font-mono uppercase tracking-wider text-neutral-400 block">
-                                Pertanyaan {{ $index + 1 }} dari {{ $totalQuestions }}
-                            </span>
-                            @if ($isMulti)
-                                <span class="text-[10px] font-mono px-1.5 py-0.2 bg-neutral-100 text-neutral-600 border border-neutral-200 rounded-[2px]">
-                                    Pilihan Ganda (Pilih Semua Jawaban Benar)
-                                </span>
-                            @else
-                                <span class="text-[10px] font-mono px-1.5 py-0.2 bg-neutral-100 text-neutral-600 border border-neutral-200 rounded-[2px]">
-                                    Pilihan Tunggal
-                                </span>
-                            @endif
-                        </div>
-                        <h3 class="text-sm font-medium text-neutral-900 leading-snug font-sans">
-                            {{ $question->question_text }}
+                        <span class="text-xs font-mono uppercase tracking-wider text-neutral-400 block">
+                            Pertanyaan {{ $index + 1 }} dari {{ $totalQuestions }}
+                        </span>
+                        {{-- question_html sudah disaring (hanya tebal/miring/garis bawah/tautan) --}}
+                        <h3 class="text-sm font-medium text-neutral-900 leading-snug font-sans [&_a]:text-brand [&_a]:underline">
+                            {!! $question->question_html !!}
                         </h3>
                     </div>
                 </div>
@@ -132,14 +121,14 @@
                             <div class="flex items-center gap-3">
                                 {{-- Bulatan Opsi (Radio) atau Kotak (Checkbox) --}}
                                 @if ($isMulti)
-                                    <div class="w-4 h-4 rounded-[3px] border flex items-center justify-center text-[10px] font-mono shrink-0
+                                    <div class="w-4 h-4 rounded-[3px] border flex items-center justify-center text-xs font-mono shrink-0
                                         {{ $isSelected ? 'border-brand bg-brand text-white' : 'border-neutral-300 bg-white' }}">
                                         @if ($isSelected)
                                             ✓
                                         @endif
                                     </div>
                                 @else
-                                    <div class="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-mono shrink-0
+                                    <div class="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-mono shrink-0
                                         {{ $isSelected ? 'border-brand bg-brand text-white' : 'border-neutral-300 text-neutral-500 bg-white' }}">
                                         @if ($isSelected)
                                             •
@@ -153,7 +142,7 @@
                             </div>
 
                             @if ($isSelected)
-                                <span class="shrink-0 text-[10px] font-mono text-brand-dark">Pilihan Anda</span>
+                                <span class="shrink-0 text-xs font-mono text-brand-dark">Pilihan Anda</span>
                             @endif
                         </button>
                     @endforeach
@@ -193,11 +182,11 @@
                         <svg class="w-4 h-4 text-brand shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>Selamat! Skor Anda 100%. Materi ini dihitung ke progres KPI Contribution periode ini.</span>
+                        <span>Selamat! Skor Anda 100%. Materi ini dihitung ke progres KPI Contribution periode ini.@if ($latestAttempt?->points_earned > 0) Anda mendapat <strong>+{{ $latestAttempt->points_earned }} XP</strong>.@endif</span>
                     </div>
                 @else
                     <div class="p-3 bg-neutral-50 border border-neutral-200 rounded-md text-neutral-700">
-                        Skor Anda adalah <strong>{{ $score }}%</strong>. Untuk memenuhi syarat kontribusi KPI, evaluasi post-test mensyaratkan skor tepat <strong>100%</strong>. Sesuai PRD v2.0, Anda dapat mencoba kembali tanpa batas hingga menguasai seluruh materi.
+                        Skor Anda adalah <strong>{{ $score }}%</strong>. Untuk memenuhi syarat kontribusi KPI, evaluasi post-test mensyaratkan skor tepat <strong>100%</strong>. Anda dapat mencoba kembali tanpa batas hingga menguasai seluruh materi.
                     </div>
                 @endif
             </div>

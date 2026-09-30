@@ -19,8 +19,8 @@ use RuntimeException;
  * langsung ke tiap karyawan. Email yang sudah terdaftar dilewati, jadi aman dijalankan ulang.
  *
  * Divisi ditulis dengan NAMA, bukan ID: ID divisi bisa berbeda antara lokal dan production.
- * Pakai salah satu dari 11 divisi pelapor resmi: Produksi, PPIC, Warehouse & Delivery, RM Warehouse,
- * Engineering, Quality Control, Jahit, Finance Accounting Tax, Purchasing, Marketing & Sales,
+ * Pakai salah satu dari 12 divisi pelapor resmi: Produksi, PPIC, Warehouse & Delivery, RM Warehouse,
+ * Engineering, Quality Control, Jahit, Finance Accounting Tax, Purchasing, Marketing, Sales,
  * Plant Balben & Krian.
  *
  * Role: employee | supervisor | quality | admin.

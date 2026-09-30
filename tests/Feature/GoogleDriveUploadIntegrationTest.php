@@ -2,30 +2,30 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Ba\Create as BaCreate;
 use App\Livewire\Ba\Show as BaShow;
 use App\Livewire\Knowledge\Index as KnowledgeIndex;
+use App\Livewire\Video\Create as VideoCreate;
+use App\Livewire\Video\Show as VideoShow;
 use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\KnowledgeDocument;
 use App\Models\User;
 use App\Models\Video;
-use App\Services\BaIncidentService;
+use App\Services\VideoApprovalService;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use Tests\Concerns\FakesGoogleDrive;
 use Tests\TestCase;
 
 /**
- * Integrasi unggahan berkas ke Google Drive: video CAPA (resumable) dan
+ * Integrasi unggahan berkas ke Google Drive: video kontribusi (resumable) dan
  * dokumen Knowledge Repository (multipart), termasuk jalur galat dan
- * penyajiannya di antarmuka.
+ * penyajiannya di antarmuka. Video lama milik laporan CAPA tetap bisa diputar.
  */
 class GoogleDriveUploadIntegrationTest extends TestCase
 {
@@ -48,45 +48,34 @@ class GoogleDriveUploadIntegrationTest extends TestCase
         $this->employee->assignRole('employee');
     }
 
-    protected function draftIncident(): BaIncident
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    protected function submitVideo(array $overrides = []): Video
     {
-        return BaIncident::create([
-            'nomor_ba' => 'BA-2026-0101',
-            'title' => 'CAPA: uji unggah Drive',
-            'division_id' => $this->division->id,
-            'tanggal_pengisian' => '2026-09-20',
-            'sumber_ketidaksesuaian' => 'audit',
-            'tanggal_masalah' => '2026-09-19',
-            'lokasi' => 'Lini Injeksi Nozzle 02',
-            'deskripsi_masalah' => 'Suhu nozzle melampaui batas',
-            'why_1' => 'Temperatur naik',
-            'kesimpulan_akar_masalah' => 'Tidak ada IK pembersihan',
-            'koreksi_deskripsi' => 'Mesin dimatikan',
-            'korektif_deskripsi' => 'Revisi checklist',
-            'status' => 'draft',
-            'created_by' => $this->employee->id,
-        ]);
+        return app(VideoApprovalService::class)->submit($this->employee, array_merge([
+            'title' => 'Cara Membersihkan Nozzle Injeksi',
+            'description' => 'Langkah aman membersihkan nozzle.',
+            'video_file' => UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096)),
+            'video_external_link' => null,
+        ], $overrides));
     }
 
-    public function test_video_capa_diunggah_resumable_dan_file_id_tersimpan(): void
+    public function test_video_kontribusi_diunggah_resumable_dan_file_id_tersimpan(): void
     {
-        $fileId = $this->fakeGoogleDrive('1VideoCapaDriveIdUji');
-        $incident = $this->draftIncident();
+        $fileId = $this->fakeGoogleDrive('1VideoKontribusiIdUji');
         $berkas = UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096));
         $mimePengunggah = $berkas->getMimeType();
 
-        app(BaIncidentService::class)->submitWithVideo($incident, $this->employee, [
-            'video_file' => $berkas,
-            'video_external_link' => null,
-        ]);
+        $video = $this->submitVideo(['video_file' => $berkas]);
 
-        $video = Video::where('ba_incident_id', $incident->id)->sole();
-
-        // Kolom menyimpan file ID Drive, bukan path lokal seperti sebelumnya.
+        // Kolom menyimpan file ID Drive, bukan path lokal.
         $this->assertSame($fileId, $video->video_file_url);
         $this->assertStringNotContainsString('/storage/', (string) $video->video_file_url);
         $this->assertSame("https://drive.google.com/file/d/{$fileId}/preview", $video->video_url);
-        $this->assertSame('pending_supervisor', $incident->fresh()->status);
+        $this->assertSame('pending_hr', $video->status);
+        $this->assertSame(VideoApprovalService::CREATION_REASON, $video->creation_reason);
+        $this->assertNull($video->ba_incident_id);
 
         // Jalur resumable dipakai, dengan MIME dari UploadedFile pengunggah.
         Http::assertSent(function ($request) use ($mimePengunggah): bool {
@@ -109,74 +98,58 @@ class GoogleDriveUploadIntegrationTest extends TestCase
     public function test_tautan_eksternal_manual_tidak_menyentuh_drive(): void
     {
         $this->fakeGoogleDrive();
-        $incident = $this->draftIncident();
 
-        app(BaIncidentService::class)->submitWithVideo($incident, $this->employee, [
+        $video = $this->submitVideo([
             'video_file' => null,
-            'video_external_link' => 'https://drive.google.com/file/d/tautan-manual-123/view',
+            'video_external_link' => 'https://drive.google.com/file/d/tautan-manual-123456789/view',
         ]);
 
-        $video = Video::where('ba_incident_id', $incident->id)->sole();
-
         $this->assertNull($video->video_file_url);
-        $this->assertSame('https://drive.google.com/file/d/tautan-manual-123/view', $video->video_external_link);
-        $this->assertSame('pending_supervisor', $incident->fresh()->status);
+        $this->assertSame('https://drive.google.com/file/d/tautan-manual-123456789/view', $video->video_external_link);
+        $this->assertSame('pending_hr', $video->status);
 
         // Tidak ada unggahan yang dikirim untuk jalur tautan manual.
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/upload/drive/v3/files'));
     }
 
-    public function test_kegagalan_unggah_tidak_menyimpan_laporan_dan_memberi_pesan_jelas(): void
+    public function test_kegagalan_unggah_tidak_menyimpan_video_dan_memberi_pesan_jelas(): void
     {
         $this->fakeGoogleDriveUploadFailure();
-        $incident = $this->draftIncident();
 
         try {
-            app(BaIncidentService::class)->submitWithVideo($incident, $this->employee, [
-                'video_file' => UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096)),
-                'video_external_link' => null,
-            ]);
+            $this->submitVideo();
 
             $this->fail('Unggahan gagal seharusnya melempar DomainException.');
         } catch (DomainException $exception) {
             $this->assertStringContainsString('Gagal mengunggah video ke Google Drive', $exception->getMessage());
         }
 
-        // Laporan tidak boleh tersimpan dengan video kosong/rusak.
-        $this->assertSame('draft', $incident->fresh()->status);
         $this->assertDatabaseCount('videos', 0);
     }
 
     public function test_livewire_menampilkan_pesan_galat_dan_tetap_di_halaman_saat_unggah_gagal(): void
     {
         $this->fakeGoogleDriveUploadFailure();
-        $incident = $this->draftIncident();
 
         Livewire::actingAs($this->employee)
-            ->test(BaCreate::class, ['incidentId' => $incident->id])
-            ->set('step', 2)
+            ->test(VideoCreate::class)
+            ->set('title', 'Cara Membersihkan Nozzle Injeksi')
             ->set('videoFile', UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096)))
             ->call('submit')
-            ->assertHasErrors('videoRequired')
+            ->assertHasErrors('video')
             ->assertNoRedirect()
             ->assertSee('Gagal mengunggah video ke Google Drive');
 
-        $this->assertSame('draft', $incident->fresh()->status);
+        $this->assertDatabaseCount('videos', 0);
     }
 
     public function test_berkas_drive_dihapus_kembali_bila_penyimpanan_gagal(): void
     {
         $fileId = $this->fakeGoogleDrive('1VideoYatimPiatu');
-        $incident = $this->draftIncident();
-
-        // Simulasikan kegagalan penyimpanan setelah unggahan berhasil.
-        Schema::drop('ba_activity_logs');
 
         try {
-            app(BaIncidentService::class)->submitWithVideo($incident, $this->employee, [
-                'video_file' => UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096)),
-                'video_external_link' => null,
-            ]);
+            // Kategori yang tidak ada melanggar foreign key: penyimpanan gagal setelah unggahan berhasil.
+            $this->submitVideo(['learning_category_id' => 999999]);
 
             $this->fail('Kegagalan penyimpanan seharusnya melempar exception.');
         } catch (\Throwable $exception) {
@@ -186,27 +159,38 @@ class GoogleDriveUploadIntegrationTest extends TestCase
         // Berkas yang terlanjur naik dibersihkan agar tidak menjadi sampah di Drive.
         Http::assertSent(fn ($request) => $request->method() === 'DELETE'
             && str_contains($request->url(), "/drive/v3/files/{$fileId}"));
+        $this->assertDatabaseCount('videos', 0);
     }
 
     public function test_pemutar_video_memakai_iframe_preview_drive(): void
     {
-        $fileId = $this->fakeGoogleDrive('1VideoCapaDriveIdUji');
-        $incident = $this->draftIncident();
-
-        app(BaIncidentService::class)->submitWithVideo($incident, $this->employee, [
-            'video_file' => UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096)),
-            'video_external_link' => null,
-        ]);
+        $fileId = $this->fakeGoogleDrive('1VideoKontribusiIdUji');
+        $video = $this->submitVideo();
 
         Livewire::actingAs($this->employee)
-            ->test(BaShow::class, ['incident' => $incident->fresh()])
+            ->test(VideoShow::class, ['video' => $video])
             ->assertSeeHtml("https://drive.google.com/file/d/{$fileId}/preview")
             ->assertDontSeeHtml('<source src=');
     }
 
+    /**
+     * Laporan lama (sebelum CAPA dipisah dari video) yang videonya masih berkas lokal.
+     */
+    protected function legacyIncident(): BaIncident
+    {
+        return BaIncident::create([
+            'nomor_ba' => 'BA-2026-0101',
+            'title' => 'CAPA: laporan lama',
+            'division_id' => $this->division->id,
+            'deskripsi_masalah' => 'Suhu nozzle melampaui batas',
+            'status' => 'approved',
+            'created_by' => $this->employee->id,
+        ]);
+    }
+
     public function test_pemutar_video_masih_memutar_berkas_lokal_warisan(): void
     {
-        $incident = $this->draftIncident();
+        $incident = $this->legacyIncident();
 
         Video::create([
             'title' => 'Video lama',

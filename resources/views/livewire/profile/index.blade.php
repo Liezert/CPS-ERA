@@ -11,7 +11,7 @@
                 Profil Pegawai
             </h1>
             <p class="font-sans text-xs sm:text-sm text-neutral-600 mt-1">
-                Informasi identitas, akumulasi performa, dan riwayat perolehan poin Anda.
+                Informasi identitas, akumulasi performa, dan riwayat perolehan XP Anda.
             </p>
         </div>
     </div>
@@ -69,7 +69,7 @@
         {{-- Metric 2: KPI Contribution ("X dari N materi" periode aktif, sumber sama dengan Dashboard) --}}
         <x-ui.metric-card label="KPI Contribution" value="{{ $kpiData['summary'] }}">
             <div class="space-y-1.5 w-full">
-                <div class="flex items-center justify-between text-[11px] text-neutral-600 font-sans">
+                <div class="flex items-center justify-between text-xs text-neutral-600 font-sans">
                     <span class="font-medium text-neutral-700">{{ $kpiData['is_complete'] ? 'Target periode tercapai' : 'Post-test 100%' }}</span>
                     <span class="font-mono font-medium">{{ $kpiContribution }}%</span>
                 </div>
@@ -81,13 +81,13 @@
                      aria-label="Progres KPI {{ $kpiData['summary'] }}">
                     <div class="bg-brand h-1.5 rounded-full transition-all duration-300" style="width: {{ $kpiContribution }}%"></div>
                 </div>
-                <p class="text-[10px] text-neutral-500 font-mono">Periode {{ $kpiData['period_label'] }}</p>
+                <p class="text-xs text-neutral-500 font-mono">Periode {{ $kpiData['period_label'] }}</p>
             </div>
         </x-ui.metric-card>
 
-        {{-- Metric 3: Akumulasi Poin (Agregasi Ledger point_transactions) --}}
-        <x-ui.metric-card label="Total Poin Saya" value="{{ number_format($totalPoints) }} Pts" :is-technical="true">
-            <span class="text-neutral-600">Agregasi ledger point_transactions</span>
+        {{-- Metric 3: Total XP (users.xp, sama dengan Dashboard & Leaderboard) --}}
+        <x-ui.metric-card label="Total XP Saya" value="{{ number_format($totalPoints) }} XP" :is-technical="true">
+            <span class="text-neutral-600">Dipakai untuk peringkat Leaderboard</span>
         </x-ui.metric-card>
     </div>
 
@@ -101,12 +101,12 @@
                     Grafik Performa Bulanan
                 </h3>
                 <p class="font-sans text-xs text-neutral-500 mt-0.5">
-                    Akumulasi perolehan poin penghargaan pegawai selama 6 bulan terakhir.
+                    Perolehan XP selama 6 bulan terakhir.
                 </p>
             </div>
             <div class="flex items-center gap-2">
                 <span class="w-3 h-3 bg-brand rounded-sm inline-block"></span>
-                <span class="font-sans text-xs text-neutral-600">Poin Diperoleh (Hijau Tunggal)</span>
+                <span class="font-sans text-xs text-neutral-600">XP Diperoleh</span>
             </div>
         </div>
 
@@ -117,7 +117,7 @@
                     <div wire:key="month-{{ $item['month'] }}" class="flex-1 flex flex-col items-center h-full justify-end group">
                         
                         {{-- Angka Poin di Atas Batang (font-mono) --}}
-                        <span class="font-mono text-[11px] sm:text-xs font-semibold text-neutral-800 mb-2 transition-transform group-hover:-translate-y-0.5">
+                        <span class="font-mono text-xs sm:text-xs font-semibold text-neutral-800 mb-2 transition-transform group-hover:-translate-y-0.5">
                             {{ $item['points'] > 0 ? number_format($item['points']) : '0' }}
                         </span>
 
@@ -126,10 +126,10 @@
                             @if ($item['points'] > 0)
                                 <div class="w-full bg-brand rounded-t-sm transition-all duration-500 group-hover:opacity-90"
                                      style="height: {{ max($item['barPercent'], 6) }}%;"
-                                     title="{{ $item['label'] }}: {{ $item['points'] }} Pts">
+                                     title="{{ $item['label'] }}: {{ $item['points'] }} XP">
                                 </div>
                             @else
-                                <div class="w-full bg-neutral-200 h-1 rounded-t-sm" title="{{ $item['label'] }}: 0 Pts"></div>
+                                <div class="w-full bg-neutral-200 h-1 rounded-t-sm" title="{{ $item['label'] }}: 0 XP"></div>
                             @endif
                         </div>
                     </div>
@@ -143,7 +143,7 @@
             <div class="flex items-center justify-between gap-1.5 sm:gap-6 px-1 sm:px-6 mt-2.5">
                 @foreach ($monthlyPerformance as $item)
                     <div wire:key="label-{{ $item['month'] }}" class="flex-1 text-center">
-                        <span class="font-mono text-[10px] sm:text-xs text-neutral-600 block">
+                        <span class="font-mono text-xs sm:text-xs text-neutral-600 block">
                             {{ $item['label'] }}
                         </span>
                     </div>
@@ -409,8 +409,10 @@
                     <input type="email"
                            id="profile_email"
                            wire:model="email"
-                           class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm font-sans focus:ring-1 focus:ring-brand focus:border-brand text-neutral-900"
-                           required>
+                           readonly
+                           aria-describedby="profile_email_hint"
+                           class="w-full px-3 py-2 border border-neutral-200 bg-neutral-50 rounded-md text-sm font-sans text-neutral-600 cursor-not-allowed">
+                    <p id="profile_email_hint" class="text-xs text-neutral-500 mt-1">Email dipakai untuk login dan hanya bisa diubah admin.</p>
                     @error('email')
                         <span class="text-xs text-red-600 mt-1 block font-sans">{{ $message }}</span>
                     @enderror

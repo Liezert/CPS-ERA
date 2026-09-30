@@ -26,6 +26,12 @@ class BaIncidentsTable
                     ->sortable()
                     ->copyable()
                     ->weight('bold'),
+                // Reviewer HR bisa memutuskan dari tabel, jadi isi laporan harus terbaca di sini.
+                TextColumn::make('title')
+                    ->label('Judul')
+                    ->limit(50)
+                    ->tooltip(fn (BaIncident $record): ?string => $record->title)
+                    ->searchable(),
                 TextColumn::make('division.name')
                     ->label('Divisi')
                     ->sortable()

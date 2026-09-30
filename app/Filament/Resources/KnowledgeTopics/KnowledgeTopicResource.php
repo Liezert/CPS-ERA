@@ -22,9 +22,9 @@ class KnowledgeTopicResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolder;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Repository & Pembelajaran';
+    protected static UnitEnum|string|null $navigationGroup = 'Knowledge & Video';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Topik Pengetahuan';
 

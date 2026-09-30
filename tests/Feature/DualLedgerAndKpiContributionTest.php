@@ -18,6 +18,7 @@ use App\Models\UserLearningProgress;
 use App\Services\BaIncidentService;
 use App\Services\KpiContributionCalculator;
 use App\Services\KpiContributionService;
+use App\Services\VideoApprovalService;
 use Database\Seeders\DivisionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -198,11 +199,11 @@ class DualLedgerAndKpiContributionTest extends TestCase
     }
 
     /**
-     * 4. Approve BA memicu insert point_transactions ledger_type='poin_cps_era',
-     *    source_type='ba_video_approved', SELAMA cap tahunan (3) belum tercapai.
-     *    Sekaligus memverifikasi pipeline otomatis kandidat materi Learning.
+     * 4. (diperbarui 2026-09-27) Jalur A kini berasal dari video kontribusi, bukan laporan CAPA:
+     *    approval video oleh HR memicu point_transactions ledger_type='poin_cps_era', sedangkan
+     *    approval laporan CAPA tidak memberi poin sama sekali.
      */
-    public function test_ba_approval_awards_cps_era_point_and_creates_candidate_learning_material(): void
+    public function test_video_approval_awards_cps_era_point_but_capa_approval_does_not(): void
     {
         $incident = BaIncident::create([
             'id' => (string) Str::uuid(),
@@ -212,48 +213,44 @@ class DualLedgerAndKpiContributionTest extends TestCase
             'deskripsi_masalah' => 'Roll press macet karena bearing aus.',
             'created_by' => $this->employee->id,
             'status' => 'pending_hr',
-            'video_file_url' => '/uploads/ba-videos/roll-press.mp4',
         ]);
 
-        $baService = app(BaIncidentService::class);
-        $approvedBa = $baService->approve($incident, $this->admin, [
+        $approvedBa = app(BaIncidentService::class)->approve($incident, $this->admin, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Penggantian bearing tipe 6205RS tuntas dan beroperasi normal.',
         ]);
 
         $this->assertSame('approved', $approvedBa->status);
+        $this->assertSame(0, PointTransaction::where('user_id', $this->employee->id)->where('ledger_type', 'poin_cps_era')->count());
+        $this->assertDatabaseMissing('learning_materials', ['source_ba_id' => $incident->id]);
 
-        // Verifikasi point_transactions dibuat dengan ledger_type='poin_cps_era'
+        $videoService = app(VideoApprovalService::class);
+        $video = $videoService->approve($videoService->submit($this->employee, [
+            'title' => 'Cara Mengganti Bearing Roll Press',
+            'video_external_link' => 'https://drive.google.com/file/d/1VideoBearingUji00000001/view',
+        ]), $this->admin);
+
         $tx = PointTransaction::where('user_id', $this->employee->id)
             ->where('ledger_type', 'poin_cps_era')
-            ->where('source_type', 'ba_video_approved')
-            ->first();
-
-        $this->assertNotNull($tx);
+            ->sole();
         $this->assertSame(1, $tx->points);
-        $this->assertSame($incident->id, $tx->source_id);
+        $this->assertSame(KpiContributionService::SOURCE_VIDEO_CONTRIBUTION, $tx->source_type);
+        $this->assertSame($video->id, $tx->source_id);
 
-        // Verifikasi agregasi user_kpi_yearly
-        $kpi = UserKpiYearly::where('user_id', $this->employee->id)
-            ->where('period_year', (int) now()->year)
-            ->first();
-
-        $this->assertNotNull($kpi);
+        $kpi = UserKpiYearly::where('user_id', $this->employee->id)->where('period_year', (int) now()->year)->sole();
         $this->assertSame(1, $kpi->poin_cps_era_earned);
         $this->assertSame(1, $kpi->poin_from_ba);
 
-        // Verifikasi pipeline: 1 baris LearningMaterial baru bertipe video dan status candidate
-        $materialCandidate = LearningMaterial::where('source_ba_id', $incident->id)->first();
-        $this->assertNotNull($materialCandidate);
-        $this->assertSame('candidate', $materialCandidate->status);
-        $this->assertSame('video', $materialCandidate->type);
-        $this->assertSame('Video Penanganan: BA/2026/09/001', $materialCandidate->title);
+        // Video yang disetujui langsung tayang sebagai materi Learning bertipe video.
+        $material = LearningMaterial::where('source_video_id', $video->id)->sole();
+        $this->assertSame('published', $material->status);
+        $this->assertSame('video', $material->type);
     }
 
     /**
      * 5. Setelah poin_cps_era_earned mencapai 3 di tahun berjalan, baik lewat Jalur A maupun
      *    Jalur B, tidak ada penambahan poin CPS ERA lagi sampai tahun berikutnya -- tapi
-     *    approve BA / lulus post-test tetap berjalan normal tanpa poin tambahan (bukan ditolak).
+     *    approve video / lulus post-test tetap berjalan normal tanpa poin tambahan (bukan ditolak).
      */
     public function test_cps_era_points_capped_at_3_per_year_across_both_tracks_without_rejection(): void
     {
@@ -274,26 +271,15 @@ class DualLedgerAndKpiContributionTest extends TestCase
             ->where('ledger_type', 'poin_cps_era')
             ->count();
 
-        // Jalur A Test: Approve BA baru saat cap sudah 3
-        $incident = BaIncident::create([
-            'id' => (string) Str::uuid(),
-            'nomor_ba' => 'BA/2026/09/999',
-            'division_id' => $this->division->id,
-            'title' => 'Insiden Sensor Optical',
-            'deskripsi_masalah' => 'Sensor kotor tersumbat debu.',
-            'created_by' => $this->employee->id,
-            'status' => 'pending_hr',
-            'video_file_url' => '/videos/sensor.mp4',
-        ]);
+        // Jalur A Test: HR menyetujui video kontribusi saat cap sudah 3
+        $videoService = app(VideoApprovalService::class);
+        $video = $videoService->approve($videoService->submit($this->employee, [
+            'title' => 'Membersihkan Sensor Optical',
+            'video_external_link' => 'https://drive.google.com/file/d/1VideoSensorUji000000001/view',
+        ]), $this->admin);
 
-        $baService = app(BaIncidentService::class);
-        $approvedBa = $baService->approve($incident, $this->admin, [
-            'status_verifikasi' => 'efektif',
-            'bukti_objektif' => 'Sensor dibersihkan dan dipasang penutup filter udara.',
-        ]);
-
-        // BA TETAP berhasil disetujui (tidak error/ditolak)
-        $this->assertSame('approved', $approvedBa->status);
+        // Video TETAP disetujui dan tayang (tidak error/ditolak)
+        $this->assertSame('published', $video->status);
 
         // Tapi TIDAK ada penambahan transaksi Poin CPS ERA
         $this->assertSame(

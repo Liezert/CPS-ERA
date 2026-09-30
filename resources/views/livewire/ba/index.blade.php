@@ -1,4 +1,9 @@
 <div class="space-y-6">
+    {{-- Laporan baru saja terkirim: hapus salinan draf di perangkat agar form laporan baru tidak terisi ulang --}}
+    @if (session('capa_draft_clear'))
+        <div hidden x-data x-init="['baru', @js(session('capa_draft_clear'))].forEach(id => { try { localStorage.removeItem('cps-era:capa-draft:{{ auth()->id() }}:' + id) } catch (e) {} })"></div>
+    @endif
+
     {{-- Header --}}
     <div class="bg-neutral-50/70 border border-neutral-200 rounded-md p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -15,12 +20,14 @@
             </p>
         </div>
 
+        @if (auth()->user()->canFileCapa())
         <div class="shrink-0">
             <a href="{{ route('ba.create') }}"
                class="inline-flex items-center px-4 py-2 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-brand">
                 Buat Laporan CAPA
             </a>
         </div>
+        @endif
     </div>
 
     {{-- Notifikasi Sukses Penerbitan BA --}}
@@ -81,13 +88,9 @@
                 <select wire:model.live="selectedStatus"
                         class="w-full py-2 px-3 text-xs font-sans bg-white border border-neutral-200 rounded-badge text-neutral-900 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors">
                     <option value="">Semua Status</option>
-                    <option value="draft">Draft (Tersimpan)</option>
-                    <option value="submitted">Submitted (Menunggu Review)</option>
-                    <option value="approved">Approved (Disetujui)</option>
-                    <option value="rejected">Rejected (Perlu Revisi)</option>
-                    <option value="created">Created (Legacy)</option>
-                    <option value="reviewed">Reviewed (Legacy)</option>
-                    <option value="closed">Closed (Legacy)</option>
+                    @foreach (\App\Enums\BaIncidentStatus::cases() as $status)
+                        <option value="{{ $status->value }}">{{ $status->getLabel() }}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -109,12 +112,14 @@
                     Belum ada insiden operasional yang dilaporkan.
                 @endif
             </p>
+            @if (auth()->user()->canFileCapa())
             <div class="mt-4">
                 <a href="{{ route('ba.create') }}"
                    class="inline-flex items-center px-3 py-1.5 bg-brand text-white rounded-badge text-xs font-sans font-medium hover:bg-brand-dark transition-colors">
                     Buat Laporan BA Baru
                 </a>
             </div>
+            @endif
         </div>
     @else
         <div class="bg-white border border-neutral-200 rounded-md divide-y divide-neutral-200 overflow-hidden">
@@ -144,10 +149,10 @@
                             {{ $ba->title ?: 'Laporan Insiden Tanpa Judul' }}
                         </a>
 
-                        <div class="flex items-center gap-2 text-[11px] font-sans text-neutral-600 font-medium">
+                        <div class="flex items-center gap-2 text-xs font-sans text-neutral-600 font-medium">
                             <span>Pelapor: {{ $ba->creator?->name ?? 'Pegawai' }}</span>
                             <span class="text-neutral-300">&middot;</span>
-                            <span class="font-mono text-neutral-500">{{ $ba->created_at->format('d M Y, H:i') }}</span>
+                            <span class="font-mono text-neutral-500">{{ $ba->created_at->wib()->format('d M Y, H:i') }}</span>
                         </div>
                     </div>
 

@@ -6,7 +6,6 @@ use App\Livewire\Ba\Create as BaCreate;
 use App\Livewire\Ba\Show as BaShow;
 use App\Models\BaIncident;
 use App\Models\Division;
-use App\Models\LearningMaterial;
 use App\Models\User;
 use App\Models\Video;
 use App\Services\BaIncidentService;
@@ -76,11 +75,11 @@ class BaCapaRevisionTest extends TestCase
     }
 
     /**
-     * TEST 1: Submission tidak bisa lanjut ke status 'submitted' kalau Step 2 (video) belum lengkap (dua-duanya kosong).
+     * TEST 1 (diperbarui 2026-09-27): laporan CAPA tidak lagi melampirkan video. Formulir yang belum
+     * lengkap tidak bisa dikirim; formulir lengkap langsung terkirim ke Supervisor tanpa video.
      */
-    public function test_submission_cannot_proceed_to_submitted_if_step_2_video_is_incomplete(): void
+    public function test_report_is_sent_to_supervisor_only_when_the_form_is_complete_and_needs_no_video(): void
     {
-        // 1. Lewat Livewire Multi-step:
         $lw = Livewire::actingAs($this->employeeProduksi)
             ->test(BaCreate::class)
             ->set('divisionId', $this->divisionProduksi->id)
@@ -88,37 +87,29 @@ class BaCapaRevisionTest extends TestCase
             ->set('lokasi', 'Lini Injeksi Moulding 03')
             ->set('sumberKetidaksesuaian', 'audit')
             ->set('deskripsiMasalah', 'Ditemukan kebocoran oli pelumas pada piston utama.')
-            ->set('why1', 'Seal hidrolik mengalami keretakan mikro.')
+            ->call('submitReport')
+            ->assertHasErrors(['why1', 'kesimpulanAkarMasalah', 'koreksiDeskripsi', 'korektifDeskripsi']);
+
+        $this->assertDatabaseCount('ba_incidents', 0);
+
+        $lw->set('why1', 'Seal hidrolik mengalami keretakan mikro.')
             ->set('kesimpulanAkarMasalah', 'Degradasi material seal akibat temperatur berlebih.')
             ->set('koreksiDeskripsi', 'Penggantian seal darurat dan pembersihan tumpahan oli.')
             ->set('korektifDeskripsi', 'Pemasangan sensor temperatur otomatis pada pompa sirkulasi.')
-            ->call('nextStep')
-            ->assertSet('step', 2);
+            ->call('submitReport')
+            ->assertHasNoErrors()
+            ->assertDispatched('capa-draft-submitted')
+            ->assertRedirect(route('ba.index'));
 
-        // Di Step 2, tanpa upload video atau external link, tombol submit harus memicu validasi error
-        $lw->call('submit')
-            ->assertHasErrors(['videoRequired']);
-
-        // Incident harus tetap berstatus 'draft', tidak boleh 'submitted'
-        $incidentId = $lw->get('baIncidentId');
-        $this->assertNotNull($incidentId);
-
-        $incident = BaIncident::find($incidentId);
-        $this->assertSame('draft', $incident->status);
-
-        // 2. Lewat Service class:
-        $service = app(BaIncidentService::class);
-        $this->expectException(DomainException::class);
-        $service->submitWithVideo($incident, $this->employeeProduksi, [
-            'video_file' => null,
-            'video_external_link' => null,
-        ]);
+        $incident = BaIncident::findOrFail($lw->get('baIncidentId'));
+        $this->assertSame('pending_supervisor', $incident->status);
+        $this->assertNull($incident->video);
     }
 
     /**
-     * TEST 2: Data Step 1 tidak hilang kalau user klik "Kembali" dari Step 2 (tersimpan di database sebagai draft).
+     * TEST 2: Seluruh isian form tersimpan di database, baik lewat "Simpan Draf" maupun saat dikirim.
      */
-    public function test_step_1_data_is_preserved_in_database_draft_when_user_clicks_kembali_from_step_2(): void
+    public function test_form_data_is_saved_to_the_database_as_draft_and_on_submit(): void
     {
         $lw = Livewire::actingAs($this->employeeProduksi)
             ->test(BaCreate::class)
@@ -135,18 +126,13 @@ class BaCapaRevisionTest extends TestCase
             ->set('koreksiWaktu', '1 Hari')
             ->set('korektifDeskripsi', 'Pemasangan stiker penanda beban dan briefing ulang SOP.')
             ->set('korektifPic', 'SPV Logistik')
-            ->set('korektifWaktu', '3 Hari')
+            ->set('korektifWaktu', '2026-10-03')
             ->set('isPotensiRisiko', true)
             ->set('isPotensiPeluang', false)
-            ->call('nextStep')
-            ->assertSet('step', 2);
+            ->call('saveDraftOnly')
+            ->assertHasNoErrors();
 
-        // Verifikasi data tersimpan sebagai draft di database
-        $incidentId = $lw->get('baIncidentId');
-        $this->assertNotNull($incidentId);
-
-        $incident = BaIncident::find($incidentId);
-        $this->assertNotNull($incident);
+        $incident = BaIncident::findOrFail($lw->get('baIncidentId'));
         $this->assertSame('draft', $incident->status);
         $this->assertSame('Warehouse Rack A-12', $incident->lokasi);
         $this->assertSame('keluhan_pelanggan', $incident->sumber_ketidaksesuaian);
@@ -154,25 +140,15 @@ class BaCapaRevisionTest extends TestCase
         $this->assertSame('Budi Warehouse', $incident->koreksi_pic);
         $this->assertTrue($incident->is_potensi_risiko);
 
-        // Klik "Kembali" ke Step 1
-        $lw->call('previousStep')
-            ->assertSet('step', 1);
-
-        // Pastikan state Livewire tetap mempertahankan seluruh data
-        $this->assertSame('Warehouse Rack A-12', $lw->get('lokasi'));
-        $this->assertSame('keluhan_pelanggan', $lw->get('sumberKetidaksesuaian'));
-        $this->assertSame('Kapasitas angkut melebihi batas beban maksimum.', $lw->get('why1'));
-        $this->assertSame('Budi Warehouse', $lw->get('koreksiPic'));
-        $this->assertTrue($lw->get('isPotensiRisiko'));
-
-        // Ubah sedikit data dan simpan draft lagi
+        // Ubah sedikit lalu kirim: perubahan ikut tersimpan pada draf yang sama.
         $lw->set('lokasi', 'Warehouse Rack B-05')
-            ->call('nextStep')
-            ->assertSet('step', 2);
+            ->call('submitReport')
+            ->assertHasNoErrors();
 
         $incident->refresh();
         $this->assertSame('Warehouse Rack B-05', $incident->lokasi);
-        $this->assertSame('draft', $incident->status);
+        $this->assertSame('pending_supervisor', $incident->status);
+        $this->assertSame(1, BaIncident::count());
     }
 
     /**
@@ -182,7 +158,7 @@ class BaCapaRevisionTest extends TestCase
     {
         $service = app(BaIncidentService::class);
 
-        // Buat draft lalu submit dengan video external link
+        // Buat draft lalu kirim ke Supervisor
         $incident = $service->saveDraft([
             'division_id' => $this->divisionProduksi->id,
             'tanggal_masalah' => '2026-09-05',
@@ -195,9 +171,7 @@ class BaCapaRevisionTest extends TestCase
             'korektif_deskripsi' => 'Jadwalkan pembersihan sensor mingguan.',
         ], $this->employeeProduksi);
 
-        $service->submitWithVideo($incident, $this->employeeProduksi, [
-            'video_external_link' => 'https://youtube.com/watch?v=sample123',
-        ]);
+        $service->submit($incident, $this->employeeProduksi);
 
         $incident->refresh();
         $this->assertSame('pending_supervisor', $incident->status);
@@ -251,7 +225,7 @@ class BaCapaRevisionTest extends TestCase
         $this->assertSame($this->admin->id, $approved->reviewed_by);
         $this->assertNotNull($approved->reviewed_at);
         $this->assertSame($this->supervisorProduksi->id, $approved->supervisor_reviewed_by);
-        $this->assertNotNull($approved->points_awarded_at);
+        $this->assertNull($approved->points_awarded_at); // CAPA tidak memberi poin sejak 2026-09-27
         $this->assertNotNull($approved->published_at);
     }
 
@@ -274,9 +248,7 @@ class BaCapaRevisionTest extends TestCase
             'korektif_deskripsi' => 'Ganti dengan mur pengunci (lock nut).',
         ], $this->employeeProduksi);
 
-        $service->submitWithVideo($incident, $this->employeeProduksi, [
-            'video_external_link' => 'https://vimeo.com/987654321',
-        ]);
+        $service->submit($incident, $this->employeeProduksi);
 
         $incident->refresh();
 
@@ -314,9 +286,11 @@ class BaCapaRevisionTest extends TestCase
     }
 
     /**
-     * TEST 5: Setelah approved, hasil laporan masuk ke Learning (bukan Knowledge Repository) dan poin diberikan.
+     * TEST 5 (diperbarui 2026-09-27): laporan CAPA adalah kewajiban saat terjadi kesalahan. Setelah
+     * disetujui final, laporan selesai di modul CAPA: tidak masuk Learning/Knowledge Repository dan
+     * tidak memberi poin. Poin CPS ERA kini hanya dari video kontribusi (lihat VideoContributionFlowTest).
      */
-    public function test_approving_sends_report_to_learning_not_knowledge_repository_and_awards_points(): void
+    public function test_approved_report_stays_in_capa_without_learning_material_or_points(): void
     {
         $service = app(BaIncidentService::class);
 
@@ -332,43 +306,19 @@ class BaCapaRevisionTest extends TestCase
             'korektif_deskripsi' => 'Instalasi dosing pump otomatis terkalibrasi harian.',
         ], $this->employeeProduksi);
 
-        $service->submitWithVideo($incident, $this->employeeProduksi, [
-            'video_external_link' => 'https://company.video/lesson-boiler-01',
-        ]);
-
-        $incident->refresh();
-
-        $this->assertDatabaseMissing('learning_materials', ['source_ba_id' => $incident->id]);
+        $service->submit($incident, $this->employeeProduksi);
 
         // Supervisor meneruskan, lalu HR menyetujui final
-        $service->approveAsSupervisor($incident, $this->supervisorProduksi);
-        $service->approve($incident->fresh(), $this->admin, [
+        $service->approveAsSupervisor($incident->fresh(), $this->supervisorProduksi);
+        $approved = $service->approve($incident->fresh(), $this->admin, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Grafik tekanan boiler stabil pada 4.8 - 5.2 bar selama 14 hari pemantauan.',
         ]);
 
-        // Knowledge Repository khusus berkas resmi perusahaan: laporan CAPA tidak masuk ke sana.
+        $this->assertSame('approved', $approved->status);
         $this->assertDatabaseMissing('knowledge_documents', ['source_ba_id' => $incident->id]);
-
-        // Hasil laporan menjadi materi Learning kandidat (terbit setelah post-test dibuat).
-        $material = LearningMaterial::where('source_ba_id', $incident->id)->firstOrFail();
-        $this->assertSame('candidate', $material->status);
-        $this->assertStringContainsString($incident->nomor_ba, $material->title);
-        $this->assertStringContainsString('Tekanan uap boiler fluktuatif', $material->description);
-        $this->assertStringContainsString('Dosis bahan kimia water treatment tidak stabil', $material->description);
-        $this->assertStringContainsString('Instalasi dosing pump otomatis', $material->description);
-
-        // Verifikasi point transaction untuk pembuat BA (PRD v2.0: 1 poin KPI ba_video_approved)
-        $this->assertDatabaseHas('point_transactions', [
-            'user_id' => $this->employeeProduksi->id,
-            'points' => 1,
-            'source_type' => 'ba_video_approved',
-            'source_id' => $incident->id,
-        ]);
-
-        // Verifikasi video terkait statusnya disinkronkan ke published
-        $video = Video::where('ba_incident_id', $incident->id)->first();
-        $this->assertNotNull($video);
-        $this->assertSame('published', $video->status);
+        $this->assertDatabaseMissing('learning_materials', ['source_ba_id' => $incident->id]);
+        $this->assertDatabaseMissing('point_transactions', ['user_id' => $this->employeeProduksi->id]);
+        $this->assertDatabaseCount('videos', 0);
     }
 }

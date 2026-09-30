@@ -9,7 +9,7 @@
                     <h3 id="section-doc-info" class="text-sm font-bold text-neutral-900 font-sans tracking-tight">
                         1. Informasi Dokumen &amp; Unit Kerja
                     </h3>
-                    <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-neutral-600 bg-neutral-100 border border-neutral-200 rounded-badge">
+                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-mono font-medium text-neutral-600 bg-neutral-100 border border-neutral-200 rounded-badge">
                         Data Identifikasi
                     </span>
                 </div>
@@ -64,7 +64,7 @@
                         <select id="division_id"
                                 @if ($readonly) disabled @else wire:model.live="divisionId" @endif
                                 class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 truncate cursor-pointer">
-                            <option value="">-- Pilih Divisi (12 Opsi Resmi) --</option>
+                            <option value="">-- Pilih Divisi ({{ count($divisions) }} divisi) --</option>
                             @foreach($divisions as $div)
                                 <option value="{{ $div->id }}" @selected($readonly && (string) $values['divisionId'] === (string) $div->id)>{{ $div->name }}</option>
                             @endforeach

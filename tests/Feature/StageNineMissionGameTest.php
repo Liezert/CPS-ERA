@@ -166,8 +166,8 @@ class StageNineMissionGameTest extends TestCase
             ->call('submitQuiz')
             ->assertSet('passed', true)
             ->assertSet('pointsEarned', 40)
-            ->assertSee('+40 Poin')
-            ->assertSee('telah berhasil tercatat');
+            ->assertSee('+40 XP')
+            ->assertSee('sudah masuk ke akun Anda');
 
         // Verifikasi transaksi masuk ke point_transactions
         $this->assertDatabaseHas('point_transactions', [
@@ -229,7 +229,9 @@ class StageNineMissionGameTest extends TestCase
             ->call('resetQuiz')
             ->call('selectOption', $this->qqQuestion1->id, $this->qqOpt1Correct->id)
             ->call('submitQuiz')
-            ->assertSee('[Menunggu Keputusan PRD §5.3: Kebijakan Retry Kuis]')
+            // Penanda PRD §5.3 hanya untuk developer, tidak tampil di antarmuka.
+            ->assertDontSee('PRD §5.3')
+            ->assertSee('XP hanya diberikan sekali per misi.')
             ->assertSee('sudah pernah Anda klaim')
             ->assertSet('pointsEarned', 0);
 
@@ -253,8 +255,8 @@ class StageNineMissionGameTest extends TestCase
             ->test(MissionIndex::class)
             ->assertSee('Investigasi Kontaminasi Raw Material Resin Lini Injeksi')
             ->assertSee('Standar Operasional Keselamatan Listrik & Panel Mesin')
-            ->assertSee('+40 Poin')
-            ->assertSee('+20 Poin')
+            ->assertSee('+40 XP')
+            ->assertSee('+20 XP')
             ->assertDontSee('confetti')
             ->assertDontSee('fireworks')
             ->assertDontSee('→'); // Checklist Anti-AI-Slop: Tidak ada panah di tombol

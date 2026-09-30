@@ -1,0 +1,35 @@
+/*
+ * Latar soft gradient hijau CPS ERA (permintaan client 2026-09-27).
+ * Satu sumber untuk halaman utama (app.css) dan panel admin Filament (AdminPanelProvider).
+ * Ubah warna/intensitas di sini saja; kartu konten tetap putih agar teks mudah dibaca.
+ */
+:root {
+    --cps-bg-base: #f5faf6;
+    --cps-bg-glow-strong: rgba(11, 120, 64, 0.12);
+    --cps-bg-glow-soft: rgba(11, 120, 64, 0.07);
+}
+
+.cps-gradient-bg {
+    background-color: var(--cps-bg-base);
+    background-image:
+        radial-gradient(1100px 620px at 100% 0%, var(--cps-bg-glow-strong), transparent 62%),
+        radial-gradient(900px 560px at 0% 100%, var(--cps-bg-glow-soft), transparent 60%),
+        linear-gradient(180deg, #fbfdfb 0%, #eef6f1 100%);
+    background-attachment: fixed;
+}
+
+/* Panel admin Filament: latar halaman ikut gradient, area konten dibuat transparan. */
+body.fi-body {
+    background-color: var(--cps-bg-base) !important;
+    background-image:
+        radial-gradient(1100px 620px at 100% 0%, var(--cps-bg-glow-strong), transparent 62%),
+        radial-gradient(900px 560px at 0% 100%, var(--cps-bg-glow-soft), transparent 60%),
+        linear-gradient(180deg, #fbfdfb 0%, #eef6f1 100%) !important;
+    background-attachment: fixed !important;
+}
+
+body.fi-body .fi-layout,
+body.fi-body .fi-main-ctn,
+body.fi-body .fi-main {
+    background: transparent !important;
+}

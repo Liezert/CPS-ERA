@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\BaIncidents\Pages\ViewBaIncident;
 use App\Livewire\Ba\Show as BaShow;
+use App\Models\BaActivityLog;
 use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\Notification;
@@ -62,7 +63,7 @@ class BaActivityLogAccessTest extends TestCase
             'division_id' => $produksi->id,
             'deskripsi_masalah' => 'Roller conveyor macet.',
         ], $this->reporter);
-        $submitted = $service->submitWithVideo($draft, $this->reporter, ['video_external_link' => 'https://vimeo.com/123456789']);
+        $submitted = $service->submit($draft, $this->reporter);
         $this->incident = $service->reject($submitted, $this->supervisor, self::REVISION_NOTE);
     }
 
@@ -97,7 +98,7 @@ class BaActivityLogAccessTest extends TestCase
                 ->test(BaShow::class, ['incident' => $this->incident])
                 ->assertSee('Update History (Riwayat Aktivitas)')
                 ->assertSee('BA Ditolak Supervisor — Revisi Diminta')
-                ->assertSee('BA &amp; Video Diserahkan', false);
+                ->assertSee('BA Diserahkan');
         }
     }
 
@@ -127,5 +128,16 @@ class BaActivityLogAccessTest extends TestCase
 
         // Hanya pelapor yang diberi tahu soal permintaan revisi.
         $this->assertSame(1, Notification::where('type', 'ba_revisi')->count());
+    }
+
+    public function test_timeline_stays_newest_first_when_entries_share_the_same_second(): void
+    {
+        // created_at hanya presisi detik: paksa ketiga entri seri untuk menguji kunci urutan kedua.
+        BaActivityLog::query()->update(['created_at' => now()->startOfSecond()]);
+
+        $this->assertSame(
+            ['BA Ditolak Supervisor — Revisi Diminta', 'BA Diserahkan', 'Draft BA dibuat'],
+            $this->incident->activityLogs()->pluck('action')->all(),
+        );
     }
 }

@@ -138,7 +138,7 @@ class Show extends Component
 
         // Klik ganda = dua submit bersamaan. Keduanya antre di baris users milik pengirim,
         // jadi cek idempotensi di bawah tidak bisa sama-sama lolos. Pola yang sama dengan
-        // approve BA (BaIncidentService::approve + KpiContributionService::recordBaVideoApproved).
+        // approve video kontribusi (KpiContributionService::recordVideoContributionApproved).
         [$pointsEarned, $alreadyRewarded, $attempt] = DB::transaction(function () use ($userId): array {
             User::query()->whereKey($userId)->lockForUpdate()->first();
 

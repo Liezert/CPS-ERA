@@ -42,19 +42,21 @@
 
             <x-capa.form.dampak :values="$capa" :readonly="true" />
 
-            {{-- BAGIAN 7: VIDEO PENANGANAN & BUKTI (Langkah 2 form employee) --}}
+            {{-- BAGIAN 7: VIDEO PENANGANAN & BUKTI — hanya laporan lama yang masih melampirkan video --}}
+            @if ($record->video)
             <section class="space-y-4" aria-labelledby="section-video">
                 <div class="pb-1.5 border-b border-neutral-200 flex items-center justify-between">
                     <h3 id="section-video" class="text-sm font-bold text-neutral-900 font-sans tracking-tight">
                         7. Video Penanganan &amp; Bukti
                     </h3>
-                    <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium text-neutral-600 bg-neutral-100 border border-neutral-200 rounded-badge">
+                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-mono font-medium text-neutral-600 bg-neutral-100 border border-neutral-200 rounded-badge">
                         Dokumentasi Visual
                     </span>
                 </div>
 
                 <x-capa.video-player :incident="$record" />
             </section>
+            @endif
 
             {{-- BAGIAN 8: VERIFIKASI & APPROVAL REVIEWER --}}
             <section class="bg-neutral-50/70 border border-neutral-200 rounded-md p-5 sm:p-6 space-y-5" aria-labelledby="section-review">
@@ -67,7 +69,7 @@
                             Hasil evaluasi efektivitas tindakan korektif oleh admin / reviewer mutu.
                         </p>
                     </div>
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-mono font-medium text-neutral-800 bg-white border border-neutral-300 rounded-badge uppercase tracking-wider shadow-2xs shrink-0 self-start sm:self-center">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-mono font-medium text-neutral-800 bg-white border border-neutral-300 rounded-badge uppercase tracking-wider shadow-2xs shrink-0 self-start sm:self-center">
                         Evaluasi Reviewer
                     </span>
                 </div>
@@ -92,9 +94,9 @@
                             <div class="space-y-1.5 min-w-0">
                                 <span class="block text-xs font-semibold text-neutral-800 font-sans">Waktu Review / Selesai</span>
                                 <span class="block text-xs font-mono text-neutral-700">
-                                    {{ $record->reviewed_at?->format('d M Y H:i') ?? '-' }}
+                                    {{ $record->reviewed_at?->wib()->format('d M Y H:i') ?? '-' }}
                                     @if ($record->closed_at)
-                                        &middot; {{ $record->closed_at->format('d M Y H:i') }}
+                                        &middot; {{ $record->closed_at->wib()->format('d M Y H:i') }}
                                     @endif
                                 </span>
                             </div>
@@ -102,19 +104,19 @@
 
                         @if ($statusVerifikasi === 'efektif')
                             <div>
-                                <span class="text-[11px] font-bold text-neutral-700 uppercase tracking-wider block mb-1 font-mono">Bukti Objektif Efektivitas:</span>
+                                <span class="text-xs font-bold text-neutral-700 uppercase tracking-wider block mb-1 font-mono">Bukti Objektif Efektivitas:</span>
                                 <p class="text-xs text-neutral-900 leading-relaxed bg-neutral-50/70 p-3 rounded-md border border-neutral-200 whitespace-pre-line">{{ $record->bukti_objektif ?: '-' }}</p>
                             </div>
                         @elseif ($statusVerifikasi === 'tidak_efektif')
                             <div>
-                                <span class="text-[11px] font-bold text-red-800 uppercase tracking-wider block mb-1 font-mono">Alasan Ketidakefektifan:</span>
+                                <span class="text-xs font-bold text-red-800 uppercase tracking-wider block mb-1 font-mono">Alasan Ketidakefektifan:</span>
                                 <p class="text-xs text-red-900 leading-relaxed bg-red-50/50 p-3 rounded-md border border-red-200 whitespace-pre-line">{{ $record->alasan_tidak_efektif ?: '-' }}</p>
                             </div>
                         @endif
 
                         @if (filled($record->catatan_penolakan))
                             <div>
-                                <span class="text-[11px] font-bold text-red-800 uppercase tracking-wider block mb-1 font-mono">Catatan Penolakan / Revisi:</span>
+                                <span class="text-xs font-bold text-red-800 uppercase tracking-wider block mb-1 font-mono">Catatan Penolakan / Revisi:</span>
                                 <p class="text-xs text-red-900 leading-relaxed bg-red-50/50 p-3 rounded-md border border-red-200 whitespace-pre-line">{{ $record->catatan_penolakan }}</p>
                             </div>
                         @endif

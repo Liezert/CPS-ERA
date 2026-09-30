@@ -45,7 +45,7 @@
 @endphp
 
 <span {{ $attributes->merge([
-    'class' => "inline-flex items-center px-2 py-0.5 text-[11px] font-mono font-medium rounded-badge border whitespace-nowrap {$styles['class']}",
+    'class' => "inline-flex items-center px-2 py-0.5 text-xs font-mono font-medium rounded-badge border whitespace-nowrap {$styles['class']}",
     'style' => "display: inline-flex; align-items: center; padding: 2px 8px; font-size: 11px; font-family: 'IBM Plex Mono', monospace, ui-monospace; font-weight: 500; border-radius: 2px; white-space: nowrap; {$styles['inline']}"
 ]) }}>
     {{ $slot->isNotEmpty() ? $slot : $text }}

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LearningMaterials\Pages;
 
 use App\Filament\Resources\LearningMaterials\LearningMaterialResource;
+use App\Filament\Resources\LearningMaterials\Schemas\LearningMaterialForm;
 use App\Models\Quiz;
 use App\Models\QuizOption;
 use App\Models\QuizQuestion;
@@ -20,6 +21,7 @@ class CreateLearningMaterial extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['created_by'] = auth()->id();
+        $data = LearningMaterialForm::resolveContentUrl($data);
 
         // Bersihkan field virtual post-test agar tidak dimasukkan ke tabel learning_materials
         unset(

@@ -4,7 +4,7 @@
         <div>
             <h1 class="text-xl font-semibold text-neutral-900 tracking-tight">Mission &amp; Game</h1>
             <p class="text-xs text-neutral-600 mt-1">
-                Katalog tantangan studi kasus dan kuis manufaktur untuk mengasah pemecahan masalah serta memperoleh poin reward.
+                Katalog tantangan studi kasus dan kuis manufaktur untuk mengasah pemecahan masalah serta memperoleh XP.
             </p>
         </div>
     </div>
@@ -20,11 +20,11 @@
             <span class="text-2xl font-bold text-brand mt-1 block font-mono">{{ $completedMissionsCount }}</span>
         </div>
         <div class="px-2 py-1 pt-3 md:pt-1">
-            <span class="text-xs text-neutral-600 font-semibold uppercase tracking-wider block">Poin Tersedia</span>
+            <span class="text-xs text-neutral-600 font-semibold uppercase tracking-wider block">XP Tersedia</span>
             <span class="text-2xl font-bold text-neutral-900 mt-1 block font-mono">{{ $totalPointsAvailable }}</span>
         </div>
         <div class="px-2 py-1 pt-3 md:pt-1">
-            <span class="text-xs text-neutral-600 font-semibold uppercase tracking-wider block">Poin Anda Peroleh</span>
+            <span class="text-xs text-neutral-600 font-semibold uppercase tracking-wider block">XP Anda Peroleh</span>
             <span class="text-2xl font-bold text-brand mt-1 block font-mono">{{ $earnedPoints }}</span>
         </div>
     </div>
@@ -120,7 +120,7 @@
                         {{-- Meta Bar: Tipe & Reward Poin --}}
                         <div class="flex items-center justify-between gap-2 mb-2.5">
                             {{-- Badge Tipe (Stempel 2px) --}}
-                            <span class="inline-flex items-center gap-1.5 text-[11px] font-sans font-medium uppercase tracking-wider text-neutral-700 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-[2px]">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-sans font-medium uppercase tracking-wider text-neutral-700 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-[2px]">
                                 @if ($isCaseStudy)
                                     @include('components.layout.nav-icon', ['name' => 'book', 'class' => 'w-3.5 h-3.5 text-neutral-600'])
                                     Studi Kasus
@@ -132,7 +132,7 @@
 
                             {{-- Badge Reward Poin (Stempel 2px) --}}
                             <span class="inline-flex items-center gap-1 font-mono text-xs font-semibold text-brand-dark bg-brand-tint border border-brand/30 px-2 py-0.5 rounded-[2px] transition-transform duration-200 group-hover:scale-105">
-                                +{{ $mission->points_reward }} Poin
+                                +{{ $mission->points_reward }} XP
                             </span>
                         </div>
 
@@ -152,18 +152,18 @@
                         {{-- Status Pengerjaan Pengguna --}}
                         <div>
                             @if ($isPassed)
-                                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark bg-brand-tint/60 border border-brand/40 px-2 py-0.5 rounded-[2px]">
+                                <span class="inline-flex items-center gap-1 text-xs font-medium text-brand-dark bg-brand-tint/60 border border-brand/40 px-2 py-0.5 rounded-[2px]">
                                     <svg class="w-3 h-3 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                     </svg>
                                     Selesai (Skor {{ $attempt->score }})
                                 </span>
                             @elseif ($attempt)
-                                <span class="inline-flex items-center text-[11px] font-medium text-neutral-700 bg-neutral-50 border border-neutral-300 px-2 py-0.5 rounded-[2px]">
+                                <span class="inline-flex items-center text-xs font-medium text-neutral-700 bg-neutral-50 border border-neutral-300 px-2 py-0.5 rounded-[2px]">
                                     Belum Lulus (Skor {{ $attempt->score }})
                                 </span>
                             @else
-                                <span class="inline-flex items-center text-[11px] text-neutral-600 font-medium bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-[2px]">
+                                <span class="inline-flex items-center text-xs text-neutral-600 font-medium bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-[2px]">
                                     Belum Dikerjakan
                                 </span>
                             @endif
@@ -202,12 +202,12 @@
 
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[11px] uppercase tracking-wider text-neutral-600 font-semibold font-sans">
+                                    <span class="text-xs uppercase tracking-wider text-neutral-600 font-semibold font-sans">
                                         {{ $isCaseStudy ? 'Studi Kasus' : 'Quiz Cepat' }}
                                     </span>
                                     <span class="text-neutral-300">•</span>
-                                    <span class="text-[11px] font-mono font-bold text-brand">
-                                        +{{ $mission->points_reward }} Poin
+                                    <span class="text-xs font-mono font-bold text-brand">
+                                        +{{ $mission->points_reward }} XP
                                     </span>
                                 </div>
                                 <a href="{{ route('missions.show', $mission->id) }}"

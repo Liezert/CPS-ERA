@@ -8,6 +8,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -41,6 +42,15 @@ class User extends Authenticatable implements FilamentUser
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class);
+    }
+
+    /**
+     * Akun yang tampil dan dihitung di Leaderboard: akun admin tidak ikut (keputusan owner 2026-09-29).
+     * Dipakai daftar Leaderboard dan semua perhitungan peringkat supaya angkanya selalu sama.
+     */
+    public function scopeOnLeaderboard(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('roles', fn (Builder $q) => $q->where('name', 'admin'));
     }
 
     /**
@@ -224,5 +234,25 @@ class User extends Authenticatable implements FilamentUser
         $second = isset($parts[1]) ? substr($parts[1], 0, 1) : '';
 
         return strtoupper($first.$second);
+    }
+
+    /**
+     * Admin dan HRGA adalah peninjau, bukan pelapor: mereka tidak punya divisi pelapor yang valid,
+     * jadi tombol "Buat Laporan CAPA" tidak ditampilkan untuk mereka.
+     */
+    public function canFileCapa(): bool
+    {
+        return ! $this->hasAnyRole(['admin', 'quality']);
+    }
+
+    protected static function booted(): void
+    {
+        // Panel admin memakai AuthenticateSession: hash kata sandi di sesi harus ikut diperbarui saat
+        // pengguna mengganti kata sandinya sendiri, kalau tidak permintaan admin berikutnya dilempar ke /login.
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('password') && $user->is(auth()->user())) {
+                session()->forget('password_hash_'.auth()->getDefaultDriver());
+            }
+        });
     }
 }

@@ -52,8 +52,8 @@ class RbacTest extends TestCase
                 "Role {$role} should be able to access the admin panel."
             );
 
-            $response = $this->actingAs($user)->get('/admin');
-            $response->assertSuccessful();
+            $this->actingAs($user)->get('/admin')->assertRedirect(route('dashboard'));
+            $this->actingAs($user)->get(route('filament.admin.resources.ba-incidents.index'))->assertSuccessful();
         }
     }
 

@@ -96,7 +96,7 @@ class ResetDemoDataCommandTest extends TestCase
         $this->assertSame(0, Quiz::where('title', 'Misi Dummy')->count());
 
         // Data master utuh.
-        $this->assertSame(12, Division::count());
+        $this->assertSame(13, Division::count());
         $this->assertSame(4, DB::table('roles')->count());
         $this->assertSame(1, KnowledgeTopic::where('name', 'Topik Master')->count());
 
@@ -168,6 +168,6 @@ class ResetDemoDataCommandTest extends TestCase
         $this->assertSame(3, User::count());
         $this->assertSame(3, LearningMaterial::count());
         $this->assertSame(3, Quiz::missions()->count());
-        $this->assertSame(12, Division::count());
+        $this->assertSame(13, Division::count());
     }
 }

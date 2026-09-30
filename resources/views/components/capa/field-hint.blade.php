@@ -36,7 +36,7 @@
                  role="tooltip"
                  class="z-[60] w-72 max-w-[calc(100vw-2rem)] p-3 bg-white border border-neutral-200 rounded-md shadow-lg font-sans">
                 <p class="text-xs font-semibold text-neutral-900 mb-1.5">{{ $title }}:</p>
-                <ol class="list-decimal pl-4 space-y-1 text-[11px] text-neutral-600 leading-relaxed">
+                <ol class="list-decimal pl-4 space-y-1 text-xs text-neutral-600 leading-relaxed">
                     @foreach ($guide as $label => $text)
                         <li><span class="font-semibold text-neutral-800">{{ $label }}:</span> {{ $text }}</li>
                     @endforeach

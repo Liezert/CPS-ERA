@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Achievement;
 use App\Models\Division;
 use App\Models\User;
 use Database\Seeders\DivisionSeeder;
@@ -70,10 +71,14 @@ class StageThreeLayoutShellTest extends TestCase
         $response->assertSee('Learning');
         $response->assertSee('Mission &amp; Game', false);
         $response->assertSee('Leaderboard');
-        $response->assertSee('Achievement');
+
+        // Achievement disembunyikan selama katalog lencana kosong, lalu muncul setelah ada lencana.
+        $response->assertDontSee(route('achievements.index'));
+        Achievement::create(['name' => 'Pelapor Teladan', 'description' => 'Lencana uji.', 'icon' => 'badge-check']);
+        $this->actingAs($user)->get(route('dashboard'))->assertSee(route('achievements.index'));
 
         // Menu supervisor/admin/quality TIDAK boleh tampil
-        $response->assertDontSee('Kategori Learning');
+        $response->assertDontSee('Kategori & Topik');
         $response->assertDontSee('Panel Admin Filament');
         $response->assertDontSee('Master Data (Filament)');
     }
@@ -100,13 +105,13 @@ class StageThreeLayoutShellTest extends TestCase
         $response->assertSee('Divisi'); // Badge khusus supervisor
 
         // Tidak boleh melihat menu khusus Quality / Admin
-        $response->assertDontSee('Kategori Learning');
+        $response->assertDontSee('Kategori & Topik');
         $response->assertDontSee('Master Data (Filament)');
     }
 
     /**
      * DoD #2: Menu sidebar berbeda sesuai role (RBAC) — Quality.
-     * Scope: Menu standar + Kategori Learning (Validasi), tidak melihat Panel Admin.
+     * Scope: Menu standar + Kategori & Topik (Validasi), tidak melihat Panel Admin.
      */
     public function test_sidebar_menu_displays_correctly_for_quality_role(): void
     {
@@ -116,9 +121,9 @@ class StageThreeLayoutShellTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
         $response->assertStatus(200);
 
-        // Menu standar + Kategori Learning
+        // Menu standar + Kategori & Topik
         $response->assertSee('Dashboard');
-        $response->assertSee('Kategori Learning');
+        $response->assertSee('Kategori & Topik');
 
         // Tidak boleh melihat Master Data Filament
         $response->assertDontSee('Master Data (Filament)');
@@ -136,9 +141,9 @@ class StageThreeLayoutShellTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'));
         $response->assertStatus(200);
 
-        // Menu standar + Kategori Learning + Master Data
+        // Menu standar + Kategori & Topik + Master Data
         $response->assertSee('Dashboard');
-        $response->assertSee('Kategori Learning');
+        $response->assertSee('Kategori & Topik');
         $response->assertSee('Master Data');
         $response->assertSee('Filament');
     }
@@ -169,7 +174,8 @@ class StageThreeLayoutShellTest extends TestCase
         $response->assertSee('divide-y divide-neutral-200', false);
         $response->assertSee('Notifikasi');
         $response->assertSee('Tandai dibaca');
-        $response->assertSee('Lihat Semua Notifikasi');
+        // Belum ada halaman daftar notifikasi; tautan lama salah mengarah ke Achievement.
+        $response->assertDontSee('Lihat Semua Notifikasi');
 
         // 3. Profile dropdown with font-mono Employee ID & Role badge
         $response->assertSee('Budi Santoso');

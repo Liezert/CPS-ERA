@@ -50,12 +50,8 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        // Redirect dinamis sesuai role (Design System §8 & PRD §2.2):
-        // Admin -> /admin (Filament Master Data)
-        // Employee/Supervisor/Quality -> /dashboard (CPS ERA Hub)
-        $defaultRoute = $user->hasRole('admin') ? '/admin' : route('dashboard', absolute: false);
-
-        return redirect()->intended($defaultRoute);
+        // Semua role (termasuk admin) mendarat di dashboard utama CPS ERA (keputusan owner 2026-09-27).
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**

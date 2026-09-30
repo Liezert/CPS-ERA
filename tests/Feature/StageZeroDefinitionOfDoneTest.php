@@ -117,7 +117,8 @@ class StageZeroDefinitionOfDoneTest extends TestCase
             'Finance Accounting Tax',
             'HRGA',
             'Jahit',
-            'Marketing & Sales',
+            'Marketing',
+            'Sales',
             'PPIC',
             'Plant Balben & Krian',
             'Produksi',
@@ -127,7 +128,7 @@ class StageZeroDefinitionOfDoneTest extends TestCase
             'Warehouse & Delivery',
         ];
 
-        $this->assertCount(12, Division::all(), 'Jumlah divisi harus tepat 12.');
+        $this->assertCount(13, Division::all(), 'Jumlah divisi harus tepat 13.');
         foreach ($expectedDivisions as $name) {
             $this->assertDatabaseHas('divisions', ['name' => $name]);
         }

@@ -27,7 +27,7 @@
                             </div>
                             <input type="text"
                                    id="why_1"
-                                   @if ($readonly) value="{{ $values['why1'] }}" readonly @else wire:model.live="why1" @endif
+                                   @if ($readonly) value="{{ $values['why1'] }}" readonly @else wire:model="why1" @endif
                                    class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             <x-capa.field-helper field="why_1" />
                             @error('why1')
@@ -48,7 +48,7 @@
                                 </label>
                                 <input type="text"
                                        id="why_2"
-                                       @if ($readonly) value="{{ $values['why2'] }}" readonly @else wire:model.live="why2" @endif
+                                       @if ($readonly) value="{{ $values['why2'] }}" readonly @else wire:model="why2" @endif
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -66,7 +66,7 @@
                                 </label>
                                 <input type="text"
                                        id="why_3"
-                                       @if ($readonly) value="{{ $values['why3'] }}" readonly @else wire:model.live="why3" @endif
+                                       @if ($readonly) value="{{ $values['why3'] }}" readonly @else wire:model="why3" @endif
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -84,7 +84,7 @@
                                 </label>
                                 <input type="text"
                                        id="why_4"
-                                       @if ($readonly) value="{{ $values['why4'] }}" readonly @else wire:model.live="why4" @endif
+                                       @if ($readonly) value="{{ $values['why4'] }}" readonly @else wire:model="why4" @endif
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -102,7 +102,7 @@
                                 </label>
                                 <input type="text"
                                        id="why_5"
-                                       @if ($readonly) value="{{ $values['why5'] }}" readonly @else wire:model.live="why5" @endif
+                                       @if ($readonly) value="{{ $values['why5'] }}" readonly @else wire:model="why5" @endif
                                        class="w-full h-10 px-3 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150" />
                             </div>
                         </div>
@@ -145,7 +145,7 @@
                         <x-capa.field-hint field="kesimpulan_akar_masalah" />
                     </div>
                     <textarea id="kesimpulan_akar_masalah"
-                              @if ($readonly) readonly @else wire:model.live="kesimpulanAkarMasalah" @endif
+                              @if ($readonly) readonly @else wire:model="kesimpulanAkarMasalah" @endif
                               rows="3"
                               class="w-full px-3 py-2.5 bg-neutral-50/50 border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 leading-relaxed">{{ $readonly ? $values['kesimpulanAkarMasalah'] : '' }}</textarea>
                     <x-capa.field-helper field="kesimpulan_akar_masalah" />

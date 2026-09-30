@@ -38,7 +38,7 @@ class ProjectFactsRegressionTest extends TestCase
         $this->seed(DivisionSeeder::class);
 
         // 1. Exactly 12 divisions
-        $this->assertSame(12, Division::count());
+        $this->assertSame(13, Division::count());
 
         // 2. 11 divisi pelapor final + HRGA
         $expectedDivisions = collect([
@@ -46,7 +46,8 @@ class ProjectFactsRegressionTest extends TestCase
             'Finance Accounting Tax',
             'HRGA',
             'Jahit',
-            'Marketing & Sales',
+            'Marketing',
+            'Sales',
             'PPIC',
             'Plant Balben & Krian',
             'Produksi',

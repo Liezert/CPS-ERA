@@ -94,7 +94,7 @@
 
             {{-- Footer Info --}}
             <div class="mt-6 pt-4 border-t border-neutral-200 text-center">
-                <p class="font-sans text-[11px] text-neutral-500">
+                <p class="font-sans text-xs text-neutral-500">
                     Sistem Manajemen Pengetahuan &amp; Berita Acara Internal
                 </p>
             </div>

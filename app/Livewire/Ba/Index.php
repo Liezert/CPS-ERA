@@ -48,9 +48,9 @@ class Index extends Component
 
     public function render()
     {
-        $divisions = Division::orderBy('id')->get();
+        $divisions = Division::reportable()->orderBy('id')->get(); // HRGA bukan divisi pelapor
 
-        $query = BaIncident::with(['division', 'creator', 'reviewer']);
+        $query = BaIncident::visibleTo(auth()->user())->with(['division', 'creator', 'reviewer']);
 
         if (! empty(trim($this->search))) {
             $term = '%'.trim($this->search).'%';

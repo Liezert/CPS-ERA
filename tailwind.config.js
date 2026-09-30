@@ -38,7 +38,7 @@ export default {
             screens: {
                 mobile: '375px',  // Mobile (4 kolom, drawer + bottom nav)
                 tablet: '820px',  // Tablet (8 kolom, sidebar icon-only)
-                desktop: '1440px',// Desktop (12 kolom, sidebar teks+ikon)
+                desktop: '1280px',// Desktop (12 kolom, sidebar teks+ikon); 1280 agar laptop 1366px menampilkan label menu
             },
         },
     },
