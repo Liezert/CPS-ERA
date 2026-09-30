@@ -324,7 +324,7 @@ SVG;
             'monthlyPerformance' => $monthlyPerformance,
             'maxMonthlyPoints' => $maxMonthlyPoints,
         ])->layout('layouts.app', [
-            'title' => 'Profil Pegawai — CPS-ERA',
+            'title' => 'Profil Pegawai — CPS ERA',
         ]);
     }
 }

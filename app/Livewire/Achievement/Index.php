@@ -59,7 +59,7 @@ class Index extends Component
             'unlockedCount' => $unlockedCount,
             'lockedCount' => $lockedCount,
         ])->layout('layouts.app', [
-            'title' => 'Pencapaian & Lencana — CPS-ERA',
+            'title' => 'Pencapaian & Lencana — CPS ERA',
         ]);
     }
 }
