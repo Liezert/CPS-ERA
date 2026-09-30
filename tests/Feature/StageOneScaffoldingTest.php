@@ -51,7 +51,8 @@ class StageOneScaffoldingTest extends TestCase
         $this->assertStringContainsString("'2px'", $content, 'Token radius 2px badge harus ada.');
         $this->assertStringContainsString('375px', $content, 'Breakpoint mobile 375px harus ada.');
         $this->assertStringContainsString('820px', $content, 'Breakpoint tablet 820px harus ada.');
-        $this->assertStringContainsString('1440px', $content, 'Breakpoint desktop 1440px harus ada.');
+        // Diturunkan dari 1440px (2026-09-29) agar laptop 1366px menampilkan label menu sidebar.
+        $this->assertStringContainsString("desktop: '1280px'", $content, 'Breakpoint desktop 1280px harus ada.');
 
         // Content scanning Livewire
         $this->assertStringContainsString('./app/Livewire/**/*.php', $content, 'Livewire content scan harus ada.');

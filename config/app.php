@@ -68,6 +68,12 @@ return [
     'timezone' => 'UTC',
 
     /*
+    | Fitur Badge/Achievement (menu, halaman, kelola di panel admin). Dimatikan sementara atas
+    | keputusan owner 2026-09-30; nyalakan lagi dengan ACHIEVEMENTS_ENABLED=true di .env.
+    */
+    'achievements_enabled' => (bool) env('ACHIEVEMENTS_ENABLED', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
@@ -78,7 +84,7 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'id'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 

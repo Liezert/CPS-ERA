@@ -176,9 +176,9 @@ class StageFourAuthAndRbacRoutingTest extends TestCase
     }
 
     /**
-     * DoD #2: Redirect setelah login sesuai role — Admin -> /admin (Filament).
+     * DoD #2 (diperbarui 2026-09-27): Admin juga mendarat di dashboard utama CPS ERA setelah login.
      */
-    public function test_admin_is_redirected_to_admin_panel_after_login(): void
+    public function test_admin_is_redirected_to_main_dashboard_after_login(): void
     {
         $user = User::factory()->create([
             'email' => 'admin@caturpilar.com',
@@ -192,7 +192,7 @@ class StageFourAuthAndRbacRoutingTest extends TestCase
         ]);
 
         $this->assertAuthenticatedAs($user);
-        $response->assertRedirect('/admin');
+        $response->assertRedirect(route('dashboard'));
     }
 
     /**

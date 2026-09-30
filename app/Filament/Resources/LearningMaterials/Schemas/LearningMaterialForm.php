@@ -11,9 +11,26 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class LearningMaterialForm
 {
+    /**
+     * File yang diunggah menjadi content_url materi; field virtual content_file tidak ikut disimpan.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function resolveContentUrl(array $data): array
+    {
+        if (filled($data['content_file'] ?? null)) {
+            $data['content_url'] = Storage::disk('public')->url($data['content_file']);
+        }
+        unset($data['content_file']);
+
+        return $data;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -46,7 +63,7 @@ class LearningMaterialForm
                     ->label('Status')
                     ->options([
                         'draft' => 'Draft',
-                        'candidate' => 'Candidate (dari BA)',
+                        'candidate' => 'Menunggu Post-Test',
                         'published' => 'Published',
                     ])
                     ->default('published')
@@ -66,8 +83,11 @@ class LearningMaterialForm
                     ->placeholder('https://...')
                     ->maxLength(255)
                     ->columnSpanFull(),
-                FileUpload::make('content_url')
+                // Nama state HARUS beda dari isian URL di atas: dulu keduanya 'content_url', sehingga mengetik
+                // URL membuat komponen unggah menerima teks (error foreach) dan drag & drop tidak jalan.
+                FileUpload::make('content_file')
                     ->label('File Materi (Opsional)')
+                    ->helperText('Jika diunggah, file ini menggantikan tautan di atas.')
                     ->disk('public')
                     ->directory('learning-materials/files')
                     // Disk publik dilayani dari origin aplikasi: tolak HTML/SVG dan tipe lain di luar materi.
@@ -106,8 +126,8 @@ class LearningMaterialForm
                             ->visible(fn ($get) => (bool) $get('has_post_test'))
                             ->columnSpanFull(),
                         TextInput::make('post_test_points')
-                            ->label('Nilai Poin Post-Test')
-                            ->helperText('Tidak menambah KPI. KPI dihitung dari jumlah materi yang lulus 100% per periode.')
+                            ->label('XP untuk yang lulus')
+                            ->helperText('XP diberikan sekali saat karyawan lulus 100%. Tidak menambah KPI: KPI dihitung dari jumlah materi yang lulus per periode.')
                             ->numeric()
                             ->default(20)
                             ->required(fn ($get) => (bool) $get('has_post_test'))

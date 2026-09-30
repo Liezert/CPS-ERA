@@ -101,7 +101,7 @@ class LeaderboardSeeder extends Seeder
                 'name' => 'Doni Kusuma',
                 'email' => 'doni.kusuma@cps.test',
                 'employee_id' => 'CPS-00111',
-                'division' => 'Marketing & Sales',
+                'division' => 'Marketing',
                 'jabatan' => 'System Support Specialist',
                 'points' => 190,
             ],

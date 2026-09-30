@@ -111,19 +111,20 @@ class StageEightLearningTest extends TestCase
         $response = $this->actingAs($this->employee)->get(route('learning.show', $this->materialWithQuiz->id));
         $response->assertStatus(200);
 
-        // Record awal harus otomatis ada di database user_learning_progress dengan 0%
+        // Membuka materi otomatis mencatat "Sedang Dipelajari" (50%), tanpa tombol manual.
         $this->assertDatabaseHas('user_learning_progress', [
             'user_id' => $this->employee->id,
             'learning_material_id' => $this->materialWithQuiz->id,
-            'progress_percent' => 0,
+            'progress_percent' => 50,
             'completed_at' => null,
         ]);
 
-        // 2. Uji update progress parsial (50%)
+        // 2. Membuka ulang tidak menurunkan/menaikkan progres yang sudah tercatat
         Livewire::actingAs($this->employee)
             ->test(LearningShow::class, ['material' => $this->materialWithQuiz])
-            ->call('updateProgress', 50)
-            ->assertSet('progressPercent', 50);
+            ->assertSet('progressPercent', 50)
+            ->assertDontSee('Sedang Pelajari (50%)')
+            ->assertSee('Tandai Selesai');
 
         $this->assertDatabaseHas('user_learning_progress', [
             'user_id' => $this->employee->id,

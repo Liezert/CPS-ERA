@@ -47,7 +47,8 @@ class StageSixKnowledgeRepositoryTest extends TestCase
             'Finance Accounting Tax',
             'HRGA',
             'Jahit',
-            'Marketing & Sales',
+            'Marketing',
+            'Sales',
             'PPIC',
             'Plant Balben & Krian',
             'Produksi',
@@ -66,7 +67,7 @@ class StageSixKnowledgeRepositoryTest extends TestCase
         }
 
         // Verifikasi total divisi di database adalah tepat 12
-        $this->assertCount(12, Division::all());
+        $this->assertCount(13, Division::all());
     }
 
     /**

@@ -8,11 +8,11 @@
             <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-900 font-sans">
                 Update History (Riwayat Aktivitas)
             </h3>
-            <p class="text-[11px] text-neutral-600">
+            <p class="text-xs text-neutral-600">
                 Audit trail dan lini masa perjalanan status dokumen Berita Acara.
             </p>
         </div>
-        <span class="text-[10px] font-mono text-neutral-500">
+        <span class="text-xs font-mono text-neutral-500">
             {{ $logs->count() }} Aktivitas
         </span>
     </div>
@@ -24,9 +24,9 @@
                 <div class="space-y-1">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-xs font-bold text-neutral-900">{{ $log->action }}</span>
-                        <span class="text-[11px] text-neutral-500">&middot;</span>
-                        <span class="text-[11px] text-neutral-600">{{ $log->actor?->name ?? 'Sistem' }}</span>
-                        <span class="text-[11px] text-neutral-400 font-mono">{{ $log->created_at->format('d M Y H:i') }}</span>
+                        <span class="text-xs text-neutral-500">&middot;</span>
+                        <span class="text-xs text-neutral-600">{{ $log->actor?->name ?? 'Sistem' }}</span>
+                        <span class="text-xs text-neutral-400 font-mono">{{ $log->created_at->wib()->format('d M Y H:i') }}</span>
                     </div>
                     @if($log->note)
                         <p class="text-xs text-neutral-700 bg-neutral-50 p-2.5 rounded border border-neutral-200">

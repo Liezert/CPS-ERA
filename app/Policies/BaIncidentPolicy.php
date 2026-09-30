@@ -32,22 +32,12 @@ class BaIncidentPolicy
     }
 
     /**
-     * Determine whether the user can view the model.
-     * - Admin & Quality: Lintas seluruh divisi.
-     * - Supervisor: Divisinya sendiri.
-     * - Employee: BA buatannya sendiri atau BA di divisinya.
+     * Aturan hak lihat ada di BaIncident::scopeVisibleTo() supaya halaman detail dan daftar
+     * laporan tidak pernah berbeda.
      */
     public function view(User $user, BaIncident $baIncident): bool
     {
-        if ($user->hasAnyRole(['admin', 'quality'])) {
-            return true;
-        }
-
-        if ($user->hasRole('supervisor')) {
-            return (int) $user->division_id === (int) $baIncident->division_id;
-        }
-
-        return $baIncident->created_by === $user->id || (int) $user->division_id === (int) $baIncident->division_id;
+        return BaIncident::visibleTo($user)->whereKey($baIncident->getKey())->exists();
     }
 
     /**

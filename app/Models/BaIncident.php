@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BaIncidentStatus;
 use Database\Factories\BaIncidentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -175,7 +176,8 @@ class BaIncident extends Model implements HasMedia
      */
     public function activityLogs(): HasMany
     {
-        return $this->hasMany(BaActivityLog::class)->orderBy('created_at', 'desc');
+        // created_at hanya presisi detik (draf & kirim sering di detik yang sama); id UUIDv7 berurutan waktu.
+        return $this->hasMany(BaActivityLog::class)->orderBy('created_at', 'desc')->orderBy('id', 'desc');
     }
 
     /**
@@ -186,6 +188,30 @@ class BaIncident extends Model implements HasMedia
     public function learningMaterial(): HasOne
     {
         return $this->hasOne(LearningMaterial::class, 'source_ba_id');
+    }
+
+    /**
+     * Laporan yang boleh dilihat user. Satu-satunya sumber aturan hak lihat: dipakai daftar
+     * Laporan CAPA, dashboard, dan BaIncidentPolicy::view().
+     * - Admin & Quality (HR): lintas divisi.
+     * - Supervisor: semua status di divisinya.
+     * - Employee: laporannya sendiri, plus laporan divisinya yang sudah dikirim (draf orang lain tidak).
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->hasAnyRole(['admin', 'quality'])) {
+            return $query;
+        }
+
+        if ($user->hasRole('supervisor')) {
+            return $query->where('division_id', $user->division_id);
+        }
+
+        return $query->where(fn (Builder $q) => $q
+            ->where('created_by', $user->id)
+            ->orWhere(fn (Builder $q) => $q
+                ->where('division_id', $user->division_id)
+                ->where('status', '!=', BaIncidentStatus::Draft->value)));
     }
 
     /**

@@ -23,11 +23,20 @@ class BaIncidentObserver
 
         match ($ba->status) {
             BaIncidentStatus::PendingSupervisor->value => $this->notifySupervisors($ba),
-            BaIncidentStatus::PendingHr->value => $this->notifyHrReviewers($ba),
+            BaIncidentStatus::PendingHr->value => [$this->notifyHrReviewers($ba), $this->notifyReporter($ba, 'BA Disetujui Supervisor: ', 'disetujui Supervisor dan kini menunggu review final tim HR.')],
+            BaIncidentStatus::Approved->value => $this->notifyReporter($ba, 'BA Disetujui Final: ', 'disetujui final oleh tim HR. Laporan selesai.'),
             BaIncidentStatus::RevisionRequested->value => $this->notifyReporterOfRevision($ba),
-            BaIncidentStatus::Rejected->value => $this->notifyApprovingSupervisorOfRejection($ba),
+            BaIncidentStatus::Rejected->value => $this->notifyOfHrRejection($ba),
             default => null,
         };
+    }
+
+    /**
+     * Pelapor tahu perkembangan laporannya saat disetujui (tahap Supervisor maupun final HR).
+     */
+    protected function notifyReporter(BaIncident $ba, string $titlePrefix, string $message): void
+    {
+        $this->send(User::whereKey($ba->created_by)->get(), $ba, 'ba_disetujui', $titlePrefix.$ba->nomor_ba, "Laporan {$ba->nomor_ba} {$message}");
     }
 
     /**
@@ -80,11 +89,24 @@ class BaIncidentObserver
     }
 
     /**
-     * Supervisor yang meneruskan laporan perlu tahu kalau HR menolaknya secara permanen.
+     * Penolakan HR menutup laporan. Pelapor diberi tahu agar membuat laporan baru dengan topik
+     * lain (keputusan client 2026-09-29); Supervisor yang meneruskannya juga perlu tahu.
      */
-    protected function notifyApprovingSupervisorOfRejection(BaIncident $ba): void
+    protected function notifyOfHrRejection(BaIncident $ba): void
     {
-        if ($ba->getOriginal('status') !== BaIncidentStatus::PendingHr->value || ! $ba->supervisor_reviewed_by) {
+        if ($ba->getOriginal('status') !== BaIncidentStatus::PendingHr->value) {
+            return;
+        }
+
+        $this->send(
+            User::whereKey($ba->created_by)->get(),
+            $ba,
+            'ba_ditolak_hr',
+            'Laporan Ditutup oleh HR: '.$ba->nomor_ba,
+            "Laporan {$ba->nomor_ba} ditolak HR dan ditutup. Buat laporan baru dengan topik berbeda. Alasan: {$ba->catatan_penolakan}",
+        );
+
+        if (! $ba->supervisor_reviewed_by) {
             return;
         }
 

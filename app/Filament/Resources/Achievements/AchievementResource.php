@@ -21,9 +21,9 @@ class AchievementResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Gamifikasi';
+    protected static UnitEnum|string|null $navigationGroup = 'SDM & Laporan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Badge & Achievement';
 
@@ -33,7 +33,7 @@ class AchievementResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['admin', 'quality']) ?? false;
+        return config('app.achievements_enabled') && (auth()->user()?->hasAnyRole(['admin', 'quality']) ?? false);
     }
 
     public static function form(Schema $schema): Schema

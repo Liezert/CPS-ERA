@@ -21,7 +21,7 @@ class KpiSettingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Pengaturan & Master Data';
+    protected static UnitEnum|string|null $navigationGroup = 'Advance';
 
     protected static ?int $navigationSort = 4;
 

@@ -17,28 +17,28 @@
     <a href="{{ route('dashboard') }}"
        class="flex flex-col items-center justify-center min-w-[56px] h-full py-1 {{ $isDashboard ? 'text-brand font-medium' : 'text-neutral-500 hover:text-neutral-900' }} transition-colors">
         @include('components.layout.nav-icon', ['name' => 'home', 'class' => 'w-5 h-5'])
-        <span class="text-[10px] font-sans mt-1">Beranda</span>
+        <span class="text-xs font-sans mt-1">Beranda</span>
     </a>
 
     {{-- 2. Knowledge Repository --}}
     <a href="{{ route('knowledge.index') }}"
        class="flex flex-col items-center justify-center min-w-[56px] h-full py-1 {{ $isKnowledge ? 'text-brand font-medium' : 'text-neutral-500 hover:text-neutral-900' }} transition-colors">
         @include('components.layout.nav-icon', ['name' => 'book', 'class' => 'w-5 h-5'])
-        <span class="text-[10px] font-sans mt-1">Knowledge</span>
+        <span class="text-xs font-sans mt-1">Knowledge</span>
     </a>
 
     {{-- 3. Laporan CAPA --}}
     <a href="{{ route('ba.index') }}"
        class="flex flex-col items-center justify-center min-w-[56px] h-full py-1 {{ $isBa ? 'text-brand font-medium' : 'text-neutral-500 hover:text-neutral-900' }} transition-colors">
         @include('components.layout.nav-icon', ['name' => 'shield-alert', 'class' => 'w-5 h-5'])
-        <span class="text-[10px] font-sans mt-1">Laporan CAPA</span>
+        <span class="text-xs font-sans mt-1">Laporan CAPA</span>
     </a>
 
     {{-- 4. Learning --}}
     <a href="{{ route('learning.index') }}"
        class="flex flex-col items-center justify-center min-w-[56px] h-full py-1 {{ $isLearning ? 'text-brand font-medium' : 'text-neutral-500 hover:text-neutral-900' }} transition-colors">
         @include('components.layout.nav-icon', ['name' => 'academic', 'class' => 'w-5 h-5'])
-        <span class="text-[10px] font-sans mt-1">Learning</span>
+        <span class="text-xs font-sans mt-1">Learning</span>
     </a>
 
     {{-- 5. Menu Drawer Trigger --}}
@@ -47,6 +47,6 @@
             class="flex flex-col items-center justify-center min-w-[56px] h-full py-1 text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
             aria-label="Buka menu lengkap">
         @include('components.layout.nav-icon', ['name' => 'bars-3', 'class' => 'w-5 h-5'])
-        <span class="text-[10px] font-sans mt-1">Menu</span>
+        <span class="text-xs font-sans mt-1">Menu</span>
     </button>
 </nav>

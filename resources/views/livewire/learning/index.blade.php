@@ -29,6 +29,17 @@
                 <span class="font-mono font-bold text-sm text-neutral-900">{{ $totalInProgressCount }}</span>
             </div>
 
+            {{-- Video kontribusi: unggah (semua role) & riwayat/antrean review --}}
+            <a href="{{ route('videos.index') }}"
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 hover:border-brand hover:text-brand text-neutral-700 rounded-md text-xs font-sans font-medium transition-colors">
+                <span>Video Saya</span>
+            </a>
+            <a href="{{ route('videos.create') }}"
+               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-md text-xs font-sans font-semibold transition-colors">
+                <x-layout.nav-icon name="video" class="w-4 h-4" />
+                <span>Unggah Video</span>
+            </a>
+
             {{-- Tombol Kelola Kategori (Hanya untuk Admin & Quality - DoD #3) --}}
             @if(auth()->user()?->hasAnyRole(['admin', 'quality']))
                 <button type="button"
@@ -140,10 +151,10 @@
         @if(!empty($search) || !empty($selectedCategoryId) || !empty($selectedType) || $selectedProgressFilter !== 'all')
             <div class="pt-2 border-t border-neutral-100 flex items-center justify-between flex-wrap gap-2 text-xs">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-neutral-500 font-sans text-[11px]">Filter aktif:</span>
+                    <span class="text-neutral-500 font-sans text-xs">Filter aktif:</span>
 
                     @if(!empty($search))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-xs">
                             <span>Pencarian: "{{ $search }}"</span>
                             <button type="button" wire:click="$set('search', '')" class="hover:text-neutral-900">
                                 <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -156,7 +167,7 @@
                             $activeCat = $categories->firstWhere('id', $selectedCategoryId);
                         @endphp
                         @if($activeCat)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-[11px]">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-xs">
                                 <span>Kategori: {{ $activeCat->name }}</span>
                                 <button type="button" wire:click="$set('selectedCategoryId', null)" class="hover:text-neutral-900">
                                     <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -166,7 +177,7 @@
                     @endif
 
                     @if(!empty($selectedType))
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-100 border border-neutral-200 rounded-badge text-neutral-700 text-xs">
                             <span>Tipe: {{ $types[$selectedType] ?? $selectedType }}</span>
                             <button type="button" wire:click="$set('selectedType', null)" class="hover:text-neutral-900">
                                 <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -175,7 +186,7 @@
                     @endif
 
                     @if($selectedProgressFilter !== 'all')
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-tint border border-brand/30 rounded-badge text-brand-dark text-[11px]">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-tint border border-brand/30 rounded-badge text-brand-dark text-xs">
                             <span>Status: {{ ucfirst(str_replace('_', ' ', $selectedProgressFilter)) }}</span>
                             <button type="button" wire:click="$set('selectedProgressFilter', 'all')" class="hover:text-neutral-900">
                                 <x-layout.nav-icon name="x-mark" class="w-3 h-3" />
@@ -243,13 +254,13 @@
                                 <div class="flex items-center gap-2 min-w-0">
                                     {{-- Kategori Materi (Standar Regulasi / Kurikulum) --}}
                                     @if($material->category)
-                                        <span class="truncate px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[11px] font-medium" title="{{ $material->category->name }}">
+                                        <span class="truncate px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-xs font-medium" title="{{ $material->category->name }}">
                                             {{ $material->category->name }}
                                         </span>
                                     @endif
 
                                     {{-- 7 Jenis Materi: Ikon Outline Netral + Teks Netral (Design System §5) --}}
-                                    <div class="inline-flex items-center gap-1.5 text-neutral-600 text-[11px] font-sans shrink-0 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-badge">
+                                    <div class="inline-flex items-center gap-1.5 text-neutral-600 text-xs font-sans shrink-0 bg-neutral-50 border border-neutral-200 px-2 py-0.5 rounded-badge">
                                         <x-layout.nav-icon :name="$material->type" class="w-3.5 h-3.5 text-neutral-500" />
                                         <span class="capitalize font-medium">{{ $types[$material->type] ?? ucfirst($material->type) }}</span>
                                     </div>
@@ -257,7 +268,7 @@
 
                                 {{-- Indikator Post-Test Tersedia (Interactive Assessment) --}}
                                 @if($hasPostTest)
-                                    <span class="px-2 py-0.5 border border-brand/30 rounded-badge text-[10px] font-sans font-medium text-brand-dark bg-brand-tint shrink-0" title="Materi memiliki Post-Test">
+                                    <span class="px-2 py-0.5 border border-brand/30 rounded-badge text-xs font-sans font-medium text-brand-dark bg-brand-tint shrink-0" title="Materi memiliki Post-Test">
                                         Post-Test
                                     </span>
                                 @endif
@@ -279,7 +290,7 @@
                         {{-- Footer Kartu: Progress Bar Tipis Hijau per Materi per User (DoD #1) --}}
                         <div class="pt-3 mt-4 border-t border-neutral-100 space-y-2.5">
                             <div>
-                                <div class="flex items-center justify-between text-[11px] font-sans mb-1">
+                                <div class="flex items-center justify-between text-xs font-sans mb-1">
                                     <span class="text-neutral-500">
                                         @if($isCompleted)
                                             <span class="text-brand font-medium">Selesai</span>
@@ -302,8 +313,8 @@
                             </div>
 
                             <div class="flex items-center justify-between pt-1">
-                                <span class="font-mono text-[10px] text-neutral-400">
-                                    {{ $material->created_at->format('d/m/Y') }}
+                                <span class="font-mono text-xs text-neutral-400">
+                                    {{ $material->created_at->wib()->format('d/m/Y') }}
                                 </span>
                                 
                                 <a href="{{ route('learning.show', $material->id) }}"
@@ -346,17 +357,17 @@
                                     </a>
 
                                     @if($material->category)
-                                        <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-[10px] font-medium">
+                                        <span class="px-2 py-0.5 border border-neutral-300 rounded-badge text-neutral-800 bg-neutral-100 font-sans text-xs font-medium">
                                             {{ $material->category->name }}
                                         </span>
                                     @endif
 
-                                    <span class="font-sans text-[10px] text-neutral-600 bg-neutral-50 border border-neutral-200 px-1.5 py-0.5 rounded-badge capitalize">
+                                    <span class="font-sans text-xs text-neutral-600 bg-neutral-50 border border-neutral-200 px-1.5 py-0.5 rounded-badge capitalize">
                                         {{ $types[$material->type] ?? ucfirst($material->type) }}
                                     </span>
 
                                     @if($hasPostTest)
-                                        <span class="px-2 py-0.5 border border-brand/30 rounded-badge text-[10px] font-sans font-medium text-brand-dark bg-brand-tint">
+                                        <span class="px-2 py-0.5 border border-brand/30 rounded-badge text-xs font-sans font-medium text-brand-dark bg-brand-tint">
                                             Post-Test
                                         </span>
                                     @endif
@@ -368,10 +379,10 @@
                                     </p>
                                 @endif
 
-                                <div class="flex items-center gap-2 mt-1 text-[11px] font-sans text-neutral-400">
+                                <div class="flex items-center gap-2 mt-1 text-xs font-sans text-neutral-400">
                                     <span>Oleh {{ $material->creator?->name ?? 'Tim Internal' }}</span>
                                     <span>&middot;</span>
-                                    <span class="font-mono">{{ $material->created_at->format('d M Y') }}</span>
+                                    <span class="font-mono">{{ $material->created_at->wib()->format('d M Y') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -379,11 +390,11 @@
                         {{-- Progress Bar Tipis Hijau & Aksi Sisi Kanan --}}
                         <div class="flex items-center gap-4 shrink-0 sm:w-64 self-end sm:self-center">
                             <div class="flex-1 min-w-[120px]">
-                                <div class="flex items-center justify-between text-[11px] font-sans mb-1">
-                                    <span class="text-neutral-500 text-[10px]">
+                                <div class="flex items-center justify-between text-xs font-sans mb-1">
+                                    <span class="text-neutral-500 text-xs">
                                         {{ $isCompleted ? 'Selesai' : ($percent > 0 ? 'Sedang Berjalan' : 'Belum Mulai') }}
                                     </span>
-                                    <span class="font-mono text-neutral-700 text-[10px] font-semibold">
+                                    <span class="font-mono text-neutral-700 text-xs font-semibold">
                                         {{ $percent }}%
                                     </span>
                                 </div>
@@ -451,9 +462,9 @@
                                    placeholder="Contoh: Standar Operasional & K3, Otomasi Mesin..."
                                    class="w-full px-3 py-2 text-xs font-sans bg-white border border-neutral-200 rounded-md text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand transition-colors" />
                             @error('newCategoryName')
-                                <span class="text-[11px] font-sans text-neutral-600 font-medium mt-1 block">{{ $message }}</span>
+                                <span class="text-xs font-sans text-neutral-600 font-medium mt-1 block">{{ $message }}</span>
                             @enderror
-                            <p class="text-[11px] font-sans text-neutral-400 mt-1">
+                            <p class="text-xs font-sans text-neutral-400 mt-1">
                                 Kategori yang dibuat akan langsung tersedia dalam filter materi bagi seluruh pegawai PT CPS.
                             </p>
                         </div>

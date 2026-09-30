@@ -31,9 +31,9 @@ class BaIncidentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Continuous Improvement';
+    protected static UnitEnum|string|null $navigationGroup = 'SDM & Laporan';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationLabel = 'Laporan CAPA';
 
@@ -92,7 +92,7 @@ class BaIncidentResource extends Resource
             ->requiresConfirmation()
             ->modalHeading(fn (BaIncident $record): string => static::isHrStage($record) ? 'Verifikasi & Setujui Final Laporan BA' : 'Setujui Laporan BA (Tahap Supervisor)')
             ->modalDescription(fn (BaIncident $record): string => static::isHrStage($record)
-                ? trim(static::supervisorNoteSummary($record).' Poin pelapor akan otomatis diproses, dan hasil laporan akan terbit di Learning setelah post-test dibuat.')
+                ? trim(static::supervisorNoteSummary($record).' Laporan CAPA ditandai selesai setelah disetujui final.')
                 : 'Laporan akan diteruskan ke tim HR untuk review final.')
             ->schema(fn (BaIncident $record): array => static::isHrStage($record) ? [
                 Radio::make('status_verifikasi')
@@ -153,12 +153,12 @@ class BaIncidentResource extends Resource
             ->requiresConfirmation()
             ->modalHeading(fn (BaIncident $record): string => static::isHrStage($record) ? 'Tolak Permanen Laporan BA' : 'Tolak & Minta Perbaikan Laporan BA')
             ->modalDescription(fn (BaIncident $record): string => static::isHrStage($record)
-                ? trim(static::supervisorNoteSummary($record).' Penolakan HR bersifat final: pelapor tidak bisa merevisi, dan video lampiran diarsipkan sebagai draf internal.')
+                ? trim(static::supervisorNoteSummary($record).' Penolakan HR bersifat final: laporan ditutup dan pelapor harus membuat laporan baru dengan topik berbeda.')
                 : 'Laporan dikembalikan ke pelapor untuk direvisi, lalu dikirim ulang ke Supervisor.')
             ->schema([
                 Textarea::make('catatan_penolakan')
                     ->label('Catatan Alasan Penolakan / Revisi')
-                    ->placeholder('Jelaskan bagian analisa atau tindakan yang perlu dilengkapi pembuat...')
+                    ->placeholder(fn (BaIncident $record): string => static::isHrStage($record) ? 'Jelaskan alasan laporan ini ditutup, mis. topik sudah pernah dilaporkan atau bukan ketidaksesuaian...' : 'Jelaskan bagian analisa atau tindakan yang perlu dilengkapi pembuat...')
                     ->required(),
             ])
             ->action(function (BaIncident $record, array $data, Action $action): void {

@@ -202,7 +202,8 @@ class StageThirteenFinalAuditTest extends TestCase
             'Finance Accounting Tax',
             'HRGA',
             'Jahit',
-            'Marketing & Sales',
+            'Marketing',
+            'Sales',
             'PPIC',
             'Plant Balben & Krian',
             'Produksi',
@@ -214,8 +215,6 @@ class StageThirteenFinalAuditTest extends TestCase
 
         $actualDivisions = Division::pluck('name')->all();
 
-        $this->assertNotContains('Sales', $actualDivisions);
-        $this->assertNotContains('Marketing', $actualDivisions);
 
         foreach ($expectedDivisions as $div) {
             $this->assertContains($div, $actualDivisions, "Divisi [{$div}] wajib ada di database sesuai Kontrak §8.");
@@ -238,11 +237,11 @@ class StageThirteenFinalAuditTest extends TestCase
         $responseDashboard = $this->actingAs($this->employee)->get(route('dashboard'));
         $responseDashboard->assertDontSee('PRD §5.3');
 
-        // 2. Mission Quiz: Poin 4 (Kebijakan Retry)
+        // 2. Mission Quiz: Poin 4 (Kebijakan Retry) - Penanda PRD §5.3 telah dibersihkan dari antarmuka
         $quiz = Quiz::first();
         if ($quiz) {
             $responseMission = $this->actingAs($this->employee)->get(route('missions.show', $quiz->id));
-            $responseMission->assertSee('[Menunggu Keputusan PRD §5.3: Kebijakan Retry Kuis]');
+            $responseMission->assertDontSee('PRD §5.3');
         }
 
         // 3. Achievement: Poin 5 (Kriteria Unlock) - Penanda PRD §5.3 telah dibersihkan dari antarmuka
@@ -316,15 +315,12 @@ class StageThirteenFinalAuditTest extends TestCase
         $this->assertTrue($supervisorA->can('reviewAsSupervisor', $baA));
         $this->assertFalse($supervisorA->can('reviewAsSupervisor', $baB));
 
-        // Approve/reject hanya di panel Filament: halaman detail tidak punya tombolnya,
-        // Supervisor A diarahkan ke halaman review panel untuk BA divisinya
+        // Approve/reject di halaman preview: panel review hanya muncul untuk BA divisinya sendiri.
         $resA = $this->actingAs($supervisorA)->get(route('ba.show', $baA->id));
-        $resA->assertSee(route('filament.admin.resources.ba-incidents.view', $baA), false);
-        $resA->assertDontSee('Setujui BA');
-        $resA->assertDontSee('Minta Revisi');
+        $resA->assertSee('Keputusan Review Laporan');
+        $resA->assertSee('Setujui &amp; Teruskan ke HR', false);
 
-        $resB = $this->actingAs($supervisorA)->get(route('ba.show', $baB->id));
-        $resB->assertDontSee('Setujui BA');
-        $resB->assertDontSee('Minta Revisi');
+        // BA divisi lain bahkan tidak bisa dibuka oleh Supervisor A.
+        $this->actingAs($supervisorA)->get(route('ba.show', $baB->id))->assertForbidden();
     }
 }

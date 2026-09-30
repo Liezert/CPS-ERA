@@ -130,7 +130,7 @@ class StageTenLeaderboardTest extends TestCase
         $component->assertSeeHtml('>Rank</th>')
             ->assertSeeHtml('>Nama Pegawai</th>')
             ->assertSeeHtml('>Divisi</th>')
-            ->assertSeeHtml('>Points</th>')
+            ->assertSeeHtml('>XP</th>')
             ->assertDontSeeHtml('>Level</th>')
             ->assertDontSee('Lv.');
 
@@ -188,8 +188,48 @@ class StageTenLeaderboardTest extends TestCase
             ->assertDontSee('CPS-00003')
             ->assertDontSee('CPS-00004')
             ->assertSee('Cari nama pegawai...')
-            ->assertSee('Semua Divisi (12 Divisi)')
-            ->assertSee('Marketing & Sales')
-            ->assertDontSeeHtml('>Sales</option>');
+            ->assertSee('Semua Divisi (13 Divisi)')
+            ->assertSee('Marketing')->assertSee('Sales');
+    }
+
+    /**
+     * XP sama = peringkat sama, dan kartu "Peringkat Anda" selalu cocok dengan nomor di tabel.
+     */
+    public function test_tied_xp_shares_rank_in_table_and_card(): void
+    {
+        User::factory()->create(['name' => 'Eka Seri Dua', 'xp' => 2200, 'division_id' => $this->divisionQC->id]);
+
+        Livewire::actingAs($this->userThird)
+            ->test(LeaderboardIndex::class)
+            ->assertViewHas('rankByXp', fn (array $ranks): bool => $ranks[3500] === 1 && $ranks[2200] === 2 && $ranks[1500] === 4)
+            ->assertViewHas('myRank', 4);
+
+        // Peringkat tetap global walau daftar difilter: Candra tetap #4, bukan #2 di divisi Produksi.
+        Livewire::actingAs($this->userThird)
+            ->test(LeaderboardIndex::class)
+            ->set('selectedDivision', (string) $this->divisionProduksi->id)
+            ->assertSeeHtml('#4');
+    }
+
+    /**
+     * Akun admin tidak tampil dan tidak ikut dihitung di peringkat (keputusan owner 2026-09-29).
+     */
+    public function test_admin_accounts_are_excluded_from_leaderboard_and_rank(): void
+    {
+        $admin = User::factory()->create(['name' => 'Admin Penguji', 'xp' => 9000, 'division_id' => $this->divisionQC->id]);
+        $admin->assignRole('admin');
+
+        // Admin ber-XP tertinggi tidak menggeser peringkat karyawan.
+        Livewire::actingAs($this->userChampion)
+            ->test(LeaderboardIndex::class)
+            ->assertDontSee('Admin Penguji')
+            ->assertViewHas('myRank', 1);
+
+        // Admin sendiri tidak diperingkat, jadi tidak punya banner "Peringkat Anda".
+        Livewire::actingAs($admin)
+            ->test(LeaderboardIndex::class)
+            ->assertViewHas('myRank', null)
+            ->assertDontSee('Peringkat Anda')
+            ->assertSee('Ahmad Juara Satu');
     }
 }

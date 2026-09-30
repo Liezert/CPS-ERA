@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -200,25 +199,13 @@ SVG;
             return;
         }
 
+        // Email = identitas login yang dikelola admin; karyawan hanya boleh mengubah nama.
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
-                Rule::unique(User::class)->ignore($user->id),
-            ],
         ]);
 
-        $user->fill($validated);
-
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-        }
-
-        $user->save();
+        $user->update($validated);
+        $this->email = $user->email;
 
         $this->statusMessage = 'Informasi profil berhasil diperbarui.';
         session()->flash('status', 'profile-updated');
@@ -280,8 +267,9 @@ SVG;
         // 2. Inisial nama untuk avatar box
         $initials = $user->initials;
 
-        // 3. Akumulasi Poin Ledger point_transactions
-        $totalPoints = (int) $user->pointTransactions()->sum('points');
+        // 3. Total XP: angka yang sama dengan Dashboard & Leaderboard. Poin CPS ERA (ledger KPI)
+        //    punya kartunya sendiri, jadi tidak dijumlah ke sini.
+        $totalPoints = (int) $user->xp;
 
         // 4. Learning Progress rata-rata
         $learningProgress = (int) round(
@@ -294,7 +282,8 @@ SVG;
 
         // 6. Grafik Performa Bulanan (6 bulan terakhir)
         $sixMonthsAgo = now()->subMonths(5)->startOfMonth();
-        $transactions = PointTransaction::where('user_id', $user->id)
+        $transactions = PointTransaction::xp()
+            ->where('user_id', $user->id)
             ->where('created_at', '>=', $sixMonthsAgo)
             ->get();
 
@@ -305,7 +294,7 @@ SVG;
             $monthLabel = $monthDate->translatedFormat('M Y');
 
             $monthPoints = (int) $transactions
-                ->filter(fn ($tx) => $tx->created_at->format('Y-m') === $monthKey)
+                ->filter(fn ($tx) => $tx->created_at->wib()->format('Y-m') === $monthKey)
                 ->sum('points');
 
             $monthlyPerformance[] = [

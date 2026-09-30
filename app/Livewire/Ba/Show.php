@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Ba;
 
-use App\Enums\BaIncidentStatus;
 use App\Models\BaIncident;
 use App\Models\Division;
+use App\Services\BaIncidentService;
+use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
@@ -17,6 +18,17 @@ class Show extends Component
 {
     public BaIncident $incident;
 
+    // Form review di halaman preview (Supervisor tahap 1, HR tahap 2).
+    public string $catatanSupervisor = '';
+
+    public string $statusVerifikasi = 'efektif';
+
+    public string $buktiObjektif = '';
+
+    public string $alasanTidakEfektif = '';
+
+    public string $catatanPenolakan = '';
+
     public function mount(BaIncident $incident): void
     {
         Gate::authorize('view', $incident);
@@ -25,20 +37,102 @@ class Show extends Component
     }
 
     /**
-     * Tautan ke halaman review Filament untuk reviewer, selama laporan menunggu review.
-     * Approve/reject sendiri hanya tersedia di panel Filament (lewat policy per tahap).
+     * Tahap review yang boleh dijalankan user ini: 'supervisor' (tahap 1), 'hr' (tahap 2), atau null.
+     * Aturannya sepenuhnya dari policy (status laporan, divisi, four-eyes).
      */
-    public function getCanOpenReviewPanelProperty(): bool
+    public function getReviewStageProperty(): ?string
     {
         $user = Auth::user();
-        if (! $user || ! $user->hasAnyRole(['admin', 'quality', 'supervisor'])) {
-            return false;
+
+        return match (true) {
+            $user === null => null,
+            $user->can('reviewAsSupervisor', $this->incident) => 'supervisor',
+            $user->can('reviewAsHr', $this->incident) => 'hr',
+            default => null,
+        };
+    }
+
+    /**
+     * Catatan lapangan Supervisor (tahap 1), ditampilkan di ringkasan keputusan HR.
+     */
+    public function getSupervisorNoteProperty(): ?string
+    {
+        return app(BaIncidentService::class)->latestSupervisorNote($this->incident)?->note;
+    }
+
+    /**
+     * Approve dari halaman preview: Supervisor meneruskan ke HR, HR menyetujui final
+     * dengan evaluasi efektivitas tindakan korektif.
+     */
+    public function approve(BaIncidentService $service): void
+    {
+        $stage = $this->reviewStage;
+        abort_unless($stage !== null, 403);
+
+        if ($stage === 'hr') {
+            $this->validate([
+                'statusVerifikasi' => ['required', 'in:efektif,tidak_efektif'],
+                'buktiObjektif' => ['nullable', 'string', 'max:2000', 'required_if:statusVerifikasi,efektif'],
+                'alasanTidakEfektif' => ['nullable', 'string', 'max:2000', 'required_if:statusVerifikasi,tidak_efektif'],
+            ], [
+                'buktiObjektif.required_if' => 'Bukti objektif wajib diisi jika tindakan dinyatakan efektif.',
+                'alasanTidakEfektif.required_if' => 'Alasan wajib diisi jika tindakan dinyatakan tidak efektif.',
+            ]);
+        } else {
+            $this->validate(['catatanSupervisor' => ['nullable', 'string', 'max:1000']]);
         }
 
-        return in_array($this->incident->status, [
-            BaIncidentStatus::PendingSupervisor->value,
-            BaIncidentStatus::PendingHr->value,
-        ], true) && $user->can('view', $this->incident);
+        try {
+            $stage === 'hr'
+                ? $service->approve($this->incident, Auth::user(), [
+                    'status_verifikasi' => $this->statusVerifikasi,
+                    'bukti_objektif' => $this->buktiObjektif,
+                    'alasan_tidak_efektif' => $this->alasanTidakEfektif,
+                ])
+                : $service->approveAsSupervisor($this->incident, Auth::user(), trim($this->catatanSupervisor) ?: null);
+        } catch (DomainException $exception) {
+            $this->addError('review', $exception->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', $stage === 'hr'
+            ? "Laporan {$this->incident->nomor_ba} disetujui final."
+            : "Laporan {$this->incident->nomor_ba} disetujui dan diteruskan ke tim HR.");
+
+        $this->redirect(route('ba.show', $this->incident), navigate: true);
+    }
+
+    /**
+     * Tolak dari halaman preview: Supervisor mengembalikan ke pelapor untuk revisi,
+     * HR menolak permanen. Alasan wajib diisi.
+     */
+    public function reject(BaIncidentService $service): void
+    {
+        $stage = $this->reviewStage;
+        abort_unless($stage !== null, 403);
+
+        $this->validate(
+            ['catatanPenolakan' => ['required', 'string', 'min:5', 'max:2000']],
+            [
+                'catatanPenolakan.required' => 'Alasan penolakan wajib diisi.',
+                'catatanPenolakan.min' => 'Alasan penolakan minimal 5 karakter.',
+            ],
+        );
+
+        try {
+            $service->reject($this->incident, Auth::user(), $this->catatanPenolakan);
+        } catch (DomainException $exception) {
+            $this->addError('review', $exception->getMessage());
+
+            return;
+        }
+
+        session()->flash('status', $stage === 'hr'
+            ? "Laporan {$this->incident->nomor_ba} ditolak permanen."
+            : "Laporan {$this->incident->nomor_ba} dikembalikan ke pelapor untuk direvisi.");
+
+        $this->redirect(route('ba.show', $this->incident), navigate: true);
     }
 
     public function getCanViewActivityLogProperty(): bool

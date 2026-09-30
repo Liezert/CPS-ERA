@@ -17,18 +17,17 @@ use DomainException;
 use Filament\Facades\Filament;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
 use RuntimeException;
 use Tests\Concerns\FakesGoogleDrive;
 use Tests\TestCase;
 
 /**
- * Stage 4 alur approval CAPA: transisi status dua tahap (Supervisor → HR), siklus revisi,
- * penolakan permanen HR beserta arsip video, dan penanganan video saat resubmit.
+ * Stage 4 alur approval CAPA: transisi status dua tahap (Supervisor → HR), siklus revisi, dan
+ * penolakan permanen HR. Sejak 2026-09-27 CAPA tidak melampirkan video dan tidak memberi poin;
+ * arsip video hanya ada pada laporan lama (dibuat manual di test ini).
  */
 class BaTwoStageApprovalTest extends TestCase
 {
@@ -87,43 +86,25 @@ class BaTwoStageApprovalTest extends TestCase
         ], $this->reporter);
     }
 
-    private function videoFile(): UploadedFile
+    private function submitted(): BaIncident
     {
-        return UploadedFile::fake()->createWithContent('penanganan.mp4', str_repeat('v', 4096));
+        return $this->service->submit($this->draft(), $this->reporter);
     }
 
     /**
-     * Tiruan Drive yang membalas file ID berurutan untuk tiap unggahan (ID terakhir dipakai
-     * terus setelah antrean habis). Http::fake() bersifat menggabungkan, jadi urutan unggahan
-     * harus disiapkan sekaligus di sini.
+     * Video lampiran laporan lama (sebelum CAPA dipisah dari video), tersimpan di Drive.
      */
-    private function fakeDriveUploads(string ...$fileIds): void
+    private function attachLegacyDriveVideo(BaIncident $incident, string $fileId): Video
     {
-        $this->connectDriveAccount();
-
-        Http::fake([
-            GoogleDriveService::TOKEN_ENDPOINT => Http::response(['access_token' => 'token-akses-uji', 'expires_in' => 3600]),
-            'www.googleapis.com/upload/drive/v3/files*' => function ($request) use (&$fileIds) {
-                if ($request->method() === 'POST' && str_contains($request->url(), 'uploadType=resumable')) {
-                    return Http::response('', 200, ['Location' => 'https://www.googleapis.com/upload/drive/v3/files?upload_id=sesi-uji']);
-                }
-
-                return Http::response(['id' => count($fileIds) > 1 ? array_shift($fileIds) : $fileIds[0]]);
-            },
-            'www.googleapis.com/drive/v3/files/*' => Http::response(['id' => 'anyoneWithLink']),
-        ]);
-    }
-
-    /**
-     * Laporan yang sudah diserahkan dengan video di Drive.
-     */
-    private function submittedWithDriveVideo(string ...$uploadFileIds): BaIncident
-    {
-        $this->fakeDriveUploads(...($uploadFileIds ?: ['1VideoAwalDriveIdUji0001']));
-
-        return $this->service->submitWithVideo($this->draft(), $this->reporter, [
-            'video_file' => $this->videoFile(),
-            'video_external_link' => null,
+        return Video::create([
+            'title' => 'Video Bukti & Penanganan: '.$incident->nomor_ba,
+            'video_url' => 'https://drive.google.com/file/d/'.$fileId.'/preview',
+            'video_file_url' => $fileId,
+            'division_id' => $incident->division_id,
+            'created_by' => $incident->created_by,
+            'creation_reason' => 'mandatory_incident',
+            'ba_incident_id' => $incident->id,
+            'status' => 'pending_supervisor',
         ]);
     }
 
@@ -147,7 +128,7 @@ class BaTwoStageApprovalTest extends TestCase
 
     public function test_happy_path_supervisor_then_hr_final_approval(): void
     {
-        $incident = $this->submittedWithDriveVideo();
+        $incident = $this->submitted();
         $this->assertSame('pending_supervisor', $incident->status);
 
         $incident = $this->service->approveAsSupervisor($incident, $this->supervisor, 'Filter sudah diganti, dicek langsung di line.');
@@ -168,27 +149,24 @@ class BaTwoStageApprovalTest extends TestCase
 
         $this->assertSame('approved', $incident->status);
         $this->assertSame($this->quality->id, $incident->reviewed_by);
-        $this->assertNotNull($incident->points_awarded_at);
         $this->assertNotNull($incident->published_at);
         $this->assertSame('efektif', $incident->status_verifikasi);
-        $this->assertDatabaseMissing('knowledge_documents', ['source_ba_id' => $incident->id]);
-        $this->assertDatabaseHas('learning_materials', ['source_ba_id' => $incident->id, 'status' => 'candidate']);
-        $this->assertDatabaseHas('point_transactions', ['user_id' => $this->reporter->id, 'source_type' => 'ba_video_approved']);
 
-        $video = $incident->video;
-        $this->assertSame('published', $video->status);
-        $this->assertSame($this->supervisor->id, $video->supervisor_reviewed_by);
-        $this->assertSame($this->quality->id, $video->hr_reviewed_by);
+        // CAPA adalah kewajiban saat terjadi kesalahan: tidak memberi poin dan tidak jadi materi Learning.
+        $this->assertNull($incident->points_awarded_at);
+        $this->assertDatabaseMissing('point_transactions', ['user_id' => $this->reporter->id]);
+        $this->assertDatabaseMissing('learning_materials', ['source_ba_id' => $incident->id]);
+        $this->assertDatabaseMissing('knowledge_documents', ['source_ba_id' => $incident->id]);
 
         $this->assertSame(
-            ['Draft BA dibuat', 'BA & Video Diserahkan', 'BA Disetujui Supervisor', 'BA Disetujui HR (Final)'],
+            ['Draft BA dibuat', 'BA Diserahkan', 'BA Disetujui Supervisor', 'BA Disetujui HR (Final)'],
             $this->logActions($incident)
         );
     }
 
     public function test_stages_cannot_be_skipped_or_repeated(): void
     {
-        $incident = $this->submittedWithDriveVideo();
+        $incident = $this->submitted();
 
         // HR tidak bisa langsung approve final saat laporan masih di tahap Supervisor.
         $this->expectExceptionThrown(fn () => $this->service->approve($incident, $this->quality, [
@@ -212,17 +190,17 @@ class BaTwoStageApprovalTest extends TestCase
             'bukti_objektif' => 'Terverifikasi.',
         ]);
 
-        // Approval final kedua ditolak, sehingga poin tidak diberikan dua kali.
+        // Approval final kedua ditolak; laporan CAPA tidak pernah menghasilkan poin.
         $this->expectExceptionThrown(fn () => $this->service->approve($incident, $this->quality, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Ulang.',
         ]));
-        $this->assertSame(1, DB::table('point_transactions')->where('source_type', 'ba_video_approved')->count());
+        $this->assertSame(0, DB::table('point_transactions')->count());
     }
 
-    public function test_revision_cycle_repeats_until_supervisor_approves_and_reuses_existing_video(): void
+    public function test_revision_cycle_repeats_until_supervisor_approves(): void
     {
-        $incident = $this->submittedWithDriveVideo('1VideoAwalDriveIdUji0001');
+        $incident = $this->submitted();
 
         foreach (['Why kedua belum menjawab akar masalah.', 'Lampirkan hasil pengukuran suhu.'] as $round => $reason) {
             $incident = $this->service->reject($incident, $this->supervisor, $reason);
@@ -230,29 +208,21 @@ class BaTwoStageApprovalTest extends TestCase
             $this->assertSame($reason, $incident->catatan_penolakan);
             $this->assertTrue($incident->isEditable());
 
-            // Pelapor memperbaiki isi laporan (bisa berkali-kali) lalu mengirim ulang tanpa ganti video.
+            // Pelapor memperbaiki isi laporan (bisa berkali-kali) lalu mengirim ulang.
             $this->service->saveDraft(['why_2' => "Perbaikan ronde {$round}"], $this->reporter, $incident->id);
             $this->assertSame('revision_requested', $incident->fresh()->status);
 
-            $incident = $this->service->submitWithVideo($incident->fresh(), $this->reporter, [
-                'video_file' => null,
-                'video_external_link' => '',
-            ]);
+            $incident = $this->service->submit($incident->fresh(), $this->reporter);
             $this->assertSame('pending_supervisor', $incident->status);
             $this->assertNull($incident->catatan_penolakan);
         }
-
-        // Video lama dipakai ulang: tidak ada unggahan ulang maupun penghapusan berkas.
-        $this->assertSame('1VideoAwalDriveIdUji0001', $incident->video->video_file_url);
-        $this->assertSame(1, Video::where('ba_incident_id', $incident->id)->count());
-        $this->assertFalse($this->driveDeleteSent('1VideoAwalDriveIdUji0001'));
 
         $incident = $this->service->approveAsSupervisor($incident, $this->supervisor);
         $this->assertSame('pending_hr', $incident->status);
 
         $this->assertSame([
             'Draft BA dibuat',
-            'BA & Video Diserahkan',
+            'BA Diserahkan',
             'BA Ditolak Supervisor — Revisi Diminta',
             'Revisi BA disimpan',
             'BA Dikirim Ulang',
@@ -263,9 +233,16 @@ class BaTwoStageApprovalTest extends TestCase
         ], $this->logActions($incident));
     }
 
-    public function test_hr_rejection_is_permanent_and_archives_the_video_for_hr(): void
+    public function test_hr_rejection_is_permanent_and_archives_a_legacy_video_for_hr(): void
     {
-        $incident = $this->submittedWithDriveVideo('1VideoArsipDriveIdUji001');
+        $this->connectDriveAccount();
+        Http::fake([
+            GoogleDriveService::TOKEN_ENDPOINT => Http::response(['access_token' => 'token-akses-uji', 'expires_in' => 3600]),
+            'www.googleapis.com/drive/v3/files/*' => Http::response(null, 204),
+        ]);
+
+        $incident = $this->submitted();
+        $this->attachLegacyDriveVideo($incident, '1VideoArsipDriveIdUji001');
         $incident = $this->service->approveAsSupervisor($incident, $this->supervisor);
 
         $incident = $this->service->reject($incident, $this->quality, 'Tindakan korektif tidak relevan dengan akar masalah.');
@@ -278,9 +255,7 @@ class BaTwoStageApprovalTest extends TestCase
 
         // Tidak ada jalur revisi dari penolakan HR.
         $this->assertFalse($incident->isEditable());
-        $this->expectExceptionThrown(fn () => $this->service->submitWithVideo($incident, $this->reporter, [
-            'video_external_link' => 'https://vimeo.com/123',
-        ]));
+        $this->expectExceptionThrown(fn () => $this->service->submit($incident, $this->reporter));
         $this->expectExceptionThrown(fn () => $this->service->reject($incident, $this->quality, 'Tolak lagi.'));
 
         // Hanya tim HR yang boleh menghapus rekaman arsip.
@@ -297,46 +272,9 @@ class BaTwoStageApprovalTest extends TestCase
         $this->assertSame('Video BA Dihapus', last($this->logActions($incident)));
     }
 
-    public function test_replaced_video_deletes_old_drive_file_only_after_new_record_is_saved(): void
-    {
-        // Unggahan kedua (pengganti) mendapat file ID baru dari Drive.
-        $incident = $this->submittedWithDriveVideo('1VideoLamaDriveIdUji0001', '1VideoBaruDriveIdUji0001');
-        $incident = $this->service->reject($incident, $this->supervisor, 'Video kurang jelas, rekam ulang.');
-
-        $incident = $this->service->submitWithVideo($incident, $this->reporter, [
-            'video_file' => $this->videoFile(),
-            'video_external_link' => null,
-        ]);
-
-        $this->assertSame('pending_supervisor', $incident->status);
-        $this->assertSame('1VideoBaruDriveIdUji0001', $incident->video->video_file_url);
-        $this->assertTrue($this->driveDeleteSent('1VideoLamaDriveIdUji0001'));
-        $this->assertFalse($this->driveDeleteSent('1VideoBaruDriveIdUji0001'));
-    }
-
-    public function test_old_drive_file_is_kept_when_saving_the_replacement_fails(): void
-    {
-        $incident = $this->submittedWithDriveVideo('1VideoLamaDriveIdUji0001', '1VideoBaruDriveIdUji0001');
-        $incident = $this->service->reject($incident, $this->supervisor, 'Video kurang jelas, rekam ulang.');
-
-        // Simulasikan kegagalan penyimpanan setelah unggahan pengganti berhasil.
-        Schema::drop('ba_activity_logs');
-
-        $this->expectExceptionThrown(fn () => $this->service->submitWithVideo($incident, $this->reporter, [
-            'video_file' => $this->videoFile(),
-            'video_external_link' => null,
-        ]));
-
-        // Berkas pengganti yang terlanjur naik dibersihkan; berkas lama tetap utuh.
-        $this->assertTrue($this->driveDeleteSent('1VideoBaruDriveIdUji0001'));
-        $this->assertFalse($this->driveDeleteSent('1VideoLamaDriveIdUji0001'));
-        $this->assertSame('1VideoLamaDriveIdUji0001', Video::where('ba_incident_id', $incident->id)->value('video_file_url'));
-        $this->assertSame('revision_requested', $incident->fresh()->status);
-    }
-
     public function test_filament_actions_follow_the_current_stage(): void
     {
-        $incident = $this->submittedWithDriveVideo();
+        $incident = $this->submitted();
 
         // Tahap Supervisor: hanya Supervisor divisi pelapor, dengan catatan lapangan opsional.
         Livewire::actingAs($this->quality)
@@ -376,7 +314,7 @@ class BaTwoStageApprovalTest extends TestCase
         $seeder->seedDivisionSupervisors();
 
         $reportable = Division::reportable()->get();
-        $this->assertCount(11, $reportable);
+        $this->assertCount(12, $reportable);
 
         foreach ($reportable as $division) {
             $this->assertSame(

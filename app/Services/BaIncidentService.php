@@ -6,19 +6,13 @@ use App\Enums\BaIncidentStatus;
 use App\Models\BaActivityLog;
 use App\Models\BaIncident;
 use App\Models\Division;
-use App\Models\LearningCategory;
-use App\Models\LearningMaterial;
 use App\Models\User;
-use App\Models\Video;
 use DateTimeInterface;
 use DomainException;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
-use Throwable;
 
 class BaIncidentService
 {
@@ -149,7 +143,7 @@ class BaIncidentService
             $incident = BaIncident::create([
                 'nomor_ba' => $nomorBa,
                 'division_id' => $data['division_id'],
-                'title' => $data['title'] ?? ('CAPA '.$nomorBa.': '.mb_substr((string) ($data['deskripsi_masalah'] ?? 'Insiden Baru'), 0, 50)),
+                'title' => $data['title'] ?? ('CAPA '.$nomorBa.': '.Str::limit((string) ($data['deskripsi_masalah'] ?? 'Insiden Baru'), 50, preserveWords: true)),
                 'description' => $data['deskripsi_masalah'] ?? ($data['description'] ?? null),
                 'tanggal_pengisian' => $data['tanggal_pengisian'] ?? now()->toDateString(),
                 'sumber_ketidaksesuaian' => $data['sumber_ketidaksesuaian'] ?? 'laporan_ketidaksesuaian',
@@ -225,11 +219,10 @@ class BaIncidentService
     }
 
     /**
-     * Submit Langkah 2 (Video): validasi file ATAU link wajib ada, ubah status jadi 'pending_supervisor' (submit awal maupun resubmit).
-     *
-     * @param  array<string, mixed>  $videoData
+     * Kirim laporan CAPA ke Supervisor divisi pelapor (submit awal maupun kirim ulang hasil revisi).
+     * Sejak 2026-09-27 laporan CAPA tidak lagi melampirkan video: video adalah kontribusi terpisah.
      */
-    public function submitWithVideo(BaIncident $incident, User $actor, array $videoData): BaIncident
+    public function submit(BaIncident $incident, User $actor): BaIncident
     {
         if (! $incident->isEditable()) {
             throw new DomainException("Laporan {$incident->nomor_ba} sedang dalam proses review atau sudah final, sehingga tidak bisa diserahkan lagi.");
@@ -237,157 +230,9 @@ class BaIncidentService
 
         Gate::forUser($actor)->authorize('update', $incident);
 
-        $existingVideo = $incident->video;
-        $hasFile = ! empty($videoData['video_file']);
-        $hasLink = ! empty(trim((string) ($videoData['video_external_link'] ?? '')));
-
-        // Resubmit tanpa mengganti video: pakai video/tautan yang sudah terkirim sebelumnya.
-        if (! $hasFile && ! $hasLink && $existingVideo) {
-            $videoData['video_file'] = GoogleDriveService::isDriveFileId($existingVideo->video_file_url)
-                ? $existingVideo->video_file_url
-                : null;
-            $videoData['video_external_link'] = $existingVideo->video_external_link;
-            $hasFile = ! empty($videoData['video_file']);
-            $hasLink = ! empty(trim((string) $videoData['video_external_link']));
-        }
-
-        if (! $hasFile && ! $hasLink) {
-            throw new DomainException('Salah satu dari file video atau tautan link eksternal wajib diisi.');
-        }
-
-        // Unggahan ke Drive dilakukan SEBELUM transaksi: video 100MB memakan
-        // puluhan detik, dan menahan transaksi selama itu mengunci baris terlalu lama.
-        $driveFileId = null;
-
-        if ($hasFile) {
-            $file = $videoData['video_file'];
-
-            if ($file instanceof UploadedFile) {
-                $driveFileId = $this->uploadVideoToDrive($file, $incident);
-            } elseif (is_string($file)) {
-                // Nilai string berarti berkas sudah pernah diunggah (mis. revisi tanpa ganti video).
-                $driveFileId = $file;
-            }
-        }
-
-        $previousDriveFileId = $existingVideo?->video_file_url;
-
-        try {
-            $submitted = $this->persistVideoSubmission($incident, $actor, $videoData, $driveFileId, $hasLink);
-        } catch (Throwable $exception) {
-            // Penyimpanan gagal: berkas yang terlanjur naik tidak boleh jadi sampah di Drive.
-            // Berkas lama tidak disentuh, jadi video sebelumnya tetap utuh.
-            if ($driveFileId !== null && $videoData['video_file'] instanceof UploadedFile) {
-                $this->discardDriveFile($driveFileId);
-            }
-
-            throw $exception;
-        }
-
-        // Video diganti: berkas lama baru dihapus setelah record baru pasti tersimpan.
-        if (GoogleDriveService::isDriveFileId($previousDriveFileId) && $previousDriveFileId !== $driveFileId) {
-            $this->discardDriveFile($previousDriveFileId);
-        }
-
-        return $submitted;
-    }
-
-    /**
-     * Unggah berkas video ke folder CAPA di Drive dan buka aksesnya via tautan.
-     *
-     * @return string File ID Drive
-     */
-    protected function uploadVideoToDrive(UploadedFile $file, BaIncident $incident): string
-    {
-        $folderId = config('services.google_drive.folder_id_ba');
-
-        if (blank($folderId)) {
-            throw new DomainException(
-                'Folder Google Drive untuk video CAPA belum dikonfigurasi (GOOGLE_DRIVE_FOLDER_ID_BA).'
-            );
-        }
-
-        $drive = app(GoogleDriveService::class);
-        $fileName = $incident->nomor_ba.'-'.now()->format('Ymd-His').'.'.$file->getClientOriginalExtension();
-
-        try {
-            $fileId = $drive->uploadFileResumable(
-                $file->getRealPath(),
-                $folderId,
-                $fileName,
-                chunkBytes: null,
-                // MIME dari pengunggah, bukan tebakan atas isi berkas.
-                mimeType: $file->getMimeType(),
-            );
-
-            $drive->setPublicPermission($fileId);
-
-            return $fileId;
-        } catch (RuntimeException $exception) {
-            Log::error('Unggah video CAPA ke Google Drive gagal', [
-                'ba_incident_id' => $incident->id,
-                'error' => $exception->getMessage(),
-            ]);
-
-            throw new DomainException(
-                'Gagal mengunggah video ke Google Drive. Periksa koneksi lalu coba lagi. '
-                .'Laporan Anda belum dikirim, data formulir tetap tersimpan sebagai draf.',
-                previous: $exception
-            );
-        }
-    }
-
-    /**
-     * Hapus berkas Drive yang terlanjur terunggah saat penyimpanan gagal.
-     */
-    protected function discardDriveFile(string $fileId): void
-    {
-        try {
-            app(GoogleDriveService::class)->deleteFile($fileId);
-        } catch (Throwable $exception) {
-            // Kegagalan pembersihan tidak boleh menutupi galat aslinya.
-            Log::warning('Gagal membersihkan berkas Drive setelah penyimpanan gagal', [
-                'file_id' => $fileId,
-                'error' => $exception->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * @param  array<string, mixed>  $videoData
-     */
-    protected function persistVideoSubmission(
-        BaIncident $incident,
-        User $actor,
-        array $videoData,
-        ?string $driveFileId,
-        bool $hasLink
-    ): BaIncident {
-        return DB::transaction(function () use ($incident, $actor, $videoData, $driveFileId, $hasLink): BaIncident {
+        return DB::transaction(function () use ($incident, $actor): BaIncident {
             $this->lockInStatus($incident, BaIncidentStatus::Draft, BaIncidentStatus::RevisionRequested);
             $isResubmit = $incident->isRevisionRequested();
-
-            $externalLink = $hasLink ? trim((string) $videoData['video_external_link']) : null;
-            $effectiveUrl = $driveFileId
-                ? app(GoogleDriveService::class)->getPreviewUrl($driveFileId)
-                : $externalLink;
-
-            // Buat atau perbarui entri Video terkait BA
-            Video::updateOrCreate(
-                ['ba_incident_id' => $incident->id],
-                [
-                    'title' => $videoData['title'] ?? ('Video Bukti & Penanganan: '.$incident->nomor_ba),
-                    'description' => $videoData['description'] ?? "Video dokumentasi penanganan insiden {$incident->nomor_ba}",
-                    'video_url' => $effectiveUrl,
-                    // Kolom ini kini menyimpan file ID Drive (bukan path lokal).
-                    'video_file_url' => $driveFileId,
-                    'video_external_link' => $externalLink,
-                    'division_id' => $incident->division_id,
-                    'created_by' => $actor->id,
-                    'creation_reason' => 'mandatory_incident',
-                    'status' => 'pending_supervisor',
-                ]
-            );
 
             $incident->update([
                 'status' => BaIncidentStatus::PendingSupervisor->value,
@@ -397,10 +242,10 @@ class BaIncidentService
             BaActivityLog::create([
                 'ba_incident_id' => $incident->id,
                 'actor_id' => $actor->id,
-                'action' => $isResubmit ? 'BA Dikirim Ulang' : 'BA & Video Diserahkan',
+                'action' => $isResubmit ? 'BA Dikirim Ulang' : 'BA Diserahkan',
                 'note' => $isResubmit
                     ? 'Laporan hasil revisi dikirim ulang ke Supervisor oleh '.$actor->name
-                    : 'Laporan BA beserta video penanganan resmi diserahkan oleh '.$actor->name,
+                    : 'Laporan CAPA diserahkan ke Supervisor oleh '.$actor->name,
             ]);
 
             return $incident->fresh();
@@ -478,7 +323,8 @@ class BaIncidentService
 
     /**
      * Tahap 2 (final): HR menyetujui laporan dengan evaluasi formal (status_verifikasi dan
-     * bukti/alasan), lalu poin diberikan dan Lesson Learned diterbitkan.
+     * bukti/alasan). Laporan CAPA adalah kewajiban saat terjadi kesalahan, jadi approval TIDAK
+     * memberi poin dan tidak menerbitkan materi Learning (keputusan owner 2026-09-27).
      *
      * @param  array<string, mixed>  $verificationData
      */
@@ -502,17 +348,9 @@ class BaIncidentService
             throw new DomainException('Alasan ketidakefektifan wajib dicantumkan jika status verifikasi dinyatakan tidak efektif.');
         }
 
-        // Siapkan baris KPI tahunan pembuat BA SEBELUM transaksi dibuka (autocommit),
-        // sehingga di dalam transaksi hanya ada SELECT ... FOR UPDATE pada baris yang
-        // sudah ada -- tanpa S-lock duplicate-key yang memicu deadlock.
-        $creator = $incident->creator ?: User::find($incident->created_by);
-        if ($creator) {
-            app(KpiContributionService::class)->ensureYearlyRecord($creator);
-        }
-
-        return DB::transaction(function () use ($incident, $actor, $creator, $statusVerifikasi, $buktiObjektif, $alasanTidakEfektif): BaIncident {
+        return DB::transaction(function () use ($incident, $actor, $statusVerifikasi, $buktiObjektif, $alasanTidakEfektif): BaIncident {
             // Hanya satu approval yang bisa melanjutkan; approval kedua gagal di sini karena
-            // statusnya sudah bukan pending_hr, sehingga poin tidak pernah diberikan dua kali.
+            // statusnya sudah bukan pending_hr.
             $this->lockInStatus($incident, BaIncidentStatus::PendingHr);
 
             $incident->update([
@@ -522,7 +360,6 @@ class BaIncidentService
                 'alasan_tidak_efektif' => $statusVerifikasi === 'tidak_efektif' ? $alasanTidakEfektif : null,
                 'reviewed_by' => $actor->id,
                 'reviewed_at' => now(),
-                'points_awarded_at' => $creator ? now() : null,
                 'published_at' => now(),
                 'closed_at' => now(),
             ]);
@@ -533,55 +370,6 @@ class BaIncidentService
                 'action' => 'BA Disetujui HR (Final)',
                 'note' => 'BA telah diverifikasi dengan hasil '.ucfirst(str_replace('_', ' ', $statusVerifikasi)).' oleh '.$actor->name,
             ]);
-
-            // 1. Berikan Poin CPS ERA kepada pembuat BA via KpiContributionService (Jalur A, cap 3/tahun)
-            if ($creator) {
-                app(KpiContributionService::class)->recordBaVideoApproved($creator, $incident);
-            }
-
-            // 2. Hasil laporan masuk ke Learning (bukan Knowledge Repository, yang khusus berkas resmi
-            // perusahaan) sebagai materi kandidat. Materi terbit otomatis saat HRGA membuat post-test-nya
-            // (lihat QuizObserver::publishBaLearningMaterial).
-            $ringkasanLaporan = 'Masalah: '.($incident->deskripsi_masalah ?: ($incident->description ?: 'Insiden tercatat.'))
-                ."\n\nAkar Masalah: ".($incident->kesimpulan_akar_masalah ?: 'Analisis akar masalah terlampir pada dokumen.')
-                ."\n\nTindakan Korektif: ".($incident->korektif_deskripsi ?: ($incident->koreksi_deskripsi ?: 'Tindakan korektif selesai diverifikasi.'));
-
-            $defaultCategory = LearningCategory::query()->first()
-                ?? LearningCategory::create([
-                    'name' => 'Umum / Kaizen',
-                    'created_by' => $actor->id,
-                ]);
-            $defaultCategoryId = $defaultCategory->id;
-            // Materi Learning menyimpan URL yang bisa dibuka langsung; berkas Drive
-            // dirujuk lewat URL preview, bukan file ID mentah.
-            $driveFileId = $incident->video?->video_file_url;
-            $contentUrl = GoogleDriveService::isDriveFileId($driveFileId)
-                ? app(GoogleDriveService::class)->getPreviewUrl($driveFileId)
-                : ($incident->video_file_url
-                    ?: ($incident->video_external_link
-                        ?: ($incident->video?->video_url ?? $incident->video?->video_external_link ?? '/videos/placeholder.mp4')));
-
-            LearningMaterial::create([
-                'learning_category_id' => $defaultCategoryId,
-                'title' => 'Video Penanganan: '.$incident->nomor_ba,
-                'type' => 'video',
-                'description' => $ringkasanLaporan,
-                'source_ba_id' => $incident->id,
-                'status' => 'candidate',
-                'content_url' => $contentUrl,
-                'created_by' => $actor->id,
-            ]);
-
-            // 3. Sinkronkan status video terkait
-            if ($incident->video) {
-                $incident->video->update([
-                    'status' => 'published',
-                    'supervisor_reviewed_by' => $incident->supervisor_reviewed_by,
-                    'supervisor_reviewed_at' => $incident->supervisor_reviewed_at,
-                    'hr_reviewed_by' => $actor->id,
-                    'hr_reviewed_at' => now(),
-                ]);
-            }
 
             return $incident->fresh();
         }, attempts: 3);

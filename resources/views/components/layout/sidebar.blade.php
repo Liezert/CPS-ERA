@@ -68,6 +68,11 @@
             'roles' => ['employee', 'supervisor', 'quality', 'admin'],
         ],
     ];
+
+    // Menu Achievement tampil hanya jika fiturnya aktif (config app.achievements_enabled) dan katalog tidak kosong.
+    if (! config('app.achievements_enabled') || ! \App\Models\Achievement::exists()) {
+        $navItems = array_filter($navItems, fn (array $item): bool => $item['route'] !== 'achievements.index');
+    }
 @endphp
 
 {{-- =========================================================================
@@ -90,9 +95,9 @@
             <div class="hidden desktop:block">
                 <div class="font-sans font-semibold text-base text-neutral-900 tracking-tight leading-none flex items-center gap-1.5">
                     <span>CPS ERA</span>
-                    <span class="text-[10px] font-mono px-1 py-0.2 bg-brand-tint text-brand-dark border border-brand/20 rounded-[2px]">Hub</span>
+                    <span class="text-xs font-mono px-1 py-0.2 bg-brand-tint text-brand-dark border border-brand/20 rounded-[2px]">Hub</span>
                 </div>
-                <div class="font-sans text-[10px] text-neutral-500 mt-1 uppercase tracking-wider leading-none">
+                <div class="font-sans text-xs text-neutral-500 mt-1 leading-none whitespace-nowrap">
                     PT Catur Pilar Sejahtera
                 </div>
             </div>
@@ -102,7 +107,7 @@
     {{-- Daftar Navigasi --}}
     <div class="flex-1 overflow-y-auto py-5 px-3 space-y-1">
         <div class="hidden desktop:block px-3 mb-2">
-            <span class="text-[11px] font-sans font-medium text-neutral-500 uppercase tracking-wider">
+            <span class="text-xs font-sans font-medium text-neutral-500 uppercase tracking-wider">
                 Menu Utama
             </span>
         </div>
@@ -127,7 +132,7 @@
                     {{-- Badge Khusus Role (Misal: Supervisor Divisi) --}}
                     @if (!empty($item['badge']))
                         <span class="hidden desktop:inline-flex">
-                            <x-ui.badge status="brand" class="text-[10px] px-1.5 py-0">
+                            <x-ui.badge status="brand" class="text-xs px-1.5 py-0">
                                 {{ $item['badge'] }}
                             </x-ui.badge>
                         </span>
@@ -140,38 +145,34 @@
         @if ($isQuality || $isAdmin)
             <div class="pt-5 mt-5 border-t border-neutral-200">
                 <div class="hidden desktop:block px-3 mb-2">
-                    <span class="text-[11px] font-sans font-medium text-neutral-500 uppercase tracking-wider">
+                    <span class="text-xs font-sans font-medium text-neutral-500 uppercase tracking-wider">
                         {{ $isAdmin ? 'Administrasi' : 'Validasi Kualitas' }}
                     </span>
                 </div>
 
                 @if ($isQuality || $isAdmin)
-                    <a href="{{ route('filament.admin.resources.learning-categories.index') }}"
-                       title="Kelola Materi Learning"
+                    <a href="{{ route('taxonomy.index') }}"
+                       title="Kelola Kategori &amp; Topik"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm transition-colors duration-150 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 tablet:justify-center desktop:justify-start">
                         <div class="shrink-0">
                             @include('components.layout.nav-icon', ['name' => 'folder-cog'])
                         </div>
                         <span class="hidden desktop:inline truncate">
-                            Kategori Learning
+                            Kategori &amp; Topik
                         </span>
                     </a>
                 @endif
 
                 @if ($isAdmin)
-                    <a href="/admin"
-                       title="Panel Admin Filament"
-                       class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm transition-colors duration-150 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 tablet:justify-center desktop:justify-between group">
-                        <div class="flex items-center gap-3">
-                            <div class="shrink-0 text-brand">
-                                @include('components.layout.nav-icon', ['name' => 'cog'])
-                            </div>
-                            <span class="hidden desktop:inline truncate font-medium text-neutral-900">
-                                Master Data
-                            </span>
+                    {{-- /admin sengaja dialihkan ke dashboard utama, jadi tautan langsung ke halaman master data. --}}
+                    <a href="{{ route('filament.admin.resources.users.index') }}"
+                       title="Master Data"
+                       class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm transition-colors duration-150 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 tablet:justify-center desktop:justify-start group">
+                        <div class="shrink-0 text-brand">
+                            @include('components.layout.nav-icon', ['name' => 'cog'])
                         </div>
-                        <span class="hidden desktop:inline-flex">
-                            <x-ui.badge status="reviewed" class="text-[10px] px-1 py-0">Filament</x-ui.badge>
+                        <span class="hidden desktop:inline truncate font-medium text-neutral-900">
+                            Master Data
                         </span>
                     </a>
                 @endif
@@ -229,7 +230,7 @@
                 </div>
                 <div>
                     <span class="font-sans font-semibold text-neutral-900 text-sm">CPS ERA</span>
-                    <p class="text-[10px] text-neutral-500 leading-none mt-0.5">PT Catur Pilar Sejahtera</p>
+                    <p class="text-xs text-neutral-500 leading-none mt-0.5">PT Catur Pilar Sejahtera</p>
                 </div>
             </div>
 
@@ -244,7 +245,7 @@
         {{-- Drawer Menu Items --}}
         <div class="flex-1 overflow-y-auto p-4 space-y-1">
             <div class="px-2 mb-2">
-                <span class="text-[11px] font-sans font-medium text-neutral-500 uppercase tracking-wider">
+                <span class="text-xs font-sans font-medium text-neutral-500 uppercase tracking-wider">
                     Navigasi Utama
                 </span>
             </div>
@@ -261,7 +262,7 @@
                             <span>{{ $item['title'] }}</span>
                         </div>
                         @if (!empty($item['badge']))
-                            <x-ui.badge status="brand" class="text-[10px] px-1.5 py-0">
+                            <x-ui.badge status="brand" class="text-xs px-1.5 py-0">
                                 {{ $item['badge'] }}
                             </x-ui.badge>
                         @endif
@@ -273,28 +274,25 @@
             @if ($isQuality || $isAdmin)
                 <div class="pt-4 mt-4 border-t border-neutral-200">
                     <div class="px-2 mb-2">
-                        <span class="text-[11px] font-sans font-medium text-neutral-500 uppercase tracking-wider">
+                        <span class="text-xs font-sans font-medium text-neutral-500 uppercase tracking-wider">
                             {{ $isAdmin ? 'Administrasi' : 'Validasi Kualitas' }}
                         </span>
                     </div>
 
                     @if ($isQuality || $isAdmin)
-                        <a href="{{ route('filament.admin.resources.learning-categories.index') }}"
+                        <a href="{{ route('taxonomy.index') }}"
                            @click="mobileMenuOpen = false"
                            class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50">
                             @include('components.layout.nav-icon', ['name' => 'folder-cog'])
-                            <span>Kategori Learning</span>
+                            <span>Kategori &amp; Topik</span>
                         </a>
                     @endif
 
                     @if ($isAdmin)
-                        <a href="/admin"
-                           class="flex items-center justify-between px-3 py-2.5 rounded-md font-sans text-sm text-neutral-900 hover:bg-neutral-50 font-medium">
-                            <div class="flex items-center gap-3">
-                                <span class="text-brand">@include('components.layout.nav-icon', ['name' => 'cog'])</span>
-                                <span>Master Data (Filament)</span>
-                            </div>
-                            <x-ui.badge status="reviewed" class="text-[10px] px-1 py-0">Admin</x-ui.badge>
+                        <a href="{{ route('filament.admin.resources.users.index') }}"
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-md font-sans text-sm text-neutral-900 hover:bg-neutral-50 font-medium">
+                            <span class="text-brand">@include('components.layout.nav-icon', ['name' => 'cog'])</span>
+                            <span>Master Data</span>
                         </a>
                     @endif
                 </div>

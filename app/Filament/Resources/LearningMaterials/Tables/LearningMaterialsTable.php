@@ -46,7 +46,7 @@ class LearningMaterialsTable
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'candidate' => 'Candidate (dari BA)',
+                        'candidate' => 'Menunggu Post-Test',
                         default => ucfirst($state),
                     }),
                 TextColumn::make('xp_reward')
@@ -83,7 +83,7 @@ class LearningMaterialsTable
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        'candidate' => 'Candidate (dari BA)',
+                        'candidate' => 'Menunggu Post-Test',
                         'published' => 'Published',
                         'draft' => 'Draft',
                     ]),

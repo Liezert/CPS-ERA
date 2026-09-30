@@ -29,6 +29,8 @@ class Index extends Component
      */
     public function render(): View
     {
+        abort_unless(config('app.achievements_enabled'), 404);
+
         /** @var User|null $user */
         $user = Auth::user();
 

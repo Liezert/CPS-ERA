@@ -18,7 +18,7 @@
     }
 @endphp
 
-<header class="sticky top-0 z-20 h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-4 tablet:px-6 desktop:px-8">
+<header class="sticky top-0 z-20 h-16 bg-white/80 backdrop-blur-md border-b border-neutral-200 flex items-center justify-between px-4 tablet:px-6 desktop:px-8">
     {{-- Left Area: Hamburger (Mobile) + Page Title / Context --}}
     <div class="flex items-center gap-3">
         {{-- Mobile Drawer Trigger --}}
@@ -87,7 +87,7 @@
                     <div class="font-sans font-medium text-xs text-neutral-900 leading-tight max-w-[120px] truncate">
                         {{ $user?->name ?? 'User CPS' }}
                     </div>
-                    <div class="font-mono text-[11px] text-neutral-600 font-medium leading-tight mt-0.5">
+                    <div class="font-mono text-xs text-neutral-600 font-medium leading-tight mt-0.5">
                         {{ $user?->employee_id ?? 'CPS-00124' }}
                     </div>
                 </div>
@@ -143,15 +143,15 @@
                                 @include('components.layout.nav-icon', ['name' => 'cog', 'class' => 'w-4 h-4 text-brand'])
                                 <span class="font-medium text-neutral-900">Panel Admin (Filament)</span>
                             </div>
-                            <x-ui.badge status="reviewed" class="text-[9px] px-1 py-0">Admin</x-ui.badge>
+                            <x-ui.badge status="reviewed" class="text-xs px-1 py-0">Admin</x-ui.badge>
                         </a>
                     @endif
 
                     @if ($isQuality || $isAdmin)
-                        <a href="{{ route('filament.admin.resources.learning-categories.index') }}"
+                        <a href="{{ route('taxonomy.index') }}"
                            class="flex items-center gap-2.5 px-4 py-2 font-sans text-xs text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 transition-colors">
                             @include('components.layout.nav-icon', ['name' => 'folder-cog', 'class' => 'w-4 h-4 text-neutral-400'])
-                            <span>Kategori Learning</span>
+                            <span>Kategori &amp; Topik</span>
                         </a>
                     @endif
                 </div>

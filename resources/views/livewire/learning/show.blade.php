@@ -20,12 +20,12 @@
 
             <div class="flex items-center gap-3 mt-2 text-xs font-sans text-neutral-600 font-medium flex-wrap">
                 @if($material->category)
-                    <span class="px-2 py-0.5 border border-neutral-200 rounded-badge text-neutral-800 bg-white font-sans text-[11px] font-semibold">
+                    <span class="px-2 py-0.5 border border-neutral-200 rounded-badge text-neutral-800 bg-white font-sans text-xs font-semibold">
                         {{ $material->category->name }}
                     </span>
                 @endif
 
-                <div class="inline-flex items-center gap-1.5 text-neutral-700 font-sans text-[11px] font-medium">
+                <div class="inline-flex items-center gap-1.5 text-neutral-700 font-sans text-xs font-medium">
                     <x-layout.nav-icon :name="$material->type" class="w-4 h-4 text-neutral-600" />
                     <span class="capitalize">{{ ucfirst($material->type) }}</span>
                 </div>
@@ -33,7 +33,7 @@
                 <span>&middot;</span>
                 <span>Diterbitkan oleh {{ $material->creator?->name ?? 'Tim Internal' }}</span>
                 <span>&middot;</span>
-                <span class="font-mono text-neutral-500">{{ $material->created_at->format('d M Y') }}</span>
+                <span class="font-mono text-neutral-500">{{ $material->created_at->wib()->format('d M Y') }}</span>
             </div>
         </div>
 
@@ -70,17 +70,8 @@
             
             {{-- Kartu Konten Materi Utama --}}
             <div class="bg-white border border-neutral-200 rounded-md p-6 space-y-5">
-                <div>
-                    <h2 class="font-sans font-medium text-sm text-neutral-900 uppercase tracking-normal mb-2">
-                        Deskripsi &amp; Panduan Materi
-                    </h2>
-                    <p class="font-sans text-xs text-neutral-700 leading-relaxed whitespace-pre-line">
-                        {{ $material->description ?: 'Tidak ada deskripsi detail untuk materi pembelajaran ini.' }}
-                    </p>
-                </div>
-
                 {{-- Area Viewer Spesifik per Jenis Materi (7 Tipe Resmi) --}}
-                <div class="pt-4 border-t border-neutral-100">
+                <div>
                     <h3 class="font-sans font-medium text-xs text-neutral-700 uppercase tracking-normal mb-3">
                         Media &amp; Berkas Pembelajaran
                     </h3>
@@ -124,7 +115,7 @@
                                     <span>Tonton Video di Tab Baru</span>
                                 </a>
                             @else
-                                <p class="text-[11px] text-neutral-400 mt-1">Video disematkan secara internal.</p>
+                                <p class="text-xs text-neutral-400 mt-1">Video disematkan secara internal.</p>
                             @endif
                         </div>
 
@@ -139,7 +130,7 @@
                                     <p class="font-sans font-medium text-xs text-neutral-900 truncate">
                                         {{ $material->title }}
                                     </p>
-                                    <p class="font-mono text-[11px] text-neutral-400 mt-0.5 uppercase">
+                                    <p class="font-mono text-xs text-neutral-400 mt-0.5 uppercase">
                                         Tipe: {{ $material->type }}
                                     </p>
                                 </div>
@@ -168,7 +159,7 @@
                                 </div>
                                 <div class="min-w-0">
                                     <p class="font-sans font-medium text-xs text-neutral-900">Tautan Materi Resmi</p>
-                                    <p class="font-mono text-[11px] text-neutral-400 truncate mt-0.5">
+                                    <p class="font-mono text-xs text-neutral-400 truncate mt-0.5">
                                         {{ $material->content_url ?: 'https://portal.cps.co.id/learning' }}
                                     </p>
                                 </div>
@@ -186,10 +177,19 @@
                         <div class="prose prose-sm max-w-none text-neutral-800 text-xs font-sans leading-relaxed bg-neutral-50/40 border border-neutral-200 rounded-badge p-4">
                             <p class="font-medium text-neutral-900 mb-2">Panduan Langkah Demi Langkah:</p>
                             <p>
-                                Pelajari setiap tahapan dan prosedur operasional standar di atas secara seksama. Pastikan Anda memahami regulasi K3 dan checklist keselamatan kerja sebelum menandai materi ini telah selesai.
+                                Pelajari setiap tahapan dan prosedur operasional standar di bawah secara seksama. Pastikan Anda memahami regulasi K3 dan checklist keselamatan kerja sebelum menandai materi ini telah selesai.
                             </p>
                         </div>
                     @endif
+                </div>
+
+                <div class="pt-4 border-t border-neutral-100">
+                    <h2 class="font-sans font-medium text-sm text-neutral-900 uppercase tracking-normal mb-2">
+                        Deskripsi &amp; Panduan Materi
+                    </h2>
+                    <p class="font-sans text-xs text-neutral-700 leading-relaxed whitespace-pre-line">
+                        {{ $material->description ?: 'Tidak ada deskripsi detail untuk materi pembelajaran ini.' }}
+                    </p>
                 </div>
             </div>
         </div>
@@ -214,7 +214,7 @@
                         <div class="bg-brand h-2 transition-all duration-300 rounded-[2px]"
                              style="width: {{ $progressPercent }}%;"></div>
                     </div>
-                    <div class="flex items-center justify-between text-[11px] font-sans text-neutral-400">
+                    <div class="flex items-center justify-between text-xs font-sans text-neutral-400">
                         <span>Status:</span>
                         @if($isCompleted)
                             <span class="font-medium text-brand">Selesai (100%)</span>
@@ -226,31 +226,22 @@
                     </div>
                 </div>
 
-                {{-- Tombol Pembaruan Progress Interaktif --}}
+                {{-- Progres "Sedang Dipelajari" tercatat otomatis saat materi dibuka; hanya "selesai" yang dikonfirmasi. --}}
                 <div class="pt-2 border-t border-neutral-100 space-y-2">
-                    <p class="text-[11px] font-sans text-neutral-500">
-                        Perbarui status pemahaman Anda terhadap materi ini:
-                    </p>
-
-                    <div class="grid grid-cols-2 gap-2">
+                    @if($isCompleted)
                         <button type="button"
-                                wire:click="updateProgress(50)"
-                                class="px-2.5 py-1.5 border border-neutral-200 rounded-badge text-xs font-sans font-medium text-neutral-700 bg-white hover:bg-neutral-50 transition-colors text-center {{ $progressPercent === 50 ? 'border-brand text-brand' : '' }}">
-                            Sedang Pelajari (50%)
+                                wire:click="updateProgress({{ \App\Livewire\Learning\Show::STARTED_PERCENT }})"
+                                class="w-full text-center text-xs font-sans text-neutral-500 hover:text-neutral-800 pt-1 transition-colors">
+                            Batalkan tanda selesai
                         </button>
-
+                    @else
+                        <p class="text-xs font-sans text-neutral-600">
+                            Sudah memahami materi ini? Tandai selesai{{ $hasPostTest ? ' untuk membuka post-test' : '' }}.
+                        </p>
                         <button type="button"
                                 wire:click="markCompleted"
-                                class="px-2.5 py-1.5 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-medium transition-colors text-center">
-                            Tandai Selesai (100%)
-                        </button>
-                    </div>
-
-                    @if($progressPercent > 0)
-                        <button type="button"
-                                wire:click="updateProgress(0)"
-                                class="w-full text-center text-[11px] font-sans text-neutral-400 hover:text-neutral-700 pt-1 transition-colors">
-                            Reset ke 0%
+                                class="w-full px-3 py-2 bg-brand hover:bg-brand-dark text-white rounded-badge text-xs font-sans font-semibold transition-colors text-center">
+                            Tandai Selesai
                         </button>
                     @endif
                 </div>
@@ -267,7 +258,7 @@
                     </div>
 
                     @if($hasPostTest)
-                        <span class="px-1.5 py-0.5 border {{ $isCompleted ? 'border-brand/30 bg-brand-tint text-brand-dark' : 'border-neutral-200 bg-neutral-50 text-neutral-500' }} rounded-badge text-[10px] font-mono">
+                        <span class="px-1.5 py-0.5 border {{ $isCompleted ? 'border-brand/30 bg-brand-tint text-brand-dark' : 'border-neutral-200 bg-neutral-50 text-neutral-500' }} rounded-badge text-xs font-mono">
                             {{ $isCompleted ? 'Terbuka' : 'Terkunci' }}
                         </span>
                     @endif
@@ -286,7 +277,7 @@
 
                             <div class="p-2.5 bg-white border border-brand/20 rounded-badge text-xs font-sans text-neutral-700">
                                 <p class="font-medium text-neutral-900">{{ $postTest->title }}</p>
-                                <p class="font-mono text-[11px] text-brand mt-1">
+                                <p class="font-mono text-xs text-brand mt-1">
                                     Lulus dengan skor 100% menambah progres KPI periode ini
                                 </p>
                             </div>
@@ -322,6 +313,13 @@
                         Materi pembelajaran ini tidak memiliki Post-Test. Anda cukup menyelesaikan materi untuk mencatatkan progress 100%.
                     </p>
                 @endif
+
+                @can('create', \App\Models\Quiz::class)
+                    <a href="{{ route('learning.post-test.edit', $material) }}" wire:navigate
+                       class="block w-full text-center px-3 py-2 border border-neutral-300 rounded-badge text-xs font-semibold text-neutral-800 bg-white hover:bg-neutral-50">
+                        {{ $hasPostTest ? 'Edit Soal Post-Test' : 'Buat Soal Post-Test' }}
+                    </a>
+                @endcan
             </div>
         </div>
     </div>

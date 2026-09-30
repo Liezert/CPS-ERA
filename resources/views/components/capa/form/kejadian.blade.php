@@ -33,7 +33,7 @@
                         <div class="relative">
                             <input type="text"
                                    id="lokasi"
-                                   @if ($readonly) value="{{ $values['lokasi'] }}" readonly @else wire:model.live="lokasi" @endif
+                                   @if ($readonly) value="{{ $values['lokasi'] }}" readonly @else wire:model="lokasi" @endif
                                    class="w-full h-10 pl-3 pr-8 py-2 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 truncate" />
                             <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-neutral-500">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -57,7 +57,7 @@
                         <x-capa.field-hint field="deskripsi_masalah" />
                     </div>
                     <textarea id="deskripsi_masalah"
-                              @if ($readonly) readonly @else wire:model.live="deskripsiMasalah" @endif
+                              @if ($readonly) readonly @else wire:model="deskripsiMasalah" @endif
                               rows="4"
                               class="w-full px-3 py-2.5 bg-white border border-neutral-300 rounded-md text-xs font-sans text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all duration-150 leading-relaxed">{{ $readonly ? $values['deskripsiMasalah'] : '' }}</textarea>
                     <x-capa.field-helper field="deskripsi_masalah" />

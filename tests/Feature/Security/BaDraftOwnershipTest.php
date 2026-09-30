@@ -101,7 +101,7 @@ class BaDraftOwnershipTest extends TestCase
             ->set('kesimpulanAkarMasalah', 'Perawatan preventif tidak terjadwal.')
             ->set('koreksiDeskripsi', 'Bersihkan filter')
             ->set('korektifDeskripsi', 'Buat jadwal perawatan mingguan')
-            ->call('nextStep'));
+            ->call('submitReport'));
 
         $this->assertSame('Isi asli milik pelapor', $this->draft->fresh()->deskripsi_masalah);
     }
@@ -110,9 +110,7 @@ class BaDraftOwnershipTest extends TestCase
     {
         $this->attempt(fn () => Livewire::actingAs($this->intruder)->test(Create::class)
             ->set('baIncidentId', $this->draft->id)
-            ->set('videoMethod', 'link')
-            ->set('videoExternalLink', 'https://company.video/penyusup')
-            ->call('submit'));
+            ->call('submitReport'));
 
         $this->assertSame('draft', $this->draft->fresh()->status);
         $this->assertNull($this->draft->fresh()->video);
@@ -125,7 +123,7 @@ class BaDraftOwnershipTest extends TestCase
             AuthorizationException::class,
         );
         $this->assertThrows(
-            fn () => $this->service->submitWithVideo($this->draft->fresh(), $this->intruder, ['video_external_link' => 'https://company.video/penyusup']),
+            fn () => $this->service->submit($this->draft->fresh(), $this->intruder),
             AuthorizationException::class,
         );
 
@@ -138,11 +136,7 @@ class BaDraftOwnershipTest extends TestCase
         Livewire::actingAs($this->owner)->test(Create::class, ['incidentId' => $this->draft->id])
             ->assertSet('baIncidentId', $this->draft->id)
             ->set('deskripsiMasalah', 'Diperbarui oleh pelapor sendiri')
-            ->call('nextStep')
-            ->assertHasNoErrors()
-            ->set('videoMethod', 'link')
-            ->set('videoExternalLink', 'https://company.video/pelapor')
-            ->call('submit')
+            ->call('submitReport')
             ->assertHasNoErrors();
 
         $this->assertSame('Diperbarui oleh pelapor sendiri', $this->draft->fresh()->deskripsi_masalah);

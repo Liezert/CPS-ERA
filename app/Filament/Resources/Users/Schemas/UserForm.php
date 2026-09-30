@@ -31,7 +31,7 @@ class UserForm
                             ->maxLength(255)
                             ->unique(User::class, 'email', ignoreRecord: true),
                         TextInput::make('employee_id')
-                            ->label('NIK')
+                            ->label('ID Pegawai')
                             ->required()
                             ->maxLength(20)
                             ->unique(User::class, 'employee_id', ignoreRecord: true),

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Ba\Create as BaCreate;
+use App\Livewire\Video\Create as VideoCreate;
 use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\User;
@@ -16,7 +17,8 @@ use Tests\TestCase;
 
 /**
  * Form CAPA (permintaan owner 2026-09-24): isian yang belum tersimpan bisa dipulihkan setelah halaman
- * dimuat ulang, unggahan video punya progress bar + pratinjau, dan status tampil tanpa garis bawah.
+ * dimuat ulang dan status tampil tanpa garis bawah. Sejak 2026-09-27 CAPA tanpa video; progress bar +
+ * pratinjau unggahan pindah ke form video kontribusi.
  */
 class CapaFormDraftAndUploadTest extends TestCase
 {
@@ -47,9 +49,8 @@ class CapaFormDraftAndUploadTest extends TestCase
                 'why1' => 'Seal kurang panas',
                 'isPotensiRisiko' => true,
                 'divisionId' => (string) $this->produksi->id,
-                // Tidak boleh ikut dipulihkan: bukan field form Langkah 1.
-                'step' => 2,
-                'hasExistingDriveVideo' => true,
+                // Tidak boleh ikut dipulihkan: bukan field form CAPA.
+                'baIncidentId' => 'id-palsu',
                 'nomorBaPreview' => 'BA-PALSU',
             ])
             ->assertSet('lokasi', 'Line Assembly 2')
@@ -57,8 +58,7 @@ class CapaFormDraftAndUploadTest extends TestCase
             ->assertSet('why1', 'Seal kurang panas')
             ->assertSet('isPotensiRisiko', true)
             ->assertSet('divisionId', $this->produksi->id)
-            ->assertSet('step', 1)
-            ->assertSet('hasExistingDriveVideo', false)
+            ->assertSet('baIncidentId', null)
             ->assertNotSet('nomorBaPreview', 'BA-PALSU');
     }
 
@@ -91,18 +91,20 @@ class CapaFormDraftAndUploadTest extends TestCase
             ->assertSee('Buang isian yang dipulihkan');
     }
 
-    public function test_video_step_has_real_upload_progress_and_preview(): void
+    public function test_capa_form_has_no_video_step_anymore(): void
     {
-        $component = Livewire::actingAs($this->reporter)->test(BaCreate::class)
-            ->set('divisionId', $this->produksi->id)
-            ->set('lokasi', 'Line 1')
-            ->set('deskripsiMasalah', 'Kemasan bocor halus.')
-            ->set('why1', 'Seal kurang panas')
-            ->set('kesimpulanAkarMasalah', 'Suhu seal tidak dikontrol.')
-            ->set('koreksiDeskripsi', 'Sortir ulang lot.')
-            ->set('korektifDeskripsi', 'Pasang kontrol suhu seal.')
-            ->call('nextStep')
-            ->assertSet('step', 2)
+        Livewire::actingAs($this->reporter)->test(BaCreate::class)
+            ->assertSee('Kirim Laporan ke Supervisor')
+            ->assertDontSee('Langkah 2')
+            ->assertDontSeeHtml('wire:model="videoFile"');
+    }
+
+    /**
+     * Progress bar & pratinjau unggahan kini ada di form video kontribusi (dipindah dari CAPA).
+     */
+    public function test_video_upload_form_has_real_upload_progress_and_preview(): void
+    {
+        $component = Livewire::actingAs($this->reporter)->test(VideoCreate::class)
             ->assertSeeHtml('x-on:livewire-upload-progress="progress = $event.detail.progress"')
             ->assertSeeHtml('role="progressbar"')
             ->assertSeeHtml('x-on:change="setPreview($event.target.files[0])"');
@@ -118,9 +120,9 @@ class CapaFormDraftAndUploadTest extends TestCase
     {
         $render = fn (string $status): string => trim(strip_tags(Blade::render('<x-ui.badge :status="$s" />', ['s' => $status])));
 
-        $this->assertSame('Pending Supervisor', $render('pending_supervisor'));
-        $this->assertSame('Pending HR', $render('pending_hr'));
-        $this->assertSame('Revision Requested', $render('revision_requested'));
-        $this->assertSame('Draft', $render('draft'));
+        $this->assertSame('Menunggu Review Supervisor', $render('pending_supervisor'));
+        $this->assertSame('Menunggu Review HR', $render('pending_hr'));
+        $this->assertSame('Perlu Revisi', $render('revision_requested'));
+        $this->assertSame('Draf', $render('draft'));
     }
 }

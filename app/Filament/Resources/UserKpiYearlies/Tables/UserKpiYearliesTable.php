@@ -21,7 +21,7 @@ class UserKpiYearliesTable
                     ->sortable()
                     ->weight('bold'),
                 TextColumn::make('user.employee_id')
-                    ->label('NIK')
+                    ->label('ID Pegawai')
                     ->searchable()
                     ->sortable()
                     ->fontFamily('mono'),
@@ -43,7 +43,7 @@ class UserKpiYearliesTable
                     ])
                     ->sortable(),
                 TextColumn::make('poin_from_ba')
-                    ->label('Dari BA')
+                    ->label('Dari Video (Jalur A)')
                     ->badge()
                     ->color('info')
                     ->sortable()

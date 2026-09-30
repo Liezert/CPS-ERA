@@ -50,7 +50,7 @@ class ProductionHardeningTest extends TestCase
 
     public function test_web_and_panel_responses_carry_security_headers(): void
     {
-        foreach (['/login', '/admin/login'] as $uri) {
+        foreach (['/login', '/forgot-password'] as $uri) {
             $this->get($uri)
                 ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
                 ->assertHeader('X-Content-Type-Options', 'nosniff')
@@ -132,13 +132,15 @@ class ProductionHardeningTest extends TestCase
         $this->actingAs($admin)->get('/management/learning-categories')->assertNotFound();
     }
 
-    public function test_learning_category_menu_links_to_the_filament_resource(): void
+    public function test_category_menu_links_to_a_real_page(): void
     {
         $quality = $this->userWithRole('quality');
 
+        // Menu kategori menuju halaman gabungan Kategori & Topik (bukan stub), dan halamannya bisa dibuka.
         $this->actingAs($quality)->get(route('dashboard'))
             ->assertOk()
-            ->assertSee(route('filament.admin.resources.learning-categories.index'), false);
+            ->assertSee(route('taxonomy.index'), false);
+        $this->actingAs($quality)->get(route('taxonomy.index'))->assertOk();
     }
 
     // ---- D. Pesan error Drive ------------------------------------------------------------

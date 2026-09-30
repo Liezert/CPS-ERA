@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'description',
     'xp_reward',
     'source_ba_id',
+    'source_video_id',
     'status',
     'created_by',
 ])]
@@ -57,6 +58,16 @@ class LearningMaterial extends Model
     public function sourceBa(): BelongsTo
     {
         return $this->belongsTo(BaIncident::class, 'source_ba_id');
+    }
+
+    /**
+     * Video kontribusi yang menjadi sumber materi ini (terbit saat video disetujui HR).
+     *
+     * @return BelongsTo<Video, $this>
+     */
+    public function sourceVideo(): BelongsTo
+    {
+        return $this->belongsTo(Video::class, 'source_video_id');
     }
 
     /**

@@ -71,6 +71,9 @@ class StageTwelveProfileTest extends TestCase
             'progress_percent' => 80,
             'completed_at' => now(),
         ]);
+
+        // users.xp dihitung ulang observer ledger; muat ulang supaya user login tidak basi.
+        $this->user->refresh();
     }
 
     /**
@@ -83,16 +86,17 @@ class StageTwelveProfileTest extends TestCase
             // 1. Memeriksa 4 label metric card yang identik dengan Dashboard
             ->assertSee('Learning Progress')
             ->assertSee('KPI Contribution')
-            ->assertSee('Total Poin Saya')
+            ->assertSee('Total XP Saya')
             // 2. Memeriksa nilai & status metric
             ->assertSee('80%')
             // KPI Contribution kini berbasis materi Learning (bukan video).
             ->assertSee('0 dari 5 materi')
             ->assertDontSee('video')
-            ->assertSee('Pts')
+            ->assertSee(number_format($this->user->fresh()->xp).' XP')
             // 3. Memeriksa sub-teks footer metric card konsisten
             ->assertSee('Materi Pelatihan Selesai')
-            ->assertSee('Agregasi ledger point_transactions')
+            ->assertSee('Dipakai untuk peringkat Leaderboard')
+            ->assertDontSee('point_transactions')
             // Level sudah dihapus dari CPS ERA
             ->assertDontSee('Target Level Berikutnya')
             ->assertDontSee('Progress Level');
@@ -128,7 +132,7 @@ class StageTwelveProfileTest extends TestCase
         $component = Livewire::actingAs($this->user)
             ->test(ProfileIndex::class)
             ->assertSee('Grafik Performa Bulanan')
-            ->assertSee('Poin Diperoleh (Hijau Tunggal)')
+            ->assertSee('XP Diperoleh')
             ->assertSee('300')
             ->assertSee('450');
 
@@ -177,7 +181,8 @@ class StageTwelveProfileTest extends TestCase
 
         $this->user->refresh();
         $this->assertSame('Ahmad Fauzi Updated', $this->user->name);
-        $this->assertSame('ahmad.new@cps.test', $this->user->email);
+        // Email = identitas login yang dikelola admin; tidak ikut berubah dari halaman profil.
+        $this->assertSame('ahmad.fauzi@cps.test', $this->user->email);
     }
 
     /**

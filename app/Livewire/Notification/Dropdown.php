@@ -38,9 +38,12 @@ class Dropdown extends Component
             return match ($notification->type) {
                 'knowledge_baru' => redirect()->route('knowledge.index'),
                 'misi_baru' => redirect()->route('missions.index'),
-                'ba_review', 'ba_ditolak_hr', 'ba_revisi' => $notification->related_id
+                'ba_review', 'ba_ditolak_hr', 'ba_revisi', 'ba_disetujui' => $notification->related_id
                     ? redirect()->route('ba.show', $notification->related_id)
                     : redirect()->route('ba.index'),
+                'video_disetujui', 'video_ditolak' => $notification->related_id
+                    ? redirect()->route('videos.show', $notification->related_id)
+                    : redirect()->route('videos.index'),
                 'achievement_baru' => redirect()->route('achievements.index'),
                 default => null,
             };

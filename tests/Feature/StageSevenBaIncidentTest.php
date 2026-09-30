@@ -94,7 +94,8 @@ class StageSevenBaIncidentTest extends TestCase
             'Engineering',
             'Finance Accounting Tax',
             'Jahit',
-            'Marketing & Sales',
+            'Marketing',
+            'Sales',
             'PPIC',
             'Plant Balben & Krian',
             'Produksi',
@@ -112,13 +113,13 @@ class StageSevenBaIncidentTest extends TestCase
         }
 
         $response->assertDontSee('>HRGA</option>', false);
-        $response->assertDontSee('>Sales</option>', false);
     }
 
     /**
-     * DoD #2: Form Digital CAPA Terstruktur & Video Penanganan multi-step.
+     * DoD #2 (diperbarui 2026-09-27): Form Digital CAPA terstruktur dikirim langsung ke Supervisor,
+     * tanpa langkah video (video kini kontribusi terpisah di Learning).
      */
-    public function test_two_separate_upload_slots_work_via_spatie_medialibrary(): void
+    public function test_structured_capa_form_is_submitted_straight_to_supervisor(): void
     {
         Livewire::actingAs($this->employeeProduksi)
             ->test(BaCreate::class)
@@ -131,11 +132,7 @@ class StageSevenBaIncidentTest extends TestCase
             ->set('kesimpulanAkarMasalah', 'Seal hidrolik aus.')
             ->set('koreksiDeskripsi', 'Ganti seal darurat.')
             ->set('korektifDeskripsi', 'Pasang sensor temperatur oli.')
-            ->call('nextStep')
-            ->assertSet('step', 2)
-            ->set('videoMethod', 'link')
-            ->set('videoExternalLink', 'https://vimeo.com/123456789')
-            ->call('submit')
+            ->call('submitReport')
             ->assertHasNoErrors();
 
         $incident = BaIncident::where('lokasi', 'Lini Injeksi Moulding 03')->first();
@@ -146,7 +143,7 @@ class StageSevenBaIncidentTest extends TestCase
         $this->assertDatabaseHas('ba_activity_logs', [
             'ba_incident_id' => $incident->id,
             'actor_id' => $this->employeeProduksi->id,
-            'action' => 'BA & Video Diserahkan',
+            'action' => 'BA Diserahkan',
         ]);
     }
 
@@ -193,10 +190,10 @@ class StageSevenBaIncidentTest extends TestCase
     }
 
     /**
-     * DoD #4 (diperbarui alur approval dua tahap): approve/reject HANYA di panel Filament, dan
-     * tahap Supervisor hanya untuk Supervisor dari divisi yang sama dengan BA tersebut.
+     * DoD #4 (diperbarui 2026-09-27): approve/reject di halaman preview laporan, dan tahap
+     * Supervisor hanya untuk Supervisor dari divisi yang sama dengan BA tersebut.
      */
-    public function test_approval_is_panel_only_and_gated_to_supervisor_of_same_division(): void
+    public function test_approval_in_preview_is_gated_to_supervisor_of_same_division(): void
     {
         $incident = BaIncident::create([
             'nomor_ba' => 'BA-2026-0099',
@@ -208,25 +205,22 @@ class StageSevenBaIncidentTest extends TestCase
             'status' => 'pending_supervisor',
             'created_by' => $this->employeeProduksi->id,
         ]);
-        $panelUrl = route('filament.admin.resources.ba-incidents.view', $incident);
-
-        // 1. Employee (meskipun divisi sama) -> tidak bisa review, tidak ada tautan panel
+        // 1. Employee (meskipun divisi sama) -> tidak bisa review, tidak ada panel review
         $this->assertFalse($this->employeeProduksi->can('reviewAsSupervisor', $incident));
         Livewire::actingAs($this->employeeProduksi)
             ->test(BaShow::class, ['incident' => $incident])
-            ->assertDontSee($panelUrl, false)
-            ->assertDontSee('Setujui BA (Approve)');
+            ->assertDontSee('Keputusan Review Laporan');
 
         // 2. Supervisor Divisi Lain (Engineering) -> tidak bisa review
         $this->assertFalse($this->supervisorEngineering->can('reviewAsSupervisor', $incident));
 
-        // 3. Supervisor Divisi Sama (Produksi) -> bisa review, diarahkan ke panel (tanpa tombol di halaman detail)
+        // 3. Supervisor Divisi Sama (Produksi) -> panel review muncul di halaman preview
         $this->assertTrue($this->supervisorProduksi->can('reviewAsSupervisor', $incident));
         Livewire::actingAs($this->supervisorProduksi)
             ->test(BaShow::class, ['incident' => $incident])
-            ->assertSee($panelUrl, false)
-            ->assertDontSee('Setujui BA (Approve)')
-            ->assertDontSee('Minta Revisi');
+            ->assertSee('Keputusan Review Laporan')
+            ->assertSee('Setujui & Teruskan ke HR')
+            ->assertSee('Tolak & Minta Revisi');
 
         // Tahap Supervisor meneruskan ke HR, lalu tim HR (quality) menyetujui final.
         $service = app(BaIncidentService::class);
@@ -245,12 +239,9 @@ class StageSevenBaIncidentTest extends TestCase
         $this->assertSame($this->supervisorProduksi->id, $incident->supervisor_reviewed_by);
         $this->assertSame($quality->id, $incident->reviewed_by);
 
-        // Hasil laporan masuk Learning sebagai kandidat (terbit setelah post-test), bukan ke Knowledge Repository.
+        // Laporan CAPA selesai di modulnya sendiri: tidak masuk Learning maupun Knowledge Repository.
         $this->assertDatabaseMissing('knowledge_documents', ['source_ba_id' => $incident->id]);
-        $this->assertDatabaseHas('learning_materials', [
-            'source_ba_id' => $incident->id,
-            'status' => 'candidate',
-        ]);
+        $this->assertDatabaseMissing('learning_materials', ['source_ba_id' => $incident->id]);
 
         // Verifikasi log timeline riwayat bertambah
         $this->assertDatabaseHas('ba_activity_logs', [

@@ -69,9 +69,7 @@ class BaApprovalNotificationTest extends TestCase
             'deskripsi_masalah' => 'Roller conveyor macet.',
         ], $this->reporter);
 
-        return $this->service->submitWithVideo($draft, $this->reporter, [
-            'video_external_link' => 'https://vimeo.com/123456789',
-        ]);
+        return $this->service->submit($draft, $this->reporter);
     }
 
     /**
@@ -105,7 +103,7 @@ class BaApprovalNotificationTest extends TestCase
         // Permintaan revisi Supervisor tidak memicu notifikasi penolakan HR.
         $this->assertSame([], $this->recipients($incident, 'ba_ditolak_hr'));
 
-        $this->service->submitWithVideo($incident, $this->reporter, ['video_external_link' => '']);
+        $this->service->submit($incident, $this->reporter);
 
         $titles = Notification::where('user_id', $this->supervisor->id)->orderBy('created_at')->orderBy('id')->pluck('title')->all();
         $this->assertSame(['BA Menunggu Review: '.$incident->nomor_ba, 'BA Revisi Menunggu Review: '.$incident->nomor_ba], $titles);
@@ -127,16 +125,22 @@ class BaApprovalNotificationTest extends TestCase
         $this->assertStringContainsString('Menunggu Review Final HR', Notification::where('user_id', $this->quality->id)->value('title'));
     }
 
-    public function test_hr_rejection_notifies_the_supervisor_who_approved(): void
+    public function test_hr_rejection_notifies_the_reporter_and_the_supervisor_who_approved(): void
     {
         $incident = $this->service->approveAsSupervisor($this->submitted(), $this->supervisor);
         Notification::query()->delete();
 
         $this->service->reject($incident, $this->quality, 'Tindakan korektif tidak relevan.');
 
-        $this->assertSame([$this->supervisor->id], $this->recipients($incident, 'ba_ditolak_hr'));
-        $this->assertSame(1, Notification::count());
-        $this->assertStringContainsString('Tindakan korektif tidak relevan.', Notification::value('message'));
+        $expected = [$this->reporter->id, $this->supervisor->id];
+        sort($expected);
+        $this->assertSame($expected, $this->recipients($incident, 'ba_ditolak_hr'));
+        $this->assertSame(2, Notification::count());
+
+        // Laporan ditutup: pelapor diarahkan membuat laporan baru dengan topik lain.
+        $reporterMessage = Notification::where('user_id', $this->reporter->id)->value('message');
+        $this->assertStringContainsString('topik berbeda', $reporterMessage);
+        $this->assertStringContainsString('Tindakan korektif tidak relevan.', $reporterMessage);
     }
 
     public function test_four_eyes_blocks_the_same_person_from_approving_both_stages(): void
@@ -184,7 +188,7 @@ class BaApprovalNotificationTest extends TestCase
         $incident = $this->service->approveAsSupervisor($this->submitted(), $this->supervisor);
         $this->service->reject($incident, $this->quality, 'Ditolak.');
 
-        $notification = Notification::where('type', 'ba_ditolak_hr')->firstOrFail();
+        $notification = Notification::where('type', 'ba_ditolak_hr')->where('user_id', $this->supervisor->id)->firstOrFail();
 
         Livewire::actingAs($this->supervisor)
             ->test(Dropdown::class)

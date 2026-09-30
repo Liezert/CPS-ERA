@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Enums\BaIncidentStatus;
 use App\Filament\Resources\BaIncidents\Pages\ListBaIncidents;
-use App\Livewire\Ba\Show as BaShow;
 use App\Models\BaIncident;
 use App\Models\Division;
 use App\Models\User;
@@ -17,8 +16,8 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Stage 3 alur approval CAPA: otorisasi approve/reject per tahap, tab antrean di panel Filament,
- * dan approval yang tidak lagi tersedia di halaman detail Livewire.
+ * Stage 3 alur approval CAPA: otorisasi approve/reject per tahap dan tab antrean di panel Filament.
+ * Approve/tolak dari halaman preview diuji di BaPreviewReviewTest.
  */
 class BaApprovalRbacTest extends TestCase
 {
@@ -143,24 +142,5 @@ class BaApprovalRbacTest extends TestCase
                 ->set('activeTab', 'all')
                 ->assertCanSeeTableRecords([$produksi, $engineering, $stillAtSupervisor]);
         }
-    }
-
-    public function test_detail_page_has_no_approval_actions_and_links_reviewers_to_panel(): void
-    {
-        $pending = $this->report(BaIncidentStatus::PendingSupervisor, $this->produksi);
-        $panelUrl = route('filament.admin.resources.ba-incidents.view', $pending);
-
-        Livewire::actingAs($this->supervisorProduksi)
-            ->test(BaShow::class, ['incident' => $pending])
-            ->assertSee($panelUrl, false)
-            ->assertDontSee('Setujui BA (Approve)')
-            ->assertDontSee('Minta Revisi');
-
-        Livewire::actingAs($this->reporter)
-            ->test(BaShow::class, ['incident' => $pending])
-            ->assertDontSee($panelUrl, false);
-
-        $this->assertFalse(method_exists(BaShow::class, 'confirmApprove'));
-        $this->assertFalse(method_exists(BaShow::class, 'confirmReject'));
     }
 }

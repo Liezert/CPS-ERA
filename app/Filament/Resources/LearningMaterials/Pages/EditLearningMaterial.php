@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LearningMaterials\Pages;
 
 use App\Filament\Resources\LearningMaterials\LearningMaterialResource;
+use App\Filament\Resources\LearningMaterials\Schemas\LearningMaterialForm;
 use App\Models\Quiz;
 use App\Models\QuizOption;
 use App\Models\QuizQuestion;
@@ -87,6 +88,8 @@ class EditLearningMaterial extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $data = LearningMaterialForm::resolveContentUrl($data);
+
         unset(
             $data['has_post_test'],
             $data['post_test_title'],

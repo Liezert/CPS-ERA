@@ -8,6 +8,7 @@ use App\Livewire\Ba\Show as BaShow;
 use App\Livewire\Learning\Index as LearningIndex;
 use App\Models\BaIncident;
 use App\Models\Division;
+use App\Models\LearningCategory;
 use App\Models\LearningMaterial;
 use App\Models\Quiz;
 use App\Models\User;
@@ -20,8 +21,9 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Hasil laporan CAPA yang disetujui HRGA masuk ke Learning (bukan Knowledge Repository) dan
- * baru terbit setelah HRGA membuat post-test-nya.
+ * Data lama: sebelum 2026-09-27, laporan CAPA yang disetujui HRGA membuat materi Learning kandidat
+ * yang baru terbit setelah HRGA membuat post-test-nya. Approval baru tidak lagi membuat materi ini,
+ * tetapi materi kandidat yang sudah ada tetap harus bisa diterbitkan lewat alur yang sama.
  */
 class BaLearningPipelineTest extends TestCase
 {
@@ -46,6 +48,9 @@ class BaLearningPipelineTest extends TestCase
         $this->quality->assignRole('quality');
     }
 
+    /**
+     * Laporan yang sudah disetujui final, beserta materi kandidat seperti yang dibuat approval lama.
+     */
     private function approvedIncident(): BaIncident
     {
         $service = app(BaIncidentService::class);
@@ -61,13 +66,27 @@ class BaLearningPipelineTest extends TestCase
             'koreksi_deskripsi' => 'Bersihkan filter',
             'korektif_deskripsi' => 'Buat jadwal perawatan mingguan',
         ], $this->reporter);
-        $service->submitWithVideo($incident, $this->reporter, ['video_external_link' => 'https://company.video/capa-01']);
+        $service->submit($incident, $this->reporter);
         $service->approveAsSupervisor($incident->fresh(), $supervisor);
-
-        return $service->approve($incident->fresh(), $this->quality, [
+        $approved = $service->approve($incident->fresh(), $this->quality, [
             'status_verifikasi' => 'efektif',
             'bukti_objektif' => 'Tidak ada produk cacat selama 2 minggu.',
         ]);
+
+        // Approval baru tidak membuat materi; buat materi kandidat persis seperti data lama.
+        $this->assertNull($approved->learningMaterial);
+        LearningMaterial::create([
+            'learning_category_id' => LearningCategory::create(['name' => 'Umum / Kaizen', 'created_by' => $this->quality->id])->id,
+            'title' => 'Video Penanganan: '.$approved->nomor_ba,
+            'type' => 'video',
+            'description' => 'Masalah: Produk cacat ditemukan di akhir line.',
+            'source_ba_id' => $approved->id,
+            'status' => 'candidate',
+            'content_url' => 'https://company.video/capa-01',
+            'created_by' => $this->quality->id,
+        ]);
+
+        return $approved->fresh();
     }
 
     public function test_approved_report_goes_to_learning_and_is_published_once_hr_creates_the_post_test(): void

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\GoogleDriveOAuthController;
 use App\Livewire\Achievement\Index as AchievementIndex;
+use App\Livewire\Admin\Taxonomy;
 use App\Livewire\Ba\Create as BaCreate;
 use App\Livewire\Ba\Index as BaIndex;
 use App\Livewire\Ba\Show as BaShow;
@@ -10,10 +11,14 @@ use App\Livewire\Knowledge\Index as KnowledgeIndex;
 use App\Livewire\Leaderboard\Index as LeaderboardIndex;
 use App\Livewire\Learning\Index as LearningIndex;
 use App\Livewire\Learning\PostTest as LearningPostTest;
+use App\Livewire\Learning\PostTestEditor as LearningPostTestEditor;
 use App\Livewire\Learning\Show as LearningShow;
 use App\Livewire\Mission\Index as MissionIndex;
 use App\Livewire\Mission\Show as MissionShow;
 use App\Livewire\Profile\Index as ProfileIndex;
+use App\Livewire\Video\Create as VideoCreate;
+use App\Livewire\Video\Index as VideoIndex;
+use App\Livewire\Video\Show as VideoShow;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -36,6 +41,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/learning', LearningIndex::class)->name('learning.index');
     Route::get('/learning/{material}', LearningShow::class)->name('learning.show');
     Route::get('/learning/{material}/post-test', LearningPostTest::class)->name('learning.post-test');
+    Route::get('/learning/{material}/post-test/kelola', LearningPostTestEditor::class)->name('learning.post-test.edit');
+    Route::get('/videos', VideoIndex::class)->name('videos.index');
+    Route::get('/videos/create', VideoCreate::class)->name('videos.create');
+    Route::get('/videos/{video}', VideoShow::class)->name('videos.show');
+    // Otorisasi per tab di komponen (policy kategori & gate manage-knowledge-topics).
+    Route::get('/kelola/kategori-topik', Taxonomy::class)->name('taxonomy.index');
     Route::get('/missions', MissionIndex::class)->name('missions.index');
     Route::get('/missions/{quiz}', MissionShow::class)->name('missions.show');
     Route::get('/leaderboard', LeaderboardIndex::class)->name('leaderboard.index');

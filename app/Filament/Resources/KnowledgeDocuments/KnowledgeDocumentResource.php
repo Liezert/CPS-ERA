@@ -24,7 +24,7 @@ class KnowledgeDocumentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Repository & Pembelajaran';
+    protected static UnitEnum|string|null $navigationGroup = 'Knowledge & Video';
 
     protected static ?int $navigationSort = 1;
 

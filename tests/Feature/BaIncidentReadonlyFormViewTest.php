@@ -168,7 +168,8 @@ class BaIncidentReadonlyFormViewTest extends TestCase
                 '6. Identifikasi Dampak Lanjutan & Potensi',
             ])
             ->assertSee('6. Identifikasi Dampak Lanjutan & Potensi')
-            ->assertSee('7. Video Penanganan & Bukti')
+            // Laporan CAPA baru tidak melampirkan video: bagian video hanya muncul untuk laporan lama
+            ->assertDontSee('7. Video Penanganan & Bukti')
             ->assertSee('8. Verifikasi & Approval Reviewer')
             // why_4 kosong: disembunyikan, sama seperti tampilan readonly form employee
             ->assertSee('visibleWhys >= 4 || false', false)
@@ -211,9 +212,9 @@ class BaIncidentReadonlyFormViewTest extends TestCase
             ->test(BaCreate::class)
             ->set('lokasi', '')
             ->set('why1', '')
-            ->call('nextStep')
+            ->call('submitReport')
             ->assertHasErrors(['lokasi', 'why1'])
-            ->assertSeeHtml('wire:model.live="lokasi"')
+            ->assertSeeHtml('wire:model="lokasi"')
             ->assertSee('Lokasi kejadian wajib diisi.')
             ->assertSee('Analisis Why pertama wajib diisi.');
     }
