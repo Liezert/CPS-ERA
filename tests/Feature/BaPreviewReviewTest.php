@@ -77,7 +77,7 @@ class BaPreviewReviewTest extends TestCase
             ->assertSee('Tahap 1 — Review Supervisor')
             ->assertSee('Setujui & Teruskan ke HR')
             ->assertDontSee('Review di Panel Admin')
-            ->set('catatanSupervisor', 'Sudah dicek langsung di line.')
+            ->set('catatanSupervisor', 'Sudah dicek langsung di line.')->set('potensiKerugian', 'tidak')
             ->call('approve')
             ->assertHasNoErrors()
             ->assertRedirect(route('ba.show', $incident));

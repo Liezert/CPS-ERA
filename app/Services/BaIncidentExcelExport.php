@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\DateTimeCell;
 use OpenSpout\Common\Entity\Cell\EmptyCell;
+use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\CellVerticalAlignment;
@@ -21,7 +22,7 @@ use OpenSpout\Writer\XLSX\Writer;
 
 /**
  * Ekspor laporan CAPA ke Excel (.xlsx). Kolom mengikuti urutan formulir CAPA/FTK
- * (bagian 1 s/d 6), ditambah Status dan Pelapor di akhir sebagai konteks review.
+ * (bagian 1 s/d 6), ditambah Status, Pelapor, lalu catatan review Supervisor (catatan lapangan dan potensi kerugian).
  * Rentang waktu dihitung dari Tanggal Pengisian, di zona waktu bisnis (config kpi.timezone).
  */
 class BaIncidentExcelExport
@@ -51,6 +52,10 @@ class BaIncidentExcelExport
         'Potensi Peluang Improvement' => 14,
         'Status' => 26,
         'Pelapor' => 24,
+        'Catatan Supervisor' => 40,
+        'Potensi Kerugian' => 14,
+        'Rekomendasi Ganti Rugi (Rp)' => 20,
+        'Ditanggung Oleh' => 36,
     ];
 
     /**
@@ -112,7 +117,7 @@ class BaIncidentExcelExport
     public function query(User $user, ?string $from, ?string $until): Builder
     {
         return BaIncident::visibleTo($user)
-            ->with(['division', 'creator'])
+            ->with(['division', 'creator', 'activityLogs' => fn ($query) => $query->where('action', 'BA Disetujui Supervisor')->latest()])
             ->when($from, fn (Builder $query) => $query->whereDate('tanggal_pengisian', '>=', $from))
             ->when($until, fn (Builder $query) => $query->whereDate('tanggal_pengisian', '<=', $until))
             ->orderBy('tanggal_pengisian')
@@ -135,6 +140,7 @@ class BaIncidentExcelExport
 
         $wrapTop = (new Style)->setShouldWrapText()->setCellVerticalAlignment(CellVerticalAlignment::TOP);
         $dateStyle = (new Style)->setFormat('dd/mm/yyyy');
+        $rupiahStyle = (new Style)->setFormat('#,##0');
 
         $writer->addRow(new Row(
             array_map(fn (string $title): Cell => new StringCell($title, null), array_keys(self::COLUMNS)),
@@ -143,8 +149,9 @@ class BaIncidentExcelExport
 
         foreach ($query->lazy(200) as $incident) {
             $writer->addRow(new Row(
-                array_map(fn (DateTimeInterface|string|null $value): Cell => match (true) {
+                array_map(fn (DateTimeInterface|int|string|null $value): Cell => match (true) {
                     $value instanceof DateTimeInterface => new DateTimeCell($value, $dateStyle),
+                    is_int($value) => new NumericCell($value, $rupiahStyle),
                     blank($value) => new EmptyCell(null, null),
                     // Selalu StringCell: Cell::fromValue() mengubah teks berawalan "=" menjadi rumus Excel,
                     // padahal isinya ketikan pengguna (celah injeksi rumus).
@@ -160,7 +167,7 @@ class BaIncidentExcelExport
     /**
      * Satu laporan sebagai baris Excel, urutan sama dengan COLUMNS.
      *
-     * @return list<DateTimeInterface|string|null>
+     * @return list<DateTimeInterface|int|string|null>
      */
     private function row(BaIncident $incident): array
     {
@@ -197,6 +204,16 @@ class BaIncidentExcelExport
             $incident->is_potensi_peluang ? 'Ya' : 'Tidak',
             BaIncidentStatus::tryFrom($incident->status)?->getLabel() ?? $incident->status,
             $incident->creator?->name,
+            $incident->activityLogs->first()?->note,
+            match ($incident->potensi_kerugian) {
+                true => 'Ada',
+                false => 'Tidak',
+                null => null,
+            },
+            $incident->nilai_kerugian,
+            collect($incident->penanggung_kerugian ?? [])
+                ->map(fn (array $row): string => $row['nama'].': Rp '.number_format($row['nominal'], 0, ',', '.'))
+                ->implode("\n"),
         ];
     }
 }
