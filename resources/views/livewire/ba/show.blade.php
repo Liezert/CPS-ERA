@@ -134,6 +134,9 @@
                     <dd class="mt-1 text-neutral-900 leading-relaxed line-clamp-4">{{ $capa['korektifDeskripsi'] ?: '-' }}</dd>
                     <dd class="mt-1 text-neutral-600">PIC {{ $capa['korektifPic'] ?: '-' }} · Target {{ $capa['korektifWaktu'] ?: '-' }}</dd>
                 </div>
+                @if ($stage === 'hr' && $incident->potensi_kerugian !== null)
+                    <x-capa.loss-summary :incident="$incident" class="sm:col-span-3 pt-3 border-t border-neutral-200" />
+                @endif
                 @if ($stage === 'hr' && filled($this->supervisorNote))
                     <div class="sm:col-span-3 pt-3 border-t border-neutral-200">
                         <dt class="font-semibold text-neutral-600">Catatan Supervisor</dt>
@@ -197,6 +200,50 @@
                                   class="w-full p-2.5 bg-white border border-neutral-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"></textarea>
                         @error('catatanSupervisor') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
                     </div>
+
+                    <fieldset class="space-y-1.5">
+                        <legend class="text-xs font-bold text-neutral-900 mb-1">Potensi Kerugian</legend>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2 text-xs text-neutral-800">
+                                <input type="radio" wire:model.live="potensiKerugian" value="ada" class="text-brand focus:ring-brand"> Ada
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-neutral-800">
+                                <input type="radio" wire:model.live="potensiKerugian" value="tidak" class="text-brand focus:ring-brand"> Tidak ada
+                            </label>
+                        </div>
+                        @error('potensiKerugian') <span class="text-xs text-red-600 block">{{ $message }}</span> @enderror
+                    </fieldset>
+
+                    @if ($potensiKerugian === 'ada')
+                        <div class="space-y-3 p-3 bg-white border border-neutral-200 rounded-md">
+                            <div>
+                                <label for="nilai_kerugian" class="block text-xs font-bold text-neutral-900 mb-1">Rekomendasi mengganti kerugian sebesar (Rp)</label>
+                                {{-- Format titik ribuan saat mengetik; .capture di pembungkus agar jalan sebelum wire:model membaca nilainya. --}}
+                                <div class="relative sm:max-w-xs" x-on:input.capture="$event.target.value = $event.target.value.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')"><span class="absolute inset-y-0 left-2.5 flex items-center text-xs text-neutral-500 pointer-events-none">Rp</span><input id="nilai_kerugian" type="text" inputmode="numeric" wire:model="nilaiKerugian" placeholder="1.000.000" class="pl-8 w-full p-2.5 bg-white border border-neutral-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"></div>
+                                @error('nilaiKerugian') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="space-y-2">
+                                <span class="block text-xs font-bold text-neutral-900">Ditanggung oleh</span>
+                                @foreach ($penanggungKerugian as $i => $row)
+                                    <div wire:key="penanggung-{{ $i }}" class="flex flex-col sm:flex-row gap-2 sm:items-start">
+                                        <div class="flex-1">
+                                            <input type="text" wire:model="penanggungKerugian.{{ $i }}.nama" placeholder="Nama" aria-label="Nama penanggung {{ $i + 1 }}" class="w-full p-2.5 bg-white border border-neutral-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand">
+                                            @error("penanggungKerugian.$i.nama") <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+                                        <div class="sm:w-48">
+                                            <div class="relative" x-on:input.capture="$event.target.value = $event.target.value.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')"><span class="absolute inset-y-0 left-2.5 flex items-center text-xs text-neutral-500 pointer-events-none">Rp</span><input type="text" inputmode="numeric" wire:model="penanggungKerugian.{{ $i }}.nominal" placeholder="Sebesar" aria-label="Nominal penanggung {{ $i + 1 }} (Rp)" class="pl-8 w-full p-2.5 bg-white border border-neutral-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"></div>
+                                            @error("penanggungKerugian.$i.nominal") <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+                                        @if (count($penanggungKerugian) > 1)
+                                            <button type="button" wire:click="removePenanggung({{ $i }})" class="px-2.5 py-2 text-xs font-medium text-red-700 hover:bg-red-50 rounded-md">Hapus</button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                                @error('penanggungKerugian') <span class="text-xs text-red-600 block">{{ $message }}</span> @enderror
+                                <button type="button" wire:click="addPenanggung" class="text-xs font-semibold text-brand-dark hover:underline">+ Tambah penanggung</button>
+                            </div>
+                        </div>
+                    @endif
                 @endif
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
@@ -284,6 +331,12 @@
 
             <x-capa.video-player :incident="$incident" />
         </div>
+    @endif
+
+    @if ($incident->potensi_kerugian !== null && $this->canSeeLoss)
+        <dl class="bg-white border border-neutral-200 rounded-md p-6 text-xs">
+            <x-capa.loss-summary :incident="$incident" />
+        </dl>
     @endif
 
     {{-- =========================================================================

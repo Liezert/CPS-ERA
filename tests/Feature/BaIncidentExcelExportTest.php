@@ -89,6 +89,8 @@ class BaIncidentExcelExportTest extends TestCase
     public function test_excel_follows_capa_form_columns_and_only_includes_the_chosen_range(): void
     {
         $inRange = $this->report('2025-06-10', ['deskripsi_masalah' => '=HYPERLINK("http://contoh.test","klik")']);
+        $inRange->update(['potensi_kerugian' => true, 'nilai_kerugian' => 1500000, 'penanggung_kerugian' => [['nama' => 'Budi', 'nominal' => 1000000], ['nama' => 'Sari', 'nominal' => 500000]]]);
+        \App\Models\BaActivityLog::create(['ba_incident_id' => $inRange->id, 'actor_id' => $this->admin->id, 'action' => 'BA Disetujui Supervisor', 'note' => 'Dicek di line 2.']);
         $this->report('2026-02-01');
 
         $export = app(BaIncidentExcelExport::class);
@@ -109,7 +111,8 @@ class BaIncidentExcelExportTest extends TestCase
         [$header, $data] = [$rows[0], $rows[1]];
         $this->assertCount(2, $rows, 'Hanya laporan dengan Tanggal Pengisian di rentang yang ikut.');
         $this->assertSame(['No. FTK / Register BA', 'Tanggal Pengisian', 'Bagian / Divisi', 'Sumber Ketidaksesuaian', 'Tanggal Kejadian Masalah', 'Lokasi / Tempat Kejadian'], array_slice($header, 0, 6));
-        $this->assertSame(['Potensi Risiko Signifikan', 'Potensi Peluang Improvement', 'Status', 'Pelapor'], array_slice($header, -4));
+        $this->assertSame(['Potensi Risiko Signifikan', 'Potensi Peluang Improvement', 'Status', 'Pelapor'], array_slice($header, 19, 4));
+        $this->assertSame(['Catatan Supervisor', 'Potensi Kerugian', 'Rekomendasi Ganti Rugi (Rp)', 'Ditanggung Oleh'], array_slice($header, -4));
 
         $cell = array_combine($header, $data);
         $this->assertSame($inRange->nomor_ba, $cell['No. FTK / Register BA']);
@@ -121,6 +124,10 @@ class BaIncidentExcelExportTest extends TestCase
         $this->assertSame('Tidak', $cell['Potensi Peluang Improvement']);
         $this->assertSame('Menunggu Review HR', $cell['Status']);
         $this->assertSame('Rina Pelapor', $cell['Pelapor']);
+        $this->assertSame('Dicek di line 2.', $cell['Catatan Supervisor']);
+        $this->assertSame('Ada', $cell['Potensi Kerugian']);
+        $this->assertEquals(1500000, $cell['Rekomendasi Ganti Rugi (Rp)']);
+        $this->assertSame("Budi: Rp 1.000.000\nSari: Rp 500.000", $cell['Ditanggung Oleh']);
 
         // Ketikan pengguna berawalan "=" harus tetap teks, bukan rumus Excel yang aktif.
         $this->assertSame('=HYPERLINK("http://contoh.test","klik")', $cell['Uraian Masalah / Ketidaksesuaian']);

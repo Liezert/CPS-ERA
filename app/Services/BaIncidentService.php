@@ -284,14 +284,18 @@ class BaIncidentService
      * Tahap 1: Supervisor divisi pelapor menyetujui laporan dan meneruskannya ke HR. Catatan
      * lapangan (opsional) disimpan di riwayat aktivitas dan ditampilkan ke HR saat review final.
      */
-    public function approveAsSupervisor(BaIncident $incident, User $actor, ?string $note = null): BaIncident
+    /**
+     * @param  array{potensi_kerugian?: bool, nilai_kerugian?: ?int, penanggung_kerugian?: ?array}  $loss  catatan potensi kerugian (opsional)
+     */
+    public function approveAsSupervisor(BaIncident $incident, User $actor, ?string $note = null, array $loss = []): BaIncident
     {
         $this->authorizeStage($actor, 'reviewAsSupervisor', $incident, 'Persetujuan tahap Supervisor hanya untuk Supervisor divisi pelapor, selama laporan menunggu review Supervisor.');
 
-        return DB::transaction(function () use ($incident, $actor, $note): BaIncident {
+        return DB::transaction(function () use ($incident, $actor, $note, $loss): BaIncident {
             $this->lockInStatus($incident, BaIncidentStatus::PendingSupervisor);
 
             $incident->update([
+                ...array_intersect_key($loss, array_flip(['potensi_kerugian', 'nilai_kerugian', 'penanggung_kerugian'])),
                 'status' => BaIncidentStatus::PendingHr->value,
                 'supervisor_reviewed_by' => $actor->id,
                 'supervisor_reviewed_at' => now(),

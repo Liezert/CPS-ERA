@@ -253,6 +253,37 @@ class TesterFindingsTest extends TestCase
         $this->actingAs($employee)->get(route('ba.index'))->assertSee(route('ba.create'));
     }
 
+    public function test_supervisor_records_potential_loss_when_approving(): void
+    {
+        $reporter = $this->user('employee');
+        $supervisor = $this->user('supervisor');
+        $service = app(BaIncidentService::class);
+        $incident = $service->submit($service->saveDraft(['division_id' => $this->produksi->id, 'deskripsi_masalah' => 'Sablon menyimpang.'], $reporter), $reporter);
+
+        $review = Livewire::actingAs($supervisor)->test(\App\Livewire\Ba\Show::class, ['incident' => $incident]);
+        $review->call('approve')->assertHasErrors(['potensiKerugian']);
+        $review->set('potensiKerugian', 'ada')->call('approve')
+            ->assertHasErrors(['nilaiKerugian', 'penanggungKerugian.0.nama']);
+
+        // Nominal diketik berformat rupiah; total yang ditanggung wajib sama dengan rekomendasi.
+        $review->set('nilaiKerugian', '1.500.000')
+            ->set('penanggungKerugian.0.nama', 'Budi')->set('penanggungKerugian.0.nominal', '1.000.000')
+            ->call('addPenanggung')
+            ->set('penanggungKerugian.1.nama', 'Sari')->set('penanggungKerugian.1.nominal', '400.000')
+            ->call('approve')->assertHasErrors(['penanggungKerugian']);
+        $this->assertSame('pending_supervisor', $incident->fresh()->status);
+
+        $review->set('penanggungKerugian.1.nominal', '500.000')->call('approve')->assertHasNoErrors();
+
+        $incident->refresh();
+        $this->assertTrue($incident->potensi_kerugian);
+        $this->assertSame(1500000, $incident->nilai_kerugian);
+        $this->assertSame([['nama' => 'Budi', 'nominal' => 1000000], ['nama' => 'Sari', 'nominal' => 500000]], $incident->penanggung_kerugian);
+        // Hanya peninjau yang melihat catatan kerugian; pelapor tidak.
+        $this->actingAs($supervisor)->get(route('ba.show', $incident))->assertSee('Rp 1.500.000')->assertSee('Ditanggung oleh Sari');
+        $this->actingAs($reporter)->get(route('ba.show', $incident))->assertOk()->assertDontSee('Potensi Kerugian (catatan Supervisor)')->assertDontSee('Ditanggung oleh Sari');
+    }
+
     public function test_timestamps_are_displayed_in_wib_but_stored_in_utc(): void
     {
         $moment = Carbon::parse('2026-09-30 00:23:00', 'UTC');
